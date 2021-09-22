@@ -1,0 +1,10 @@
+node_modules/
+typechain/
+env.json
+.tmp-addresses*.json
+data/gmxMigration
+flattened
+
+#Hardhat files
+cache
+artifacts
