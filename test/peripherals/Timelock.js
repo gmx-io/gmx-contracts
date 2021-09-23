@@ -53,7 +53,7 @@ describe("Timelock", function () {
 
     await vault.setPriceFeed(user3.address)
 
-    timelock = await deployContract("Timelock", [5 * 24 * 60 * 60, tokenManager.address, 1000])
+    timelock = await deployContract("Timelock", [wallet.address, 5 * 24 * 60 * 60, tokenManager.address, 1000])
     await vault.setGov(timelock.address)
 
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
@@ -730,5 +730,19 @@ describe("Timelock", function () {
     expect(await timelock.admin()).eq(wallet.address)
     await timelock.connect(tokenManager).setAdmin(user1.address)
     expect(await timelock.admin()).eq(user1.address)
+  })
+
+  it("setExternalAdmin", async () => {
+    const distributor = await deployContract("RewardDistributor", [user1.address, user2.address])
+    await distributor.setGov(timelock.address)
+    await expect(timelock.connect(user0).setExternalAdmin(distributor.address, user3.address))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await distributor.admin()).eq(wallet.address)
+    await timelock.connect(wallet).setExternalAdmin(distributor.address, user3.address)
+    expect(await distributor.admin()).eq(user3.address)
+
+    await expect(timelock.connect(wallet).setExternalAdmin(timelock.address, user3.address))
+      .to.be.revertedWith("Timelock: invalid _target")
   })
 })

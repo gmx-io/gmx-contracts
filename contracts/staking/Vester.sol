@@ -8,9 +8,10 @@ import "../libraries/token/SafeERC20.sol";
 import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IRewardTracker.sol";
+import "./interfaces/IVester.sol";
 import "../access/Governable.sol";
 
-contract Vester is IERC20, ReentrancyGuard, Governable {
+contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -36,6 +37,10 @@ contract Vester is IERC20, ReentrancyGuard, Governable {
     mapping (address => uint256) public cumulativeClaimAmounts;
     mapping (address => uint256) public claimedAmounts;
     mapping (address => uint256) public lastVestingTimes;
+
+    mapping (address => uint256) public override transferredAverageStakedAmounts;
+    mapping (address => uint256) public override transferredCumulativeRewards;
+    mapping (address => uint256) public override bonusRewards;
 
     mapping (address => bool) public isHandler;
 
@@ -125,6 +130,21 @@ contract Vester is IERC20, ReentrancyGuard, Governable {
         emit Withdraw(account, claimedAmount, balance);
     }
 
+    function setTransferredAverageStakedAmounts(address _account, uint256 _amount) external override nonReentrant {
+        _validateHandler();
+        transferredAverageStakedAmounts[_account] = _amount;
+    }
+
+    function setTransferredCumulativeRewards(address _account, uint256 _amount) external override nonReentrant {
+        _validateHandler();
+        transferredCumulativeRewards[_account] = _amount;
+    }
+
+    function setBonusRewards(address _account, uint256 _amount) external override nonReentrant {
+        _validateHandler();
+        bonusRewards[_account] = _amount;
+    }
+
     function claimable(address _account) public view returns (uint256) {
         uint256 amount = cumulativeClaimAmounts[_account].sub(claimedAmounts[_account]);
         uint256 nextClaimable = _getNextClaimableAmount(_account);
@@ -133,17 +153,35 @@ contract Vester is IERC20, ReentrancyGuard, Governable {
 
     function getMaxVestableAmount(address _account) public view returns (uint256) {
         if (!hasRewardTracker()) { return 0; }
-        return IRewardTracker(rewardTracker).cumulativeRewards(_account);
+
+        uint256 transferredCumulativeReward = transferredCumulativeRewards[_account];
+        uint256 bonusReward = bonusRewards[_account];
+        uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_account);
+        return cumulativeReward.add(transferredCumulativeReward).add(bonusReward);
     }
 
     function getPairAmount(address _account, uint256 _esAmount) public view returns (uint256) {
         if (!hasRewardTracker()) { return 0; }
 
-        uint256 averageStakedAmount = IRewardTracker(rewardTracker).averageStakedAmounts(_account);
         uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_account);
-        if (cumulativeReward == 0) { return 0; }
+        uint256 transferredCumulativeReward = transferredCumulativeRewards[_account];
+        uint256 totalCumulativeReward = cumulativeReward.add(transferredCumulativeReward);
+        if (totalCumulativeReward == 0) { return 0; }
 
-        return _esAmount.mul(averageStakedAmount).div(cumulativeReward);
+        uint256 bonusReward = bonusRewards[_account];
+        uint256 totalReward = cumulativeReward.add(transferredCumulativeReward).add(bonusReward);
+
+        uint256 averageStakedAmount = IRewardTracker(rewardTracker).averageStakedAmounts(_account);
+        uint256 transferredAverageStakedAmount = transferredAverageStakedAmounts[_account];
+
+        uint256 combinedAverageStakedAmount = averageStakedAmount
+            .mul(cumulativeReward)
+            .div(totalCumulativeReward)
+            .add(
+                transferredAverageStakedAmount.mul(transferredCumulativeReward).div(totalCumulativeReward)
+            );
+
+        return _esAmount.mul(combinedAverageStakedAmount).div(totalReward);
     }
 
     function hasRewardTracker() public view returns (bool) {

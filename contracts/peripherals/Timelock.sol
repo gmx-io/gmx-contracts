@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 
 import "./interfaces/ITimelockTarget.sol";
 import "./interfaces/ITimelock.sol";
+import "../access/interfaces/IAdmin.sol";
 import "../core/interfaces/IVault.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
 import "../core/interfaces/IRouter.sol";
@@ -58,9 +59,9 @@ contract Timelock is ITimelock {
         _;
     }
 
-    constructor(uint256 _buffer, address _tokenManager, uint256 _maxTokenSupply) public {
+    constructor(address _admin, uint256 _buffer, address _tokenManager, uint256 _maxTokenSupply) public {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
-        admin = msg.sender;
+        admin = _admin;
         buffer = _buffer;
         tokenManager = _tokenManager;
         maxTokenSupply = _maxTokenSupply;
@@ -68,6 +69,11 @@ contract Timelock is ITimelock {
 
     function setAdmin(address _admin) external override onlyTokenManager {
         admin = _admin;
+    }
+
+    function setExternalAdmin(address _target, address _admin) external onlyAdmin {
+        require(_target != address(this), "Timelock: invalid _target");
+        IAdmin(_target).setAdmin(_admin);
     }
 
     function setBuffer(uint256 _buffer) external onlyAdmin {
