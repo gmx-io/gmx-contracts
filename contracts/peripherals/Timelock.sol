@@ -27,6 +27,7 @@ contract Timelock is ITimelock {
     address public admin;
 
     address public tokenManager;
+    address public mintReceiver;
     uint256 public maxTokenSupply;
 
     mapping (bytes32 => uint256) public pendingActions;
@@ -59,11 +60,18 @@ contract Timelock is ITimelock {
         _;
     }
 
-    constructor(address _admin, uint256 _buffer, address _tokenManager, uint256 _maxTokenSupply) public {
+    constructor(
+        address _admin,
+        uint256 _buffer,
+        address _tokenManager,
+        address _mintReceiver,
+        uint256 _maxTokenSupply
+    ) public {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         admin = _admin;
         buffer = _buffer;
         tokenManager = _tokenManager;
+        mintReceiver = _mintReceiver;
         maxTokenSupply = _maxTokenSupply;
     }
 
@@ -89,7 +97,7 @@ contract Timelock is ITimelock {
             mintable.setMinter(address(this), true);
         }
 
-        mintable.mint(tokenManager, _amount);
+        mintable.mint(mintReceiver, _amount);
         require(IERC20(_token).totalSupply() <= maxTokenSupply, "Timelock: maxTokenSupply exceeded");
     }
 
@@ -226,18 +234,6 @@ contract Timelock is ITimelock {
         }
 
         IBaseToken(_token).setInPrivateTransferMode(_inPrivateTransferMode);
-    }
-
-    function testBridge(address _bridge, address _token, uint256 _amount, address _receiver) external onlyAdmin {
-        require(!excludedTokens[_token], "Timelock: _token is excluded");
-
-        IBaseToken(_token).setInPrivateTransferMode(false);
-
-        IERC20(_token).transferFrom(admin, address(this), _amount);
-        IERC20(_token).approve(_bridge, _amount);
-        IBridge(_bridge).wrap(_amount, _receiver);
-
-        IBaseToken(_token).setInPrivateTransferMode(true);
     }
 
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {

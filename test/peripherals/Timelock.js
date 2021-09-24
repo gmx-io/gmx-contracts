@@ -10,7 +10,7 @@ use(solidity)
 
 describe("Timelock", function () {
   const provider = waffle.provider
-  const [wallet, user0, user1, user2, user3, tokenManager] = provider.getWallets()
+  const [wallet, user0, user1, user2, user3, tokenManager, mintReceiver] = provider.getWallets()
   let vault
   let vaultPriceFeed
   let usdg
@@ -53,7 +53,13 @@ describe("Timelock", function () {
 
     await vault.setPriceFeed(user3.address)
 
-    timelock = await deployContract("Timelock", [wallet.address, 5 * 24 * 60 * 60, tokenManager.address, 1000])
+    timelock = await deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60,
+      tokenManager.address,
+      mintReceiver.address,
+      1000
+    ])
     await vault.setGov(timelock.address)
 
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
@@ -81,8 +87,13 @@ describe("Timelock", function () {
     expect(await timelock.tokenManager()).eq(tokenManager.address)
     expect(await timelock.maxTokenSupply()).eq(1000)
 
-    await expect(deployContract("Timelock", [5 * 24 * 60 * 60 + 1, tokenManager.address, 1000]))
-      .to.be.revertedWith("Timelock: invalid _buffer")
+    await expect(deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60 + 1,
+      tokenManager.address,
+      mintReceiver.address,
+      1000
+    ])).to.be.revertedWith("Timelock: invalid _buffer")
   })
 
   it("setTokenConfig", async () => {
@@ -164,18 +175,24 @@ describe("Timelock", function () {
   })
 
   it("setBuffer", async () => {
-    const timelock0 = await deployContract("Timelock", [3 * 24 * 60 * 60, tokenManager.address, 1000])
+    const timelock0 = await deployContract("Timelock", [
+      user1.address,
+      3 * 24 * 60 * 60,
+      tokenManager.address,
+      mintReceiver.address,
+      1000
+    ])
     await expect(timelock0.connect(user0).setBuffer(3 * 24 * 60 * 60 - 10))
       .to.be.revertedWith("Timelock: forbidden")
 
-    await expect(timelock0.connect(wallet).setBuffer(5 * 24 * 60 * 60 + 10))
+    await expect(timelock0.connect(user1).setBuffer(5 * 24 * 60 * 60 + 10))
       .to.be.revertedWith("Timelock: invalid _buffer")
 
-    await expect(timelock0.connect(wallet).setBuffer(3 * 24 * 60 * 60 - 10))
+    await expect(timelock0.connect(user1).setBuffer(3 * 24 * 60 * 60 - 10))
       .to.be.revertedWith("Timelock: buffer cannot be decreased")
 
     expect(await timelock0.buffer()).eq(3 * 24 * 60 * 60)
-    await timelock0.connect(wallet).setBuffer(3 * 24 * 60 * 60 + 10)
+    await timelock0.connect(user1).setBuffer(3 * 24 * 60 * 60 + 10)
     expect(await timelock0.buffer()).eq(3 * 24 * 60 * 60 + 10)
   })
 
@@ -190,12 +207,12 @@ describe("Timelock", function () {
     await gmx.setGov(timelock.address)
 
     expect(await gmx.isMinter(timelock.address)).eq(false)
-    expect(await gmx.balanceOf(tokenManager.address)).eq(0)
+    expect(await gmx.balanceOf(mintReceiver.address)).eq(0)
 
     await timelock.connect(wallet).mint(gmx.address, 900)
 
     expect(await gmx.isMinter(timelock.address)).eq(true)
-    expect(await gmx.balanceOf(tokenManager.address)).eq(900)
+    expect(await gmx.balanceOf(mintReceiver.address)).eq(900)
 
     await expect(timelock.connect(wallet).mint(gmx.address, 101))
       .to.be.revertedWith("Timelock: maxTokenSupply exceeded")
@@ -673,54 +690,6 @@ describe("Timelock", function () {
     expect(await gmx.inPrivateTransferMode()).eq(false)
 
     await gmx.connect(user0).transfer(user1.address, 100)
-  })
-
-  it("testBridge", async () => {
-    const gmx = await deployContract("GMX", [])
-    const wgmx = await deployContract("GMX", [])
-    const bridge = await deployContract("Bridge", [gmx.address, wgmx.address])
-
-    await gmx.setMinter(wallet.address, true)
-    await gmx.mint(wallet.address, 100)
-
-    await wgmx.setMinter(wallet.address, true)
-    await wgmx.mint(bridge.address, 100)
-
-    await expect(timelock.connect(user0).setInPrivateTransferMode(gmx.address, true))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    await expect(timelock.connect(wallet).setInPrivateTransferMode(gmx.address, true))
-      .to.be.revertedWith("BaseToken: forbidden")
-
-    await gmx.setGov(timelock.address)
-
-    expect(await gmx.inPrivateTransferMode()).eq(false)
-    await timelock.connect(wallet).setInPrivateTransferMode(gmx.address, true)
-    expect(await gmx.inPrivateTransferMode()).eq(true)
-
-    await expect(gmx.connect(user0).transfer(user1.address, 100))
-      .to.be.revertedWith("BaseToken: msg.sender not whitelisted")
-
-    await expect(timelock.connect(user0).testBridge(bridge.address, gmx.address, 100, user1.address))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    await gmx.connect(wallet).approve(timelock.address, 100)
-
-    expect(await gmx.balanceOf(wallet.address)).eq(100)
-    expect(await gmx.balanceOf(bridge.address)).eq(0)
-    expect(await wgmx.balanceOf(user1.address)).eq(0)
-    expect(await wgmx.balanceOf(bridge.address)).eq(100)
-
-    await timelock.testBridge(bridge.address, gmx.address, 100, user1.address)
-
-    expect(await gmx.balanceOf(wallet.address)).eq(0)
-    expect(await gmx.balanceOf(bridge.address)).eq(100)
-    expect(await wgmx.balanceOf(user1.address)).eq(100)
-    expect(await wgmx.balanceOf(bridge.address)).eq(0)
-
-    await timelock.addExcludedToken(gmx.address)
-    await expect(timelock.connect(wallet).testBridge(bridge.address, gmx.address, 100, user1.address))
-      .to.be.revertedWith("Timelock: _token is excluded")
   })
 
   it("setAdmin", async () => {
