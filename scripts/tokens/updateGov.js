@@ -28,11 +28,10 @@ async function main() {
   ]
 
   const prevGov = await contractAt("Timelock", "0x4a3930b629f899fe19c1f280c73a376382d61a78")
-  const gov = { address: "0x7918B81E119954488C00D2243A8BF2fa407ae87d" }
+  const nextGov = { address: "0x181e9495444cc7AdCE9fBdeaE4c66D7c4eFEeaf5" }
   for (let i = 0; i < addresses.length; i++) {
     const address = addresses[i]
-    const contract = await contractAt("YieldToken", address)
-    await sendTxn(contract.setGov(gov.address), `${i}: setGov`)
+    await sendTxn(prevGov.signalSetGov(address, nextGov.address), `${i}: signalSetGov`)
   }
 }
 
