@@ -70,6 +70,7 @@ contract Timelock is ITimelock {
     constructor(
         address _admin,
         uint256 _buffer,
+        address _rewardManager,
         address _tokenManager,
         address _mintReceiver,
         uint256 _maxTokenSupply
@@ -77,6 +78,7 @@ contract Timelock is ITimelock {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         admin = _admin;
         buffer = _buffer;
+        rewardManager = _rewardManager;
         tokenManager = _tokenManager;
         mintReceiver = _mintReceiver;
         maxTokenSupply = _maxTokenSupply;
