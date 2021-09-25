@@ -100,5 +100,8 @@ contract RewardManager is Governable {
 
         timelock.managedSetHandler(gmxVester, rewardRouter, true);
         timelock.managedSetHandler(glpVester, rewardRouter, true);
+
+        timelock.managedSetHandler(feeGmxTracker, gmxVester, true);
+        timelock.managedSetHandler(stakedGlpTracker, glpVester, true);
     }
 }

@@ -151,7 +151,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         return amount.add(nextClaimable);
     }
 
-    function getMaxVestableAmount(address _account) public view returns (uint256) {
+    function getMaxVestableAmount(address _account) public override view returns (uint256) {
         if (!hasRewardTracker()) { return 0; }
 
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_account];
@@ -160,28 +160,33 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         return cumulativeReward.add(transferredCumulativeReward).add(bonusReward);
     }
 
-    function getPairAmount(address _account, uint256 _esAmount) public view returns (uint256) {
-        if (!hasRewardTracker()) { return 0; }
-
+    function getCombinedAveragedStakedAmount(address _account) public override view returns (uint256) {
         uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_account);
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_account];
         uint256 totalCumulativeReward = cumulativeReward.add(transferredCumulativeReward);
         if (totalCumulativeReward == 0) { return 0; }
 
-        uint256 bonusReward = bonusRewards[_account];
-        uint256 totalReward = cumulativeReward.add(transferredCumulativeReward).add(bonusReward);
-
         uint256 averageStakedAmount = IRewardTracker(rewardTracker).averageStakedAmounts(_account);
         uint256 transferredAverageStakedAmount = transferredAverageStakedAmounts[_account];
 
-        uint256 combinedAverageStakedAmount = averageStakedAmount
+        return averageStakedAmount
             .mul(cumulativeReward)
             .div(totalCumulativeReward)
             .add(
                 transferredAverageStakedAmount.mul(transferredCumulativeReward).div(totalCumulativeReward)
             );
+    }
 
-        return _esAmount.mul(combinedAverageStakedAmount).div(totalReward);
+    function getPairAmount(address _account, uint256 _esAmount) public view returns (uint256) {
+        if (!hasRewardTracker()) { return 0; }
+
+        uint256 combinedAverageStakedAmount = getCombinedAveragedStakedAmount(_account);
+        if (combinedAverageStakedAmount == 0) {
+            return 0;
+        }
+
+        uint256 maxVestableAmount = getMaxVestableAmount(_account);
+        return _esAmount.mul(combinedAverageStakedAmount).div(maxVestableAmount);
     }
 
     function hasRewardTracker() public view returns (bool) {

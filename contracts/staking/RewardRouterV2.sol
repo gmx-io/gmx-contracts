@@ -40,8 +40,9 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
     address public glpManager;
 
     address public gmxVester;
+    address public glpVester;
 
-    mapping (address => address) public pendingGmxReceivers;
+    mapping (address => address) public pendingReceivers;
 
     event StakeGmx(address account, address token, uint256 amount);
     event UnstakeGmx(address account, address token, uint256 amount);
@@ -65,7 +66,8 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
         address _feeGlpTracker,
         address _stakedGlpTracker,
         address _glpManager,
-        address _gmxVester
+        address _gmxVester,
+        address _glpVester
     ) external onlyGov {
         require(!isInitialized, "RewardRouter: already initialized");
         isInitialized = true;
@@ -86,7 +88,9 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
         stakedGlpTracker = _stakedGlpTracker;
 
         glpManager = _glpManager;
+
         gmxVester = _gmxVester;
+        glpVester = _glpVester;
     }
 
     // to help users who accidentally send their tokens to this contract
@@ -219,24 +223,30 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
         }
     }
 
-    function signalTransferGmx(address _receiver) external nonReentrant {
-        _validateGmxReceiver(_receiver);
-        pendingGmxReceivers[msg.sender] = _receiver;
+    function signalTransfer(address _receiver) external nonReentrant {
+        require(IERC20(gmxVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
+        require(IERC20(glpVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
+
+        _validateReceiver(_receiver);
+        pendingReceivers[msg.sender] = _receiver;
     }
 
-    function acceptTransferGmx(address _sender) external nonReentrant {
-        address receiver = msg.sender;
-        require(pendingGmxReceivers[_sender] == receiver, "RewardRouter: GMX transfer not signalled");
-        delete pendingGmxReceivers[_sender];
+    function acceptTransfer(address _sender) external nonReentrant {
+        require(IERC20(gmxVester).balanceOf(_sender) == 0, "RewardRouter: sender has vested tokens");
+        require(IERC20(glpVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
 
-        _validateGmxReceiver(receiver);
+        address receiver = msg.sender;
+        require(pendingReceivers[_sender] == receiver, "RewardRouter: GMX transfer not signalled");
+        delete pendingReceivers[_sender];
+
+        _validateReceiver(receiver);
         _compoundGmx(_sender);
 
-        uint256 stakedGmx = IRewardTracker(feeGmxTracker).depositBalances(_sender, gmx);
+        uint256 stakedGmx = IRewardTracker(stakedGmxTracker).depositBalances(_sender, gmx);
         _unstakeGmx(_sender, gmx, stakedGmx, false);
         _stakeGmx(_sender, receiver, gmx, stakedGmx);
 
-        uint256 stakedEsGmx = IRewardTracker(feeGmxTracker).depositBalances(_sender, esGmx);
+        uint256 stakedEsGmx = IRewardTracker(stakedGmxTracker).depositBalances(_sender, esGmx);
         _unstakeGmx(_sender, esGmx, stakedEsGmx, false);
         _stakeGmx(_sender, receiver, esGmx, stakedEsGmx);
 
@@ -244,17 +254,36 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
         IRewardTracker(feeGmxTracker).unstakeForAccount(_sender, bnGmx, stakedBnGmx, _sender);
         IRewardTracker(feeGmxTracker).stakeForAccount(_sender, receiver, bnGmx, stakedBnGmx);
 
+        uint256 esGmxBalance = IERC20(esGmx).balanceOf(_sender);
+        IERC20(esGmx).transferFrom(_sender, receiver, esGmxBalance);
+
+        uint256 glpAmount = IRewardTracker(stakedGlpTracker).depositBalances(_sender, glp);
+        IRewardTracker(stakedGlpTracker).unstakeForAccount(_sender, feeGlpTracker, glpAmount, receiver);
+        IRewardTracker(feeGlpTracker).unstakeForAccount(_sender, glp, glpAmount, receiver);
+
+        IRewardTracker(feeGlpTracker).stakeForAccount(receiver, receiver, glp, glpAmount);
+        IRewardTracker(stakedGlpTracker).stakeForAccount(receiver, receiver, feeGlpTracker, glpAmount);
+
         IVester(gmxVester).setTransferredAverageStakedAmounts(
             receiver,
-            IRewardTracker(stakedGmxTracker).averageStakedAmounts(_sender)
+            IVester(gmxVester).getCombinedAveragedStakedAmount(_sender)
         );
         IVester(gmxVester).setTransferredCumulativeRewards(
             receiver,
-            IRewardTracker(stakedGmxTracker).cumulativeRewards(_sender)
+            IVester(gmxVester).getMaxVestableAmount(_sender)
+        );
+
+        IVester(glpVester).setTransferredAverageStakedAmounts(
+            receiver,
+            IVester(glpVester).getCombinedAveragedStakedAmount(_sender)
+        );
+        IVester(glpVester).setTransferredCumulativeRewards(
+            receiver,
+            IVester(glpVester).getMaxVestableAmount(_sender)
         );
     }
 
-    function _validateGmxReceiver(address _receiver) private view {
+    function _validateReceiver(address _receiver) private view {
         require(IRewardTracker(stakedGmxTracker).averageStakedAmounts(_receiver) == 0, "RewardRouter: invalid _receiver");
         require(IRewardTracker(stakedGmxTracker).cumulativeRewards(_receiver) == 0, "RewardRouter: invalid _receiver");
 
@@ -266,6 +295,15 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
 
         require(IVester(gmxVester).transferredAverageStakedAmounts(_receiver) == 0, "RewardRouter: invalid _receiver");
         require(IVester(gmxVester).transferredCumulativeRewards(_receiver) == 0, "RewardRouter: invalid _receiver");
+
+        require(IRewardTracker(stakedGlpTracker).averageStakedAmounts(_receiver) == 0, "RewardRouter: invalid _receiver");
+        require(IRewardTracker(stakedGlpTracker).cumulativeRewards(_receiver) == 0, "RewardRouter: invalid _receiver");
+
+        require(IRewardTracker(feeGlpTracker).averageStakedAmounts(_receiver) == 0, "RewardRouter: invalid _receiver");
+        require(IRewardTracker(feeGlpTracker).cumulativeRewards(_receiver) == 0, "RewardRouter: invalid _receiver");
+
+        require(IVester(glpVester).transferredAverageStakedAmounts(_receiver) == 0, "RewardRouter: invalid _receiver");
+        require(IVester(glpVester).transferredCumulativeRewards(_receiver) == 0, "RewardRouter: invalid _receiver");
     }
 
     function _compound(address _account) private {

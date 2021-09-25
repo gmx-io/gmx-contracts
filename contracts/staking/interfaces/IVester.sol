@@ -10,4 +10,7 @@ interface IVester {
     function setTransferredAverageStakedAmounts(address _account, uint256 _amount) external;
     function setTransferredCumulativeRewards(address _account, uint256 _amount) external;
     function setBonusRewards(address _account, uint256 _amount) external;
+
+    function getMaxVestableAmount(address _account) external view returns (uint256);
+    function getCombinedAveragedStakedAmount(address _account) external view returns (uint256);
 }
