@@ -9,29 +9,52 @@ module.exports = {
     usdcPriceFeed: { address: "0x51597f405303C4377E36123cBc172b13269EA163" },
     usdtPriceFeed: { address: "0xB97Ad0E74fa7d920791E90258A6E2085088b4320" },
     btc: {
+      name: "btc",
       address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-      decimals: 18
+      decimals: 18,
+      priceFeed: "0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf",
+      priceDecimals: 8,
+      isStrictStable: false
     },
     eth: {
+      name: "eth",
       address: "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-      decimals: 18
+      decimals: 18,
+      priceFeed: "0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e",
+      priceDecimals: 8,
+      isStrictStable: false
     },
     bnb: {
+      name: "bnb",
       address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-      decimals: 18
+      decimals: 18,
+      priceFeed: "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",
+      priceDecimals: 8,
+      isStrictStable: false
     },
     busd: {
+      name: "busd",
       address: "0xe9e7cea3dedca5984780bafc599bd69add087d56",
-      decimals: 18
+      decimals: 18,
+      priceFeed: "0xcBb98864Ef56E9042e7d2efef76141f15731B82f",
+      priceDecimals: 8,
+      isStrictStable: true
     },
     usdc: {
+      name: "usdc",
       address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
-      decimals: 18
-
+      decimals: 18,
+      priceFeed: "0x51597f405303C4377E36123cBc172b13269EA163",
+      priceDecimals: 8,
+      isStrictStable: true
     },
     usdt: {
+      name: "usdt",
       address: "0x55d398326f99059fF775485246999027B3197955",
-      decimals: 18
+      decimals: 18,
+      priceFeed: "0xB97Ad0E74fa7d920791E90258A6E2085088b4320",
+      priceDecimals: 8,
+      isStrictStable: true
     },
     nativeToken: {
       address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
