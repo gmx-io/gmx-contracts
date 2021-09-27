@@ -688,4 +688,30 @@ describe("RewardRouterV2", function () {
     expect(await provider.getBalance(bnb.address)).eq("5991000000000000")
     expect(await bnb.totalSupply()).eq("5991000000000000")
   })
+
+  it("signalTransfer", async () =>{
+    await gmx.setMinter(wallet.address, true)
+    await gmx.mint(user1.address, expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(200, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(200, 18))
+    await rewardRouter.connect(user1).stakeGmx(expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    await gmx.mint(user2.address, expandDecimals(100, 18))
+    expect(await gmx.balanceOf(user2.address)).eq(expandDecimals(100, 18))
+    await gmx.connect(user2).approve(stakedGmxTracker.address, expandDecimals(100, 18))
+    await rewardRouter.connect(user2).stakeGmx(expandDecimals(100, 18))
+    expect(await gmx.balanceOf(user2.address)).eq(0)
+
+    await rewardRouter.connect(user1).signalTransfer(user2.address)
+
+    await increaseTime(provider, 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await rewardRouter.connect(user1).signalTransfer(user2.address)
+    await rewardRouter.connect(user2).unstakeGmx(expandDecimals(100, 18))
+
+    await expect(rewardRouter.connect(user1).signalTransfer(user2.address))
+      .to.be.revertedWith("RewardRouter: stakedGmxTracker.averageStakedAmounts > 0")
+  })
 })
