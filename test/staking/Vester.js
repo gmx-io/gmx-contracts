@@ -61,6 +61,7 @@ describe("Vester", function () {
       gmx.address,
       AddressZero
     ])
+    await esGmx.setMinter(vester.address, true)
 
     await expect(vester.connect(user0).deposit(0))
       .to.be.revertedWith("Vester: invalid _amount")
@@ -233,6 +234,7 @@ describe("Vester", function () {
       gmx.address,
       AddressZero
     ])
+    await esGmx.setMinter(vester.address, true)
 
     await esGmx.connect(user0).approve(vester.address, expandDecimals(1000, 18))
 
@@ -317,6 +319,7 @@ describe("Vester", function () {
       gmx.address,
       AddressZero
     ])
+    await esGmx.setMinter(vester.address, true)
 
     await esGmx.connect(user0).approve(vester.address, expandDecimals(1000, 18))
 
@@ -466,6 +469,7 @@ describe("Vester", function () {
       gmx.address,
       stakedGmxTracker.address
     ])
+    await esGmx.setMinter(vester.address, true)
 
     expect(await vester.name()).eq("Vested GMX")
     expect(await vester.symbol()).eq("veGMX")
@@ -686,6 +690,7 @@ describe("Vester", function () {
       gmx.address,
       stakedGmxTracker.address
     ])
+    await esGmx.setMinter(vester.address, true)
 
     expect(await vester.name()).eq("Vested GMX")
     expect(await vester.symbol()).eq("veGMX")

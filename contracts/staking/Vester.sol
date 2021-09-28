@@ -9,6 +9,7 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IRewardTracker.sol";
 import "./interfaces/IVester.sol";
+import "../tokens/interfaces/IMintable.sol";
 import "../access/Governable.sol";
 
 contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
@@ -122,7 +123,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         }
 
         IERC20(esToken).safeTransfer(_receiver, balance);
-        _burn(account, balance, totalVested);
+        _burn(account, balance);
 
         delete cumulativeClaimAmounts[account];
         delete claimedAmounts[account];
@@ -278,13 +279,13 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         emit PairTransfer(address(0), _account, _amount);
     }
 
-    function _burn(address _account, uint256 _amount, uint256 burnAmountForEvent) private {
+    function _burn(address _account, uint256 _amount) private {
         require(_account != address(0), "Vester: burn from the zero address");
 
         balances[_account] = balances[_account].sub(_amount, "Vester: burn amount exceeds balance");
         totalSupply = totalSupply.sub(_amount);
 
-        emit Transfer(_account, address(0), burnAmountForEvent);
+        emit Transfer(_account, address(0), _amount);
     }
 
     function _burnPair(address _account, uint256 _amount) private {
@@ -332,8 +333,10 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         }
 
         // transfer claimableAmount from balances to cumulativeClaimAmounts
-        balances[_account] = balances[_account].sub(amount);
+        _burn(_account, amount);
         cumulativeClaimAmounts[_account] = cumulativeClaimAmounts[_account].add(amount);
+
+        IMintable(esToken).burn(address(this), amount);
     }
 
     function _getNextClaimableAmount(address _account) private view returns (uint256) {
