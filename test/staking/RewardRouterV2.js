@@ -233,6 +233,7 @@ describe("RewardRouterV2", function () {
     await bnGmx.mint(bonusGmxDistributor.address, expandDecimals(1500, 18))
 
     await esGmx.setHandler(tokenManager.address, true)
+    await gmxVester.setHandler(wallet.address, true)
 
     await glpManager.setGov(timelock.address)
     await stakedGmxTracker.setGov(timelock.address)
@@ -689,7 +690,7 @@ describe("RewardRouterV2", function () {
     expect(await bnb.totalSupply()).eq("5991000000000000")
   })
 
-  it("signalTransfer", async () =>{
+  it("gmx: signalTransfer, acceptTransfer", async () =>{
     await gmx.setMinter(wallet.address, true)
     await gmx.mint(user1.address, expandDecimals(200, 18))
     expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(200, 18))
@@ -697,21 +698,214 @@ describe("RewardRouterV2", function () {
     await rewardRouter.connect(user1).stakeGmx(expandDecimals(200, 18))
     expect(await gmx.balanceOf(user1.address)).eq(0)
 
-    await gmx.mint(user2.address, expandDecimals(100, 18))
-    expect(await gmx.balanceOf(user2.address)).eq(expandDecimals(100, 18))
-    await gmx.connect(user2).approve(stakedGmxTracker.address, expandDecimals(100, 18))
-    await rewardRouter.connect(user2).stakeGmx(expandDecimals(100, 18))
+    await gmx.mint(user2.address, expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user2.address)).eq(expandDecimals(200, 18))
+    await gmx.connect(user2).approve(stakedGmxTracker.address, expandDecimals(400, 18))
+    await rewardRouter.connect(user2).stakeGmx(expandDecimals(200, 18))
     expect(await gmx.balanceOf(user2.address)).eq(0)
 
-    await rewardRouter.connect(user1).signalTransfer(user2.address)
+    await rewardRouter.connect(user2).signalTransfer(user1.address)
 
     await increaseTime(provider, 24 * 60 * 60)
     await mineBlock(provider)
 
-    await rewardRouter.connect(user1).signalTransfer(user2.address)
-    await rewardRouter.connect(user2).unstakeGmx(expandDecimals(100, 18))
+    await rewardRouter.connect(user2).signalTransfer(user1.address)
+    await rewardRouter.connect(user1).claim()
 
-    await expect(rewardRouter.connect(user1).signalTransfer(user2.address))
+    await expect(rewardRouter.connect(user2).signalTransfer(user1.address))
       .to.be.revertedWith("RewardRouter: stakedGmxTracker.averageStakedAmounts > 0")
+
+    await rewardRouter.connect(user2).signalTransfer(user3.address)
+
+    await expect(rewardRouter.connect(user3).acceptTransfer(user1.address))
+      .to.be.revertedWith("RewardRouter: transfer not signalled")
+
+    await gmxVester.setBonusRewards(user2.address, expandDecimals(100, 18))
+
+    expect(await stakedGmxTracker.depositBalances(user2.address, gmx.address)).eq(expandDecimals(200, 18))
+    expect(await stakedGmxTracker.depositBalances(user2.address, esGmx.address)).eq(0)
+    expect(await feeGmxTracker.depositBalances(user2.address, bnGmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user3.address, gmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user3.address, esGmx.address)).eq(0)
+    expect(await feeGmxTracker.depositBalances(user3.address, bnGmx.address)).eq(0)
+    expect(await gmxVester.transferredAverageStakedAmounts(user3.address)).eq(0)
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).eq(0)
+    expect(await gmxVester.bonusRewards(user2.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.bonusRewards(user3.address)).eq(0)
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user2.address)).eq(0)
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user3.address)).eq(0)
+    expect(await gmxVester.getMaxVestableAmount(user2.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).eq(0)
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(892, 18))).eq(0)
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(892, 18))).eq(0)
+
+    await rewardRouter.connect(user3).acceptTransfer(user2.address)
+
+    expect(await stakedGmxTracker.depositBalances(user2.address, gmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user2.address, esGmx.address)).eq(0)
+    expect(await feeGmxTracker.depositBalances(user2.address, bnGmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user3.address, gmx.address)).eq(expandDecimals(200, 18))
+    expect(await stakedGmxTracker.depositBalances(user3.address, esGmx.address)).gt(expandDecimals(892, 18))
+    expect(await stakedGmxTracker.depositBalances(user3.address, esGmx.address)).lt(expandDecimals(893, 18))
+    expect(await feeGmxTracker.depositBalances(user3.address, bnGmx.address)).gt("547000000000000000") // 0.547
+    expect(await feeGmxTracker.depositBalances(user3.address, bnGmx.address)).lt("549000000000000000") // 0.548
+    expect(await gmxVester.transferredAverageStakedAmounts(user3.address)).eq(expandDecimals(200, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).gt(expandDecimals(892, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).lt(expandDecimals(893, 18))
+    expect(await gmxVester.bonusRewards(user2.address)).eq(0)
+    expect(await gmxVester.bonusRewards(user3.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user2.address)).eq(expandDecimals(200, 18))
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user3.address)).eq(expandDecimals(200, 18))
+    expect(await gmxVester.getMaxVestableAmount(user2.address)).eq(0)
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).gt(expandDecimals(992, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).lt(expandDecimals(993, 18))
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(992, 18))).eq(0)
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(992, 18))).gt(expandDecimals(199, 18))
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(992, 18))).lt(expandDecimals(200, 18))
+
+    await expect(rewardRouter.connect(user3).acceptTransfer(user1.address))
+      .to.be.revertedWith("RewardRouter: transfer not signalled")
+  })
+
+  it("gmx, glp: signalTransfer, acceptTransfer", async () =>{
+    await eth.mint(feeGlpDistributor.address, expandDecimals(100, 18))
+    await feeGlpDistributor.setTokensPerInterval("41335970000000") // 0.00004133597 ETH per second
+
+    await bnb.mint(user1.address, expandDecimals(1, 18))
+    await bnb.connect(user1).approve(glpManager.address, expandDecimals(1, 18))
+    await rewardRouter.connect(user1).mintAndStakeGlp(
+      bnb.address,
+      expandDecimals(1, 18),
+      expandDecimals(299, 18),
+      expandDecimals(299, 18)
+    )
+
+    await bnb.mint(user2.address, expandDecimals(1, 18))
+    await bnb.connect(user2).approve(glpManager.address, expandDecimals(1, 18))
+    await rewardRouter.connect(user2).mintAndStakeGlp(
+      bnb.address,
+      expandDecimals(1, 18),
+      expandDecimals(299, 18),
+      expandDecimals(299, 18)
+    )
+
+    await gmx.setMinter(wallet.address, true)
+    await gmx.mint(user1.address, expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(200, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(200, 18))
+    await rewardRouter.connect(user1).stakeGmx(expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    await gmx.mint(user2.address, expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user2.address)).eq(expandDecimals(200, 18))
+    await gmx.connect(user2).approve(stakedGmxTracker.address, expandDecimals(400, 18))
+    await rewardRouter.connect(user2).stakeGmx(expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user2.address)).eq(0)
+
+    await rewardRouter.connect(user2).signalTransfer(user1.address)
+
+    await increaseTime(provider, 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await rewardRouter.connect(user2).signalTransfer(user1.address)
+    await rewardRouter.connect(user1).compound()
+
+    await expect(rewardRouter.connect(user2).signalTransfer(user1.address))
+      .to.be.revertedWith("RewardRouter: stakedGmxTracker.averageStakedAmounts > 0")
+
+    await rewardRouter.connect(user2).signalTransfer(user3.address)
+
+    await expect(rewardRouter.connect(user3).acceptTransfer(user1.address))
+      .to.be.revertedWith("RewardRouter: transfer not signalled")
+
+    await gmxVester.setBonusRewards(user2.address, expandDecimals(100, 18))
+
+    expect(await stakedGmxTracker.depositBalances(user2.address, gmx.address)).eq(expandDecimals(200, 18))
+    expect(await stakedGmxTracker.depositBalances(user2.address, esGmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user3.address, gmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user3.address, esGmx.address)).eq(0)
+
+    expect(await feeGmxTracker.depositBalances(user2.address, bnGmx.address)).eq(0)
+    expect(await feeGmxTracker.depositBalances(user3.address, bnGmx.address)).eq(0)
+
+    expect(await feeGlpTracker.depositBalances(user2.address, glp.address)).eq("299100000000000000000") // 299.1
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq(0)
+
+    expect(await stakedGlpTracker.depositBalances(user2.address, feeGlpTracker.address)).eq("299100000000000000000") // 299.1
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq(0)
+
+    expect(await gmxVester.transferredAverageStakedAmounts(user3.address)).eq(0)
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).eq(0)
+    expect(await gmxVester.bonusRewards(user2.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.bonusRewards(user3.address)).eq(0)
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user2.address)).eq(0)
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user3.address)).eq(0)
+    expect(await gmxVester.getMaxVestableAmount(user2.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).eq(0)
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(892, 18))).eq(0)
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(892, 18))).eq(0)
+
+    await rewardRouter.connect(user3).acceptTransfer(user2.address)
+
+    expect(await stakedGmxTracker.depositBalances(user2.address, gmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user2.address, esGmx.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user3.address, gmx.address)).eq(expandDecimals(200, 18))
+    expect(await stakedGmxTracker.depositBalances(user3.address, esGmx.address)).gt(expandDecimals(1785, 18))
+    expect(await stakedGmxTracker.depositBalances(user3.address, esGmx.address)).lt(expandDecimals(1786, 18))
+
+    expect(await feeGmxTracker.depositBalances(user2.address, bnGmx.address)).eq(0)
+    expect(await feeGmxTracker.depositBalances(user3.address, bnGmx.address)).gt("547000000000000000") // 0.547
+    expect(await feeGmxTracker.depositBalances(user3.address, bnGmx.address)).lt("549000000000000000") // 0.548
+
+    expect(await feeGlpTracker.depositBalances(user2.address, glp.address)).eq(0)
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq("299100000000000000000") // 299.1
+
+    expect(await stakedGlpTracker.depositBalances(user2.address, feeGlpTracker.address)).eq(0)
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq("299100000000000000000") // 299.1
+
+    expect(await gmxVester.transferredAverageStakedAmounts(user3.address)).eq(expandDecimals(200, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).gt(expandDecimals(892, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).lt(expandDecimals(893, 18))
+    expect(await gmxVester.bonusRewards(user2.address)).eq(0)
+    expect(await gmxVester.bonusRewards(user3.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user2.address)).eq(expandDecimals(200, 18))
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user3.address)).eq(expandDecimals(200, 18))
+    expect(await gmxVester.getMaxVestableAmount(user2.address)).eq(0)
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).gt(expandDecimals(992, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).lt(expandDecimals(993, 18))
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(992, 18))).eq(0)
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(992, 18))).gt(expandDecimals(199, 18))
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(992, 18))).lt(expandDecimals(200, 18))
+    expect(await gmxVester.getPairAmount(user1.address, expandDecimals(892, 18))).gt(expandDecimals(199, 18))
+    expect(await gmxVester.getPairAmount(user1.address, expandDecimals(892, 18))).lt(expandDecimals(200, 18))
+
+    await rewardRouter.connect(user1).compound()
+
+    await expect(rewardRouter.connect(user3).acceptTransfer(user1.address))
+      .to.be.revertedWith("RewardRouter: transfer not signalled")
+
+    await increaseTime(provider, 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await rewardRouter.connect(user1).claim()
+    await rewardRouter.connect(user2).claim()
+    await rewardRouter.connect(user3).claim()
+
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user1.address)).gt(expandDecimals(1092, 18))
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user1.address)).lt(expandDecimals(1094, 18))
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user3.address)).gt(expandDecimals(1092, 18))
+    expect(await gmxVester.getCombinedAveragedStakedAmount(user3.address)).lt(expandDecimals(1094, 18))
+
+    expect(await gmxVester.getMaxVestableAmount(user2.address)).eq(0)
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).gt(expandDecimals(1885, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).lt(expandDecimals(1887, 18))
+    expect(await gmxVester.getMaxVestableAmount(user1.address)).gt(expandDecimals(1785, 18))
+    expect(await gmxVester.getMaxVestableAmount(user1.address)).lt(expandDecimals(1787, 18))
+
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(992, 18))).eq(0)
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(1885, 18))).gt(expandDecimals(1092, 18))
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(1885, 18))).lt(expandDecimals(1094, 18))
+    expect(await gmxVester.getPairAmount(user1.address, expandDecimals(1785, 18))).gt(expandDecimals(1092, 18))
+    expect(await gmxVester.getPairAmount(user1.address, expandDecimals(1785, 18))).lt(expandDecimals(1094, 18))
   })
 })
