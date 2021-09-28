@@ -93,8 +93,8 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         _deposit(_account, _amount);
     }
 
-    function claim(address _receiver) external nonReentrant returns (uint256) {
-        return _claim(msg.sender, _receiver);
+    function claim() external nonReentrant returns (uint256) {
+        return _claim(msg.sender, msg.sender);
     }
 
     function claimForAccount(address _account, address _receiver) external nonReentrant returns (uint256) {
@@ -107,8 +107,9 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         IERC20(_token).safeTransfer(_account, _amount);
     }
 
-    function withdraw(address _receiver) external nonReentrant {
+    function withdraw() external nonReentrant {
         address account = msg.sender;
+        address _receiver = account;
         _claim(account, _receiver);
 
         uint256 claimedAmount = cumulativeClaimAmounts[account];
