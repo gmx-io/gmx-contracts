@@ -217,6 +217,62 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
         _compound(_account);
     }
 
+    function handleRewards(
+        bool _shouldClaimGmx,
+        bool _shouldStakeGmx,
+        bool _shouldClaimEsGmx,
+        bool _shouldStakeEsGmx,
+        bool _shouldStakeMultiplierPoints,
+        bool _shouldClaimWeth,
+        bool _shouldConvertWethToEth
+    ) external nonReentrant {
+        address account = msg.sender;
+
+        uint256 gmxAmount = 0;
+        if (_shouldClaimGmx) {
+            uint256 gmxAmount0 = IVester(gmxVester).claimForAccount(account, account);
+            uint256 gmxAmount1 = IVester(glpVester).claimForAccount(account, account);
+            gmxAmount = gmxAmount0.add(gmxAmount1);
+        }
+
+        if (_shouldStakeGmx && gmxAmount > 0) {
+            _stakeGmx(account, account, gmx, gmxAmount);
+        }
+
+        uint256 esGmxAmount = 0;
+        if (_shouldClaimEsGmx) {
+            uint256 esGmxAmount0 = IRewardTracker(stakedGmxTracker).claimForAccount(account, account);
+            uint256 esGmxAmount1 = IRewardTracker(stakedGlpTracker).claimForAccount(account, account);
+            esGmxAmount = esGmxAmount0.add(esGmxAmount1);
+        }
+
+        if (_shouldStakeEsGmx && esGmxAmount > 0) {
+            _stakeGmx(account, account, esGmx, esGmxAmount);
+        }
+
+        if (_shouldStakeMultiplierPoints) {
+            uint256 bnGmxAmount = IRewardTracker(bonusGmxTracker).claimForAccount(account, account);
+            if (bnGmxAmount > 0) {
+                IRewardTracker(feeGmxTracker).stakeForAccount(account, account, bnGmx, bnGmxAmount);
+            }
+        }
+
+        if (_shouldClaimWeth) {
+            if (_shouldConvertWethToEth) {
+                uint256 weth0 = IRewardTracker(feeGmxTracker).claimForAccount(account, address(this));
+                uint256 weth1 = IRewardTracker(feeGlpTracker).claimForAccount(account, address(this));
+
+                uint256 wethAmount = weth0.add(weth1);
+                IWETH(weth).withdraw(wethAmount);
+
+                payable(account).sendValue(wethAmount);
+            } else {
+                IRewardTracker(feeGmxTracker).claimForAccount(account, account);
+                IRewardTracker(feeGlpTracker).claimForAccount(account, account);
+            }
+        }
+    }
+
     function batchCompoundForAccounts(address[] memory _accounts) external nonReentrant onlyGov {
         for (uint256 i = 0; i < _accounts.length; i++) {
             _compound(_accounts[i]);

@@ -3,6 +3,8 @@
 pragma solidity 0.6.12;
 
 interface IVester {
+    function claimForAccount(address _account, address _receiver) external returns (uint256);
+
     function transferredAverageStakedAmounts(address _account) external view returns (uint256);
     function transferredCumulativeRewards(address _account) external view returns (uint256);
     function cumulativeRewardDeductions(address _account) external view returns (uint256);
