@@ -994,5 +994,86 @@ describe("RewardRouterV2", function () {
 
     expect(await gmx.balanceOf(user3.address)).gt(expandDecimals(4, 18))
     expect(await gmx.balanceOf(user3.address)).lt(expandDecimals(6, 18))
+
+    expect(await feeGmxTracker.balanceOf(user1.address)).gt(expandDecimals(1190, 18))
+    expect(await feeGmxTracker.balanceOf(user1.address)).lt(expandDecimals(1191, 18))
+
+    expect(await esGmx.balanceOf(user1.address)).gt(expandDecimals(2379, 18))
+    expect(await esGmx.balanceOf(user1.address)).lt(expandDecimals(2381, 18))
+
+    expect(await gmx.balanceOf(user1.address)).gt(expandDecimals(204, 18))
+    expect(await gmx.balanceOf(user1.address)).lt(expandDecimals(206, 18))
+
+    await gmxVester.connect(user1).deposit(expandDecimals(365 * 2, 18))
+
+    expect(await feeGmxTracker.balanceOf(user1.address)).gt(expandDecimals(743, 18)) // 1190 - 743 => 447
+    expect(await feeGmxTracker.balanceOf(user1.address)).lt(expandDecimals(754, 18))
+
+    expect(await gmxVester.claimable(user1.address)).eq(0)
+
+    await increaseTime(provider, 48 * 60 * 60)
+    await mineBlock(provider)
+
+    expect(await gmxVester.claimable(user1.address)).gt("3900000000000000000") // 3.9
+    expect(await gmxVester.claimable(user1.address)).lt("4100000000000000000") // 4.1
+
+    await gmxVester.connect(user1).deposit(expandDecimals(365, 18))
+
+    expect(await feeGmxTracker.balanceOf(user1.address)).gt(expandDecimals(522, 18)) // 743 - 522 => 221
+    expect(await feeGmxTracker.balanceOf(user1.address)).lt(expandDecimals(524, 18))
+
+    await increaseTime(provider, 48 * 60 * 60)
+    await mineBlock(provider)
+
+    expect(await gmxVester.claimable(user1.address)).gt("9900000000000000000") // 9.9
+    expect(await gmxVester.claimable(user1.address)).lt("10100000000000000000") // 10.1
+
+    expect(await gmx.balanceOf(user1.address)).gt(expandDecimals(204, 18))
+    expect(await gmx.balanceOf(user1.address)).lt(expandDecimals(206, 18))
+
+    await gmxVester.connect(user1).claim()
+
+    expect(await gmx.balanceOf(user1.address)).gt(expandDecimals(214, 18))
+    expect(await gmx.balanceOf(user1.address)).lt(expandDecimals(216, 18))
+
+    await gmxVester.connect(user1).deposit(expandDecimals(365, 18))
+    expect(await gmxVester.balanceOf(user1.address)).gt(expandDecimals(1449, 18)) // 365 * 4 => 1460, 1460 - 10 => 1450
+    expect(await gmxVester.balanceOf(user1.address)).lt(expandDecimals(1451, 18))
+    expect(await gmxVester.getVestedAmount(user1.address)).eq(expandDecimals(1460, 18))
+
+    expect(await feeGmxTracker.balanceOf(user1.address)).gt(expandDecimals(303, 18)) // 522 - 303 => 219
+    expect(await feeGmxTracker.balanceOf(user1.address)).lt(expandDecimals(304, 18))
+
+    await increaseTime(provider, 48 * 60 * 60)
+    await mineBlock(provider)
+
+    expect(await gmxVester.claimable(user1.address)).gt("7900000000000000000") // 7.9
+    expect(await gmxVester.claimable(user1.address)).lt("8100000000000000000") // 8.1
+
+    await gmxVester.connect(user1).withdraw()
+
+    expect(await feeGmxTracker.balanceOf(user1.address)).gt(expandDecimals(1190, 18))
+    expect(await feeGmxTracker.balanceOf(user1.address)).lt(expandDecimals(1191, 18))
+
+    expect(await gmx.balanceOf(user1.address)).gt(expandDecimals(222, 18))
+    expect(await gmx.balanceOf(user1.address)).lt(expandDecimals(224, 18))
+
+    expect(await esGmx.balanceOf(user1.address)).gt(expandDecimals(2360, 18))
+    expect(await esGmx.balanceOf(user1.address)).lt(expandDecimals(2362, 18))
+
+    await gmxVester.connect(user1).deposit(expandDecimals(365, 18))
+
+    await increaseTime(provider, 500 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    expect(await gmxVester.claimable(user1.address)).eq(expandDecimals(365, 18))
+
+    await gmxVester.connect(user1).withdraw()
+
+    expect(await gmx.balanceOf(user1.address)).gt(expandDecimals(222 + 365, 18))
+    expect(await gmx.balanceOf(user1.address)).lt(expandDecimals(224 + 365, 18))
+
+    expect(await esGmx.balanceOf(user1.address)).gt(expandDecimals(2360 - 365, 18))
+    expect(await esGmx.balanceOf(user1.address)).lt(expandDecimals(2362 - 365, 18))
   })
 })

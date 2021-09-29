@@ -262,6 +262,14 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         revert("Vester: non-transferrable");
     }
 
+    function getVestedAmount(address _account) public view returns (uint256) {
+        uint256 balance = balances[_account];
+        if (balance == 0) { return 0; }
+
+        uint256 cumulativeClaimAmount = cumulativeClaimAmounts[_account];
+        return balance.add(cumulativeClaimAmount);
+    }
+
     function _mint(address _account, uint256 _amount) private {
         require(_account != address(0), "Vester: mint to the zero address");
 
@@ -305,17 +313,17 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
 
         IERC20(esToken).safeTransferFrom(_account, address(this), _amount);
 
+        _mint(_account, _amount);
+
         if (hasPairToken()) {
             uint256 pairAmount = pairAmounts[_account];
-            uint256 nextPairAmount = getPairAmount(_account, _amount);
+            uint256 nextPairAmount = getPairAmount(_account, balances[_account]);
             if (nextPairAmount > pairAmount) {
                 uint256 pairAmountDiff = nextPairAmount.sub(pairAmount);
                 IERC20(pairToken).safeTransferFrom(_account, address(this), pairAmountDiff);
                 _mintPair(_account, pairAmountDiff);
             }
         }
-
-        _mint(_account, _amount);
 
         if (hasMaxVestableAmount) {
             uint256 maxAmount = getMaxVestableAmount(_account);
@@ -346,10 +354,8 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         uint256 balance = balances[_account];
         if (balance == 0) { return 0; }
 
-        uint256 cumulativeClaimAmount = cumulativeClaimAmounts[_account];
-
-        uint256 totalVested = balance.add(cumulativeClaimAmount);
-        uint256 claimableAmount = totalVested.mul(timeDiff).div(vestingDuration);
+        uint256 vestedAmount = getVestedAmount(_account);
+        uint256 claimableAmount = vestedAmount.mul(timeDiff).div(vestingDuration);
 
         if (claimableAmount < balance) {
             return claimableAmount;
