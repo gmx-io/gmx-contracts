@@ -12,6 +12,7 @@ import "../core/interfaces/IRouter.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../tokens/interfaces/IBaseToken.sol";
 import "../tokens/interfaces/IMintable.sol";
+import "../staking/interfaces/IVester.sol";
 
 import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
@@ -36,6 +37,7 @@ contract Timelock is ITimelock {
 
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
+    event SignalMint(address token, address receiver, uint256 amount, bytes32 action);
     event SignalSetGov(address target, address gov, bytes32 action);
     event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
@@ -84,11 +86,6 @@ contract Timelock is ITimelock {
         maxTokenSupply = _maxTokenSupply;
     }
 
-    function setRewardManager(address _rewardManager) external onlyAdmin {
-        require(_rewardManager == address(0), "Timelock: rewardManager already initialized");
-        rewardManager = _rewardManager;
-    }
-
     function setAdmin(address _admin) external override onlyTokenManager {
         admin = _admin;
     }
@@ -105,14 +102,7 @@ contract Timelock is ITimelock {
     }
 
     function mint(address _token, uint256 _amount) external onlyAdmin {
-        IMintable mintable = IMintable(_token);
-
-        if (!mintable.isMinter(address(this))) {
-            mintable.setMinter(address(this), true);
-        }
-
-        mintable.mint(mintReceiver, _amount);
-        require(IERC20(_token).totalSupply() <= maxTokenSupply, "Timelock: maxTokenSupply exceeded");
+        _mint(_token, mintReceiver, _amount);
     }
 
     function setFees(
@@ -258,6 +248,20 @@ contract Timelock is ITimelock {
         IMintable(_target).setMinter(_minter, _isActive);
     }
 
+    function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyAdmin {
+        require(_accounts.length == _amounts.length, "Timelock: invalid lengths");
+
+        if (!IHandlerTarget(_vester).isHandler(address(this))) {
+            IHandlerTarget(_vester).setHandler(address(this), true);
+        }
+
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            address account = _accounts[i];
+            uint256 amount = _amounts[i];
+            IVester(_vester).setBonusRewards(account, amount);
+        }
+    }
+
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {
         IERC20(_token).transferFrom(_sender, address(this), _amount);
     }
@@ -273,6 +277,20 @@ contract Timelock is ITimelock {
         _validateAction(action);
         _clearAction(action);
         IERC20(_token).approve(_spender, _amount);
+    }
+
+    function signalMint(address _token, address _receiver, uint256 _amount) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("mint", _token, _receiver, _amount));
+        _setPendingAction(action);
+        emit SignalMint(_token, _receiver, _amount, action);
+    }
+
+    function processMint(address _token, address _receiver, uint256 _amount) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("mint", _token, _receiver, _amount));
+        _validateAction(action);
+        _clearAction(action);
+
+        _mint(_token, _receiver, _amount);
     }
 
     function signalSetGov(address _target, address _gov) external onlyAdmin {
@@ -401,6 +419,17 @@ contract Timelock is ITimelock {
 
     function cancelAction(bytes32 _action) external onlyAdmin {
         _clearAction(_action);
+    }
+
+    function _mint(address _token, address _receiver, uint256 _amount) private {
+        IMintable mintable = IMintable(_token);
+
+        if (!mintable.isMinter(address(this))) {
+            mintable.setMinter(address(this), true);
+        }
+
+        mintable.mint(_receiver, _amount);
+        require(IERC20(_token).totalSupply() <= maxTokenSupply, "Timelock: maxTokenSupply exceeded");
     }
 
     function _setPendingAction(bytes32 _action) private {

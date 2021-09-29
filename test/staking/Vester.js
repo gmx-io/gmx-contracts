@@ -51,6 +51,90 @@ describe("Vester", function () {
     expect(await vester.hasMaxVestableAmount()).eq(false)
   })
 
+  it("setTransferredAverageStakedAmounts", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setTransferredAverageStakedAmounts(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.transferredAverageStakedAmounts(user0.address)).eq(0)
+    await vester.setTransferredAverageStakedAmounts(user0.address, 200)
+    expect(await vester.transferredAverageStakedAmounts(user0.address)).eq(200)
+  })
+
+  it("setTransferredCumulativeRewards", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setTransferredCumulativeRewards(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.transferredCumulativeRewards(user0.address)).eq(0)
+    await vester.setTransferredCumulativeRewards(user0.address, 200)
+    expect(await vester.transferredCumulativeRewards(user0.address)).eq(200)
+  })
+
+  it("setCumulativeRewardDeductions", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setCumulativeRewardDeductions(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.cumulativeRewardDeductions(user0.address)).eq(0)
+    await vester.setCumulativeRewardDeductions(user0.address, 200)
+    expect(await vester.cumulativeRewardDeductions(user0.address)).eq(200)
+  })
+
+  it("setBonusRewards", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setBonusRewards(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.bonusRewards(user0.address)).eq(0)
+    await vester.setBonusRewards(user0.address, 200)
+    expect(await vester.bonusRewards(user0.address)).eq(200)
+  })
+
   it("deposit, claim, withdraw", async () => {
     const vester = await deployContract("Vester", [
       "Vested GMX",
