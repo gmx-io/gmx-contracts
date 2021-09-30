@@ -136,7 +136,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     function transferStakeValues(address _sender, address _receiver) external override nonReentrant {
         _validateHandler();
 
-        transferredAverageStakedAmounts[_receiver] = getCombinedAveragedStakedAmount(_sender);
+        transferredAverageStakedAmounts[_receiver] = getCombinedAverageStakedAmount(_sender);
         transferredAverageStakedAmounts[_sender] = 0;
 
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_sender];
@@ -193,7 +193,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         return maxVestableAmount.sub(cumulativeRewardDeduction);
     }
 
-    function getCombinedAveragedStakedAmount(address _account) public override view returns (uint256) {
+    function getCombinedAverageStakedAmount(address _account) public override view returns (uint256) {
         uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_account);
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_account];
         uint256 totalCumulativeReward = cumulativeReward.add(transferredCumulativeReward);
@@ -213,7 +213,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     function getPairAmount(address _account, uint256 _esAmount) public view returns (uint256) {
         if (!hasRewardTracker()) { return 0; }
 
-        uint256 combinedAverageStakedAmount = getCombinedAveragedStakedAmount(_account);
+        uint256 combinedAverageStakedAmount = getCombinedAverageStakedAmount(_account);
         if (combinedAverageStakedAmount == 0) {
             return 0;
         }
@@ -264,8 +264,6 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
 
     function getVestedAmount(address _account) public view returns (uint256) {
         uint256 balance = balances[_account];
-        if (balance == 0) { return 0; }
-
         uint256 cumulativeClaimAmount = cumulativeClaimAmounts[_account];
         return balance.add(cumulativeClaimAmount);
     }
