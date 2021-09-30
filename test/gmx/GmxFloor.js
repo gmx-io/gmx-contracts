@@ -38,7 +38,14 @@ describe("GmxFloor", function () {
     nft0 = await deployContract("ERC721", ["NFT0", "NFT0"])
     nft1 = await deployContract("ERC721", ["NFT1", "NFT1"])
 
-    timelock = await deployContract("Timelock", [5 * 24 * 60 * 60, gmxFloor.address, 1000])
+    timelock = await deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60,
+      user0.address,
+      gmxFloor.address,
+      user2.address,
+      expandDecimals(1000, 18)
+    ])
   })
 
   it("inits", async () => {
