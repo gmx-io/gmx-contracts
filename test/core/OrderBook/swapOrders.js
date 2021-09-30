@@ -5,7 +5,13 @@ const { expandDecimals, reportGasUsed, gasUsed } = require("../../shared/utiliti
 const { toChainlinkPrice } = require("../../shared/chainlink")
 const { toUsd, toNormalizedPrice } = require("../../shared/units")
 const { initVault, getBnbConfig, getBtcConfig, getDaiConfig } = require("../Vault/helpers")
-const { getDefault, validateOrderFields, getTxFees } = require('./helpers');
+const {
+    getDefault,
+    validateOrderFields,
+    getTxFees,
+    getMinOut,
+    defaultCreateSwapOrderFactory
+} = require('./helpers');
 
 use(solidity);
 
@@ -21,6 +27,7 @@ describe("OrderBook, swap orders", function () {
 
     let orderBook;
     let defaults;
+    let defaultCreateSwapOrder;
     let tokenDecimals;
 
     beforeEach(async () => {
@@ -140,67 +147,11 @@ describe("OrderBook, swap orders", function () {
             shouldWrap: false,
             shouldUnwrap: true
         };
+        defaultCreateSwapOrder = defaultCreateSwapOrderFactory(orderBook, defaults, tokenDecimals)
     })
-
-    function getSwapFees(token, amount) {
-        // ideally to get all this from Vault in runtime
-        //
-        let feesPoints;
-        if ([dai.address, busd.address, usdg.address].includes(token)) {
-            feesPoints = 4;
-        } else {
-            feesPoints = 30;
-        }
-        return amount.mul(feesPoints).div(BASIS_POINTS_DIVISOR);
-    }
-
-    function applySwapFees(token, amount) {
-        const fees = getSwapFees(token, amount);
-        return amount.sub(fees)
-    }
-
-    async function getMinOut(triggerRatio, path, amountIn) {
-        const tokenAPrecision = expandDecimals(1, tokenDecimals[path[0]]);
-        const tokenBPrecision = expandDecimals(1, tokenDecimals[path[path.length - 1]]);
-
-        let minOut = (amountIn.mul(PRICE_PRECISION).div(triggerRatio))
-            .mul(tokenBPrecision).div(tokenAPrecision);
-        const swapFees = getSwapFees(path[path.length - 1], minOut);
-        return minOut.sub(swapFees);
-    }
 
     function getTriggerRatio(tokenAUsd, tokenBUsd) {
         return tokenBUsd.mul(PRICE_PRECISION).div(tokenAUsd);
-    }
-
-    async function defaultCreateSwapOrder(props = {}) {
-        if (!('triggerRatio' in props) && !('minOut' in props)) {
-            throw new Error('Either triggerRatio or minOut should be provided');
-        };
-
-        props.triggerRatio = props.triggerRatio || 0;
-        props.amountIn = getDefault(props, 'amountIn', defaults.amountIn);
-        props.path = getDefault(props, 'path', defaults.path);
-        props.minOut = props.minOut || await getMinOut(props.triggerRatio, props.path, props.amountIn);
-        props.triggerAboveThreshold = getDefault(props, 'triggerAboveThreshold', defaults.triggerAboveThreshold);
-        props.executionFee = getDefault(props, 'executionFee', defaults.executionFee);
-        props.value = getDefault(props, 'value', props.executionFee || defaults.executionFee);
-        props.shouldWrap = getDefault(props, 'shouldWrap', defaults.shouldWrap);
-        props.shouldUnwrap = getDefault(props, 'shouldUnwrap', defaults.shouldUnwrap);
-
-        const tx = await orderBook.connect(getDefault(props, 'user', defaults.user)).createSwapOrder(
-            props.path,
-            props.amountIn,
-            props.minOut,
-            props.triggerRatio,
-            props.triggerAboveThreshold,
-            props.executionFee,
-            props.shouldWrap,
-            props.shouldUnwrap,
-            {value: props.value}
-        );
-
-        return [tx, props];
     }
 
     async function getCreatedSwapOrder(address, orderIndex = 0) {
@@ -272,9 +223,8 @@ describe("OrderBook, swap orders", function () {
 
     it("createSwapOrder, DAI -> BTC", async () => {
         const triggerRatio = toUsd(1).mul(PRICE_PRECISION).div(toUsd(58000));
-        let tx, props;
         const userDaiBalanceBefore = await dai.balanceOf(defaults.user.address);
-        [tx, props] = await defaultCreateSwapOrder({
+        const [tx, props] = await defaultCreateSwapOrder({
             triggerRatio,
             triggerAboveThreshold: false
         });
@@ -541,6 +491,7 @@ describe("OrderBook, swap orders", function () {
         const value = defaults.executionFee;
         const path = [btc.address, bnb.address];
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(BTC_PRICE), toUsd(BNB_PRICE - 50)),
             path,
             amountIn
@@ -585,6 +536,7 @@ describe("OrderBook, swap orders", function () {
         const value = defaults.executionFee;
         const path = [dai.address, bnb.address];
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(1), toUsd(BNB_PRICE + 50)),
             path,
             amountIn
@@ -625,6 +577,7 @@ describe("OrderBook, swap orders", function () {
         // minOut is not mandatory for such orders but with minOut it's possible to limit max price
         // e.g. user would not be happy if he sets order "buy if BTC > $65000" and order executes with $75000
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(BNB_PRICE), toUsd(63000)),
             path,
             amountIn
@@ -676,6 +629,7 @@ describe("OrderBook, swap orders", function () {
         // minOut is not mandatory for such orders but with minOut it's possible to limit max price
         // e.g. user would not be happy if he sets order "buy if BTC > $65000" and order executes with $75000
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(BNB_PRICE), toUsd(63000)),
             path,
             amountIn
@@ -727,6 +681,7 @@ describe("OrderBook, swap orders", function () {
         // minOut is not mandatory for such orders but with minOut it's possible to limit max price
         // e.g. user would not be happy if he sets order "buy if BTC > $65000" and order executes with $75000
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(1), toUsd(63000)),
             path,
             amountIn
@@ -781,6 +736,7 @@ describe("OrderBook, swap orders", function () {
         // minOut is not mandatory for such orders but with minOut it's possible to limit max price
         // e.g. user would not be happy if he sets order "buy if BTC > $65000" and order executes with $75000
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(1), toUsd(63000)),
             path,
             amountIn
@@ -835,6 +791,7 @@ describe("OrderBook, swap orders", function () {
         // minOut is not mandatory for such orders but with minOut it's possible to limit max price
         // e.g. user would not be happy if he sets order "buy if BTC > $65000" and order executes with $75000
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(1), toUsd(63000)),
             path,
             amountIn
@@ -889,6 +846,7 @@ describe("OrderBook, swap orders", function () {
         // minOut is not mandatory for such orders but with minOut it's possible to limit max price
         // e.g. user would not be happy if he sets order "buy if BTC > $65000" and order executes with $75000
         const minOut = await getMinOut(
+            tokenDecimals, 
             getTriggerRatio(toUsd(60000), toUsd(1)),
             path,
             amountIn
