@@ -5,7 +5,7 @@ const { expandDecimals, reportGasUsed, gasUsed } = require("../../shared/utiliti
 const { toChainlinkPrice } = require("../../shared/chainlink")
 const { toUsd, toNormalizedPrice } = require("../../shared/units")
 const { initVault, getBnbConfig, getBtcConfig, getDaiConfig } = require("../Vault/helpers")
-const { getDefault, validateOrderFields, getTxFees, positionWrapper } = require('./helpers');
+const { getDefault, validateOrderFields, getTxFees, positionWrapper, defaultCreateIncreaseOrderFactory } = require('./helpers');
 
 use(solidity);
 
@@ -56,6 +56,7 @@ describe("OrderBook, increase position orders", function () {
     let orderBook;
     let defaults;
     let tokenDecimals;
+    let defaultCreateIncreaseOrder
 
     beforeEach(async () => {
         bnb = await deployContract("Token", [])
@@ -161,28 +162,13 @@ describe("OrderBook, increase position orders", function () {
             isLong: true,
             shouldWrap: false
         };
+
+        defaultCreateIncreaseOrder = defaultCreateIncreaseOrderFactory(orderBook, defaults)
     });
 
     async function getCreatedIncreaseOrder(address, orderIndex = 0) {
         const order = await orderBook.increaseOrders(address, orderIndex);
         return order;
-    }
-
-    function defaultCreateIncreaseOrder(props = {}) {
-        return orderBook.connect(getDefault(props, 'user', defaults.user)).createIncreaseOrder(
-            getDefault(props, 'path', defaults.path),
-            getDefault(props, 'amountIn', defaults.amountIn),
-            getDefault(props, 'indexToken', defaults.path[defaults.path.length - 1]),
-            getDefault(props, 'minOut', defaults.minOut),
-            getDefault(props, 'sizeDelta', defaults.sizeDelta),
-            getDefault(props, 'collateralToken', defaults.collateralToken), // _collateralToken
-            getDefault(props, 'isLong', defaults.isLong),
-            getDefault(props, 'triggerPrice', defaults.triggerPrice),
-            getDefault(props, 'triggerAboveThreshold', defaults.triggerAboveThreshold),
-            getDefault(props, 'executionFee', defaults.executionFee),
-            getDefault(props, 'shouldWrap', defaults.shouldWrap),
-            {value: getDefault(props, 'value', props.executionFee || defaults.executionFee)}
-        );
     }
 
     it("createIncreaseOrder, bad input", async () => {
