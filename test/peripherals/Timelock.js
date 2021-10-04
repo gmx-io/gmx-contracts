@@ -8,9 +8,11 @@ const { initVault } = require("../core/Vault/helpers")
 
 use(solidity)
 
+const { AddressZero } = ethers.constants
+
 describe("Timelock", function () {
   const provider = waffle.provider
-  const [wallet, user0, user1, user2, user3, tokenManager] = provider.getWallets()
+  const [wallet, user0, user1, user2, user3, rewardManager, tokenManager, mintReceiver] = provider.getWallets()
   let vault
   let vaultPriceFeed
   let usdg
@@ -53,7 +55,14 @@ describe("Timelock", function () {
 
     await vault.setPriceFeed(user3.address)
 
-    timelock = await deployContract("Timelock", [5 * 24 * 60 * 60, tokenManager.address, 1000])
+    timelock = await deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60,
+      rewardManager.address,
+      tokenManager.address,
+      mintReceiver.address,
+      expandDecimals(1000, 18)
+    ])
     await vault.setGov(timelock.address)
 
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
@@ -79,10 +88,16 @@ describe("Timelock", function () {
     expect(await timelock.admin()).eq(wallet.address)
     expect(await timelock.buffer()).eq(5 * 24 * 60 * 60)
     expect(await timelock.tokenManager()).eq(tokenManager.address)
-    expect(await timelock.maxTokenSupply()).eq(1000)
+    expect(await timelock.maxTokenSupply()).eq(expandDecimals(1000, 18))
 
-    await expect(deployContract("Timelock", [5 * 24 * 60 * 60 + 1, tokenManager.address, 1000]))
-      .to.be.revertedWith("Timelock: invalid _buffer")
+    await expect(deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60 + 1,
+      rewardManager.address,
+      tokenManager.address,
+      mintReceiver.address,
+      1000
+    ])).to.be.revertedWith("Timelock: invalid _buffer")
   })
 
   it("setTokenConfig", async () => {
@@ -164,18 +179,25 @@ describe("Timelock", function () {
   })
 
   it("setBuffer", async () => {
-    const timelock0 = await deployContract("Timelock", [3 * 24 * 60 * 60, tokenManager.address, 1000])
+    const timelock0 = await deployContract("Timelock", [
+      user1.address,
+      3 * 24 * 60 * 60,
+      rewardManager.address,
+      tokenManager.address,
+      mintReceiver.address,
+      1000
+    ])
     await expect(timelock0.connect(user0).setBuffer(3 * 24 * 60 * 60 - 10))
       .to.be.revertedWith("Timelock: forbidden")
 
-    await expect(timelock0.connect(wallet).setBuffer(5 * 24 * 60 * 60 + 10))
+    await expect(timelock0.connect(user1).setBuffer(5 * 24 * 60 * 60 + 10))
       .to.be.revertedWith("Timelock: invalid _buffer")
 
-    await expect(timelock0.connect(wallet).setBuffer(3 * 24 * 60 * 60 - 10))
+    await expect(timelock0.connect(user1).setBuffer(3 * 24 * 60 * 60 - 10))
       .to.be.revertedWith("Timelock: buffer cannot be decreased")
 
     expect(await timelock0.buffer()).eq(3 * 24 * 60 * 60)
-    await timelock0.connect(wallet).setBuffer(3 * 24 * 60 * 60 + 10)
+    await timelock0.connect(user1).setBuffer(3 * 24 * 60 * 60 + 10)
     expect(await timelock0.buffer()).eq(3 * 24 * 60 * 60 + 10)
   })
 
@@ -190,14 +212,14 @@ describe("Timelock", function () {
     await gmx.setGov(timelock.address)
 
     expect(await gmx.isMinter(timelock.address)).eq(false)
-    expect(await gmx.balanceOf(tokenManager.address)).eq(0)
+    expect(await gmx.balanceOf(mintReceiver.address)).eq(0)
 
     await timelock.connect(wallet).mint(gmx.address, 900)
 
     expect(await gmx.isMinter(timelock.address)).eq(true)
-    expect(await gmx.balanceOf(tokenManager.address)).eq(900)
+    expect(await gmx.balanceOf(mintReceiver.address)).eq(900)
 
-    await expect(timelock.connect(wallet).mint(gmx.address, 101))
+    await expect(timelock.connect(wallet).mint(gmx.address, expandDecimals(1001, 18)))
       .to.be.revertedWith("Timelock: maxTokenSupply exceeded")
   })
 
@@ -353,6 +375,144 @@ describe("Timelock", function () {
     await timelock.connect(wallet).cancelAction(action1)
 
     await expect(timelock.connect(wallet).approve(dai.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+  })
+
+  it("processMint", async () => {
+    const gmx = await deployContract("GMX", [])
+    await gmx.setGov(timelock.address)
+
+    await expect(timelock.connect(user0).processMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(user0).signalMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).signalMint(gmx.address, user1.address, expandDecimals(100, 18))
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 4 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 1 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).processMint(bnb.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user2.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(101, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    expect(await gmx.balanceOf(timelock.address)).eq(0)
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    await timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(100, 18))
+
+    expect(await gmx.balanceOf(timelock.address)).eq(0)
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(100, 18))
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await timelock.connect(wallet).signalMint(gmx.address, user1.address, expandDecimals(100, 18))
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    const action0 = ethers.utils.solidityKeccak256(["string", "address", "address", "uint256"], ["mint", bnb.address, user1.address, expandDecimals(100, 18)])
+    const action1 = ethers.utils.solidityKeccak256(["string", "address", "address", "uint256"], ["mint", gmx.address, user1.address, expandDecimals(100, 18)])
+
+    await expect(timelock.connect(user0).cancelAction(action0))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).cancelAction(action0))
+      .to.be.revertedWith("Timelock: invalid _action")
+
+    await timelock.connect(wallet).cancelAction(action1)
+
+    await expect(timelock.connect(wallet).processMint(gmx.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+  })
+
+  it("setHandler", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      365 * 24 * 60 * 60,
+      AddressZero,
+      AddressZero,
+      AddressZero,
+      AddressZero
+    ])
+    await vester.setGov(timelock.address)
+
+    await expect(timelock.connect(user0).setHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(user0).signalSetHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).signalSetHandler(vester.address, user1.address, true)
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 4 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 1 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setHandler(bnb.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user2.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, false))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    expect(await vester.isHandler(user1.address)).eq(false)
+    await timelock.connect(wallet).setHandler(vester.address, user1.address, true)
+    expect(await vester.isHandler(user1.address)).eq(true)
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await timelock.connect(wallet).signalSetHandler(vester.address, user1.address, true)
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    const action0 = ethers.utils.solidityKeccak256(["string", "address", "address", "bool"], ["setHandler", bnb.address, user1.address, true])
+    const action1 = ethers.utils.solidityKeccak256(["string", "address", "address", "bool"], ["setHandler", vester.address, user1.address, true])
+
+    await expect(timelock.connect(user0).cancelAction(action0))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).cancelAction(action0))
+      .to.be.revertedWith("Timelock: invalid _action")
+
+    await timelock.connect(wallet).cancelAction(action1)
+
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, true))
       .to.be.revertedWith("Timelock: action not signalled")
   })
 
@@ -675,53 +835,64 @@ describe("Timelock", function () {
     await gmx.connect(user0).transfer(user1.address, 100)
   })
 
-  it("testBridge", async () => {
-    const gmx = await deployContract("GMX", [])
-    const wgmx = await deployContract("GMX", [])
-    const bridge = await deployContract("Bridge", [gmx.address, wgmx.address])
+  it("batchSetBonusRewards", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      365 * 24 * 60 * 60,
+      AddressZero,
+      AddressZero,
+      AddressZero,
+      AddressZero
+    ])
+    await vester.setGov(timelock.address)
 
-    await gmx.setMinter(wallet.address, true)
-    await gmx.mint(wallet.address, 100)
+    const accounts = [user1.address, user2.address, user3.address]
+    const amounts = [700, 500, 900]
 
-    await wgmx.setMinter(wallet.address, true)
-    await wgmx.mint(bridge.address, 100)
-
-    await expect(timelock.connect(user0).setInPrivateTransferMode(gmx.address, true))
+    await expect(timelock.connect(user0).batchSetBonusRewards(vester.address, accounts, amounts))
       .to.be.revertedWith("Timelock: forbidden")
 
-    await expect(timelock.connect(wallet).setInPrivateTransferMode(gmx.address, true))
-      .to.be.revertedWith("BaseToken: forbidden")
-
-    await gmx.setGov(timelock.address)
-
-    expect(await gmx.inPrivateTransferMode()).eq(false)
-    await timelock.connect(wallet).setInPrivateTransferMode(gmx.address, true)
-    expect(await gmx.inPrivateTransferMode()).eq(true)
-
-    await expect(gmx.connect(user0).transfer(user1.address, 100))
-      .to.be.revertedWith("BaseToken: msg.sender not whitelisted")
-
-    await expect(timelock.connect(user0).testBridge(bridge.address, gmx.address, 100, user1.address))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    await gmx.connect(wallet).approve(timelock.address, 100)
-
-    expect(await gmx.balanceOf(wallet.address)).eq(100)
-    expect(await gmx.balanceOf(bridge.address)).eq(0)
-    expect(await wgmx.balanceOf(user1.address)).eq(0)
-    expect(await wgmx.balanceOf(bridge.address)).eq(100)
-
-    await timelock.testBridge(bridge.address, gmx.address, 100, user1.address)
-
-    expect(await gmx.balanceOf(wallet.address)).eq(0)
-    expect(await gmx.balanceOf(bridge.address)).eq(100)
-    expect(await wgmx.balanceOf(user1.address)).eq(100)
-    expect(await wgmx.balanceOf(bridge.address)).eq(0)
-
-    await timelock.addExcludedToken(gmx.address)
-    await expect(timelock.connect(wallet).testBridge(bridge.address, gmx.address, 100, user1.address))
-      .to.be.revertedWith("Timelock: _token is excluded")
+    expect(await vester.bonusRewards(user1.address)).eq(0)
+    expect(await vester.bonusRewards(user2.address)).eq(0)
+    expect(await vester.bonusRewards(user3.address)).eq(0)
+    await timelock.connect(wallet).batchSetBonusRewards(vester.address, accounts, amounts)
+    expect(await vester.bonusRewards(user1.address)).eq(700)
+    expect(await vester.bonusRewards(user2.address)).eq(500)
+    expect(await vester.bonusRewards(user3.address)).eq(900)
   })
+
+  it("managedSetMinter", async () => {
+    const gmx = await deployContract("GMX", [])
+    await gmx.setGov(timelock.address)
+    await expect(timelock.connect(wallet).managedSetMinter(gmx.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await gmx.isMinter(user1.address)).eq(false)
+    await timelock.connect(rewardManager).managedSetMinter(gmx.address, user1.address, true)
+    expect(await gmx.isMinter(user1.address)).eq(true)
+  })
+
+  it("managedSetHandler", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      365 * 24 * 60 * 60,
+      AddressZero,
+      AddressZero,
+      AddressZero,
+      AddressZero
+    ])
+    await vester.setGov(timelock.address)
+
+    await expect(timelock.connect(wallet).managedSetHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vester.isHandler(user1.address)).eq(false)
+    await timelock.connect(rewardManager).managedSetHandler(vester.address, user1.address, true)
+    expect(await vester.isHandler(user1.address)).eq(true)
+  })
+
 
   it("setAdmin", async () => {
     await expect(timelock.setAdmin(user1.address))
@@ -730,5 +901,19 @@ describe("Timelock", function () {
     expect(await timelock.admin()).eq(wallet.address)
     await timelock.connect(tokenManager).setAdmin(user1.address)
     expect(await timelock.admin()).eq(user1.address)
+  })
+
+  it("setExternalAdmin", async () => {
+    const distributor = await deployContract("RewardDistributor", [user1.address, user2.address])
+    await distributor.setGov(timelock.address)
+    await expect(timelock.connect(user0).setExternalAdmin(distributor.address, user3.address))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await distributor.admin()).eq(wallet.address)
+    await timelock.connect(wallet).setExternalAdmin(distributor.address, user3.address)
+    expect(await distributor.admin()).eq(user3.address)
+
+    await expect(timelock.connect(wallet).setExternalAdmin(timelock.address, user3.address))
+      .to.be.revertedWith("Timelock: invalid _target")
   })
 })

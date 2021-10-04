@@ -11,6 +11,8 @@ import "../tokens/interfaces/IYieldTracker.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../amm/interfaces/IPancakeFactory.sol";
 
+import "../staking/interfaces/IVester.sol";
+
 contract Reader {
     using SafeMath for uint256;
 
@@ -105,6 +107,22 @@ contract Reader {
             IYieldTracker yieldTracker = IYieldTracker(_yieldTrackers[i]);
             amounts[i * propsLength] = yieldTracker.claimable(_account);
             amounts[i * propsLength + 1] = yieldTracker.getTokensPerInterval();
+        }
+        return amounts;
+    }
+
+    function getVestingInfo(address _account, address[] memory _vesters) public view returns (uint256[] memory) {
+        uint256 propsLength = 7;
+        uint256[] memory amounts = new uint256[](_vesters.length * propsLength);
+        for (uint256 i = 0; i < _vesters.length; i++) {
+            IVester vester = IVester(_vesters[i]);
+            amounts[i * propsLength] = vester.pairAmounts(_account);
+            amounts[i * propsLength + 1] = vester.getVestedAmount(_account);
+            amounts[i * propsLength + 2] = IERC20(_vesters[i]).balanceOf(_account);
+            amounts[i * propsLength + 3] = vester.claimedAmounts(_account);
+            amounts[i * propsLength + 4] = vester.claimable(_account);
+            amounts[i * propsLength + 5] = vester.getMaxVestableAmount(_account);
+            amounts[i * propsLength + 6] = vester.getCombinedAverageStakedAmount(_account);
         }
         return amounts;
     }
@@ -231,6 +249,35 @@ contract Reader {
             amounts[i * propsLength + 7] = vault.guaranteedUsd(token);
             amounts[i * propsLength + 8] = priceFeed.getPrice(token, false, false, false);
             amounts[i * propsLength + 9] = priceFeed.getPrice(token, true, false, false);
+        }
+
+        return amounts;
+    }
+
+    function getFullVaultTokenInfo(address _vault, address _weth, uint256 _usdgAmount, address[] memory _tokens) public view returns (uint256[] memory) {
+        uint256 propsLength = 12;
+
+        IVault vault = IVault(_vault);
+        IVaultPriceFeed priceFeed = IVaultPriceFeed(vault.priceFeed());
+
+        uint256[] memory amounts = new uint256[](_tokens.length * propsLength);
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            address token = _tokens[i];
+            if (token == address(0)) {
+                token = _weth;
+            }
+            amounts[i * propsLength] = vault.poolAmounts(token);
+            amounts[i * propsLength + 1] = vault.reservedAmounts(token);
+            amounts[i * propsLength + 2] = vault.usdgAmounts(token);
+            amounts[i * propsLength + 3] = vault.getRedemptionAmount(token, _usdgAmount);
+            amounts[i * propsLength + 4] = vault.tokenWeights(token);
+            amounts[i * propsLength + 5] = vault.bufferAmounts(token);
+            amounts[i * propsLength + 6] = vault.maxUsdgAmounts(token);
+            amounts[i * propsLength + 7] = vault.getMinPrice(token);
+            amounts[i * propsLength + 8] = vault.getMaxPrice(token);
+            amounts[i * propsLength + 9] = vault.guaranteedUsd(token);
+            amounts[i * propsLength + 10] = priceFeed.getPrice(token, false, false, false);
+            amounts[i * propsLength + 11] = priceFeed.getPrice(token, true, false, false);
         }
 
         return amounts;

@@ -42,9 +42,9 @@ async function withdrawFeesArb() {
   const receiver = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const gov = await contractAt("Timelock", "0xbb8614A9aD437739C9910a9CB2254C608Aa7fDB4")
-  const { btc, eth, usdc } = tokens
+  const { btc, eth, usdc, link, uni, usdt } = tokens
 
-  const tokenArr = [btc, eth, usdc]
+  const tokenArr = [btc, eth, usdc, link, uni, usdt]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = await contractAt("Token", tokenArr[i].address)

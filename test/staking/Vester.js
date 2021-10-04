@@ -51,6 +51,90 @@ describe("Vester", function () {
     expect(await vester.hasMaxVestableAmount()).eq(false)
   })
 
+  it("setTransferredAverageStakedAmounts", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setTransferredAverageStakedAmounts(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.transferredAverageStakedAmounts(user0.address)).eq(0)
+    await vester.setTransferredAverageStakedAmounts(user0.address, 200)
+    expect(await vester.transferredAverageStakedAmounts(user0.address)).eq(200)
+  })
+
+  it("setTransferredCumulativeRewards", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setTransferredCumulativeRewards(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.transferredCumulativeRewards(user0.address)).eq(0)
+    await vester.setTransferredCumulativeRewards(user0.address, 200)
+    expect(await vester.transferredCumulativeRewards(user0.address)).eq(200)
+  })
+
+  it("setCumulativeRewardDeductions", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setCumulativeRewardDeductions(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.cumulativeRewardDeductions(user0.address)).eq(0)
+    await vester.setCumulativeRewardDeductions(user0.address, 200)
+    expect(await vester.cumulativeRewardDeductions(user0.address)).eq(200)
+  })
+
+  it("setBonusRewards", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      secondsPerYear,
+      esGmx.address,
+      AddressZero,
+      gmx.address,
+      AddressZero
+    ])
+
+    await expect(vester.setBonusRewards(user0.address, 200))
+      .to.be.revertedWith("Vester: forbidden")
+
+    await vester.setHandler(wallet.address, true)
+
+    expect(await vester.bonusRewards(user0.address)).eq(0)
+    await vester.setBonusRewards(user0.address, 200)
+    expect(await vester.bonusRewards(user0.address)).eq(200)
+  })
+
   it("deposit, claim, withdraw", async () => {
     const vester = await deployContract("Vester", [
       "Vested GMX",
@@ -61,6 +145,7 @@ describe("Vester", function () {
       gmx.address,
       AddressZero
     ])
+    await esGmx.setMinter(vester.address, true)
 
     await expect(vester.connect(user0).deposit(0))
       .to.be.revertedWith("Vester: invalid _amount")
@@ -108,12 +193,12 @@ describe("Vester", function () {
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
-    await expect(vester.connect(user0).claim(user0.address))
+    await expect(vester.connect(user0).claim())
       .to.be.revertedWith("BaseToken: transfer amount exceeds balance")
 
     await gmx.mint(vester.address, expandDecimals(2000, 18))
 
-    await vester.connect(user0).claim(user0.address)
+    await vester.connect(user0).claim()
     blockTime = await getBlockTime(provider)
 
     expect(await esGmx.balanceOf(user0.address)).eq(0)
@@ -146,7 +231,7 @@ describe("Vester", function () {
     expect(await vester.claimable(user0.address)).gt(expandDecimals(500, 18)) // 1000 / 2 => 500
     expect(await vester.claimable(user0.address)).lt(expandDecimals(502, 18))
 
-    await vester.connect(user0).claim(user0.address)
+    await vester.connect(user0).claim()
     blockTime = await getBlockTime(provider)
 
     expect(await esGmx.balanceOf(user0.address)).eq(0)
@@ -182,18 +267,13 @@ describe("Vester", function () {
 
     expect(await esGmx.balanceOf(user0.address)).eq(0)
     expect(await gmx.balanceOf(user0.address)).eq(gmxAmount)
-    expect(await esGmx.balanceOf(user1.address)).eq(0)
-    expect(await gmx.balanceOf(user1.address)).eq(0)
 
-    await vester.connect(user0).withdraw(user1.address)
+    await vester.connect(user0).withdraw()
 
-    const gmxAmount1 = await gmx.balanceOf(user1.address)
-
-    expect(await esGmx.balanceOf(user0.address)).eq(0)
-    expect(await gmx.balanceOf(user0.address)).eq(gmxAmount)
-    expect(await esGmx.balanceOf(user1.address)).eq(expandDecimals(1500, 18).sub(gmxAmount).sub(gmxAmount1))
-    expect(await gmx.balanceOf(user1.address)).gt("6840000000000000000")
-    expect(await gmx.balanceOf(user1.address)).lt("6860000000000000000")
+    expect(await esGmx.balanceOf(user0.address)).gt(expandDecimals(989, 18))
+    expect(await esGmx.balanceOf(user0.address)).lt(expandDecimals(990, 18))
+    expect(await gmx.balanceOf(user0.address)).gt(expandDecimals(510, 18))
+    expect(await gmx.balanceOf(user0.address)).lt(expandDecimals(512, 18))
 
     expect(await vester.balanceOf(user0.address)).eq(0)
     expect(await vester.getTotalVested(user0.address)).eq(0)
@@ -220,7 +300,7 @@ describe("Vester", function () {
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
-    await vester.connect(user0).claim(user0.address)
+    await vester.connect(user0).claim()
   })
 
   it("depositForAccount, claimForAccount", async () => {
@@ -233,6 +313,8 @@ describe("Vester", function () {
       gmx.address,
       AddressZero
     ])
+    await esGmx.setMinter(vester.address, true)
+    await vester.setHandler(wallet.address, true)
 
     await esGmx.connect(user0).approve(vester.address, expandDecimals(1000, 18))
 
@@ -276,7 +358,7 @@ describe("Vester", function () {
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
-    await expect(vester.connect(user0).claim(user0.address))
+    await expect(vester.connect(user0).claim())
       .to.be.revertedWith("BaseToken: transfer amount exceeds balance")
 
     await gmx.mint(vester.address, expandDecimals(2000, 18))
@@ -317,6 +399,8 @@ describe("Vester", function () {
       gmx.address,
       AddressZero
     ])
+    await esGmx.setMinter(vester.address, true)
+    await vester.setHandler(wallet.address, true)
 
     await esGmx.connect(user0).approve(vester.address, expandDecimals(1000, 18))
 
@@ -355,7 +439,7 @@ describe("Vester", function () {
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
-    await expect(vester.connect(user0).claim(user0.address))
+    await expect(vester.connect(user0).claim())
       .to.be.revertedWith("BaseToken: transfer amount exceeds balance")
 
     await gmx.mint(vester.address, expandDecimals(2000, 18))
@@ -381,12 +465,12 @@ describe("Vester", function () {
     expect(await vester.pairAmounts(user0.address)).eq(0)
     expect(await vester.lastVestingTimes(user0.address)).eq(blockTime)
 
-    await vester.connect(user0).withdraw(user1.address)
+    await vester.connect(user0).withdraw()
 
-    expect(await esGmx.balanceOf(user1.address)).gt(expandDecimals(1494, 18))
-    expect(await esGmx.balanceOf(user1.address)).lt(expandDecimals(1496, 18))
-    expect(await gmx.balanceOf(user1.address)).gt("5470000000000000000")
-    expect(await gmx.balanceOf(user1.address)).lt("5490000000000000000")
+    expect(await esGmx.balanceOf(user0.address)).gt(expandDecimals(1494, 18))
+    expect(await esGmx.balanceOf(user0.address)).lt(expandDecimals(1496, 18))
+    expect(await gmx.balanceOf(user0.address)).gt("5470000000000000000")
+    expect(await gmx.balanceOf(user0.address)).lt("5490000000000000000")
     expect(await vester.balanceOf(user0.address)).eq(0)
     expect(await vester.getTotalVested(user0.address)).eq(0)
     expect(await vester.cumulativeClaimAmounts(user0.address)).eq(0) // 5.47, 1000 / 365 * 2 => ~5.48
@@ -466,6 +550,8 @@ describe("Vester", function () {
       gmx.address,
       stakedGmxTracker.address
     ])
+    await esGmx.setMinter(vester.address, true)
+    await vester.setHandler(wallet.address, true)
 
     expect(await vester.name()).eq("Vested GMX")
     expect(await vester.symbol()).eq("veGMX")
@@ -602,18 +688,13 @@ describe("Vester", function () {
     await increaseTime(provider, 30 * 24 * 60 * 60)
     await mineBlock(provider)
 
-    expect(await feeGmxTracker.balanceOf(user4.address)).eq(0)
-    expect(await gmx.balanceOf(user4.address)).eq(0)
-    expect(await esGmx.balanceOf(user4.address)).eq(0)
+    await vester.connect(user0).withdraw()
 
-    await vester.connect(user0).withdraw(user4.address)
-
-    expect(await feeGmxTracker.balanceOf(user4.address)).gt(expandDecimals(999, 18))
-    expect(await feeGmxTracker.balanceOf(user4.address)).lt(expandDecimals(1001, 18))
-    expect(await gmx.balanceOf(user4.address)).gt(expandDecimals(201, 18)) // 2380 / 12 = ~198
-    expect(await gmx.balanceOf(user4.address)).lt(expandDecimals(203, 18))
-    expect(await esGmx.balanceOf(user4.address)).gt(expandDecimals(2176, 18)) // 2380 - 202 = 2178
-    expect(await esGmx.balanceOf(user4.address)).lt(expandDecimals(2178, 18))
+    expect(await feeGmxTracker.balanceOf(user0.address)).eq(expandDecimals(1500, 18))
+    expect(await gmx.balanceOf(user0.address)).gt(expandDecimals(201, 18)) // 2380 / 12 = ~198
+    expect(await gmx.balanceOf(user0.address)).lt(expandDecimals(203, 18))
+    expect(await esGmx.balanceOf(user0.address)).gt(expandDecimals(2182, 18)) // 5 + 2380 - 202  = 2183
+    expect(await esGmx.balanceOf(user0.address)).lt(expandDecimals(2183, 18))
   })
 
   it("handles existing pair tokens", async () => {
@@ -686,6 +767,8 @@ describe("Vester", function () {
       gmx.address,
       stakedGmxTracker.address
     ])
+    await esGmx.setMinter(vester.address, true)
+    await vester.setHandler(wallet.address, true)
 
     expect(await vester.name()).eq("Vested GMX")
     expect(await vester.symbol()).eq("veGMX")
@@ -813,7 +896,7 @@ describe("Vester", function () {
     await expect(rewardRouter.connect(user0).unstakeGmx(expandDecimals(2, 18)))
       .to.be.revertedWith("RewardTracker: burn amount exceeds balance")
 
-    await vester.connect(user0).withdraw(user0.address)
+    await vester.connect(user0).withdraw()
 
     await rewardRouter.connect(user0).unstakeGmx(expandDecimals(2, 18))
   })

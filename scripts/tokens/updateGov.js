@@ -2,28 +2,43 @@ const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 async function main() {
+  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+  const signer = frame.getSigner()
+
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, glpManager gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, stakedGmxTracker gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, bonusGmxTracker gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, feeGmxTracker gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, feeGlpTracker gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, stakedGlpTracker gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, stakedGmxDistributor gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, stakedGlpDistributor gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, stakedGlpDistributor gov
+  // 0x09214c0a3594fbcad59a58099b0a63e2b29b15b8, esGmx gov
+  // 0x4a3930b629f899fe19c1f280c73a376382d61a78, bnGmx gov
+
   const addresses = [
-    "0x0EF0Cf825B8e9F89A43FfD392664131cFB4cfA89", // usdg yield tracker
-    "0xd729d21EB85F8dBf3e0754f058024f20439a6AE9", // usdg reward distributor
-    "0x82A012A9b3003b18B6bCd6052cbbef7Fa4892e80", // xgmt yield tracker
-    "0x71d0F891a7e5A1D3526cB35589e37469380952c0", // xgmt reward distributor
-    "0x3E8B08876c791dC880ADC8f965A02e53Bb9C0422", // gmt/usdg farm
-    "0x08FAb024BEfcb6068847726b2eccEAd18b6c23Cd", // gmt/usdg xgmt yield tracker
-    "0xA633158288520807F91CCC98aa58E0eA43ACB400", // gmt/usdg xgmt farm distributor
-    "0xd8E26637B34B2487Cad1f91808878a391134C5c2", // gmt/usdg wbnb yield tracker
-    "0x40aaDC15af652A790f18Eaf8EcA6228093d2F72E", // gmt/usdg wbnb farm distributor
-    "0x68D7ee2A16AB7c0Ee1D670BECd144166d2Ae0759", // xgmt/usdg farm
-    "0x026A02F7F26C1AFccb9Cba7C4df3Dc810F4e92e8", // xgmt/usdg xgmt yield tracker
-    "0xd9b1C23411aDBB984B1C4BE515fAfc47a12898b2", // xgmt/usdg xgmt distributor
-    "0x22458CEbD14a9679b2880147d08CA1ce5aa40E84", // xgmt/usdg wbnb yield tracker
-    "0xB5EA6A50e7B9C5Aa640c7d5E6458a38E1718E8Cd" // xgmt/usdg wbnb distributor
+    "0x321F653eED006AD1C29D174e17d96351BDe22649", // glpManager
+    "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", // stakedGmxTracker
+    "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", // bonusGmxTracker
+    "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", // feeGmxTracker
+    "0x4e971a87900b931fF39d1Aad67697F49835400b6", // feeGlpTracker
+    "0x1aDDD80E6039594eE970E5872D247bf0414C8903", // stakedGlpTracker
+    "0x23208B91A98c7C1CD9FE63085BFf68311494F193", // stakedGmxDistributor
+    "0x60519b48ec4183a61ca2B8e37869E675FD203b34", // stakedGlpDistributor
+    "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA", // esGmx
+    "0x35247165119B69A40edD5304969560D0ef486921" // bnGmx
   ]
 
-  const gov = { address: "0x7918B81E119954488C00D2243A8BF2fa407ae87d" }
+  // const prevGov = await contractAt("Timelock", "0x4a3930b629f899fe19c1f280c73a376382d61a78")
+  // const nextGov = { address: "0x181e9495444cc7AdCE9fBdeaE4c66D7c4eFEeaf5" }
+
+  const prevGov = await contractAt("Timelock", "0x181e9495444cc7AdCE9fBdeaE4c66D7c4eFEeaf5", signer)
+  const nextGov = { address: "0x3F3E77421E30271568eF7A0ab5c5F2667675341e" }
   for (let i = 0; i < addresses.length; i++) {
     const address = addresses[i]
-    const contract = await contractAt("YieldToken", address)
-    await sendTxn(contract.setGov(gov.address), `${i}: setGov`)
+    await sendTxn(prevGov.signalSetGov(address, nextGov.address), `${i}: signalSetGov`)
+    // await sendTxn(prevGov.setGov(address, nextGov.address), `${i}: setGov`)
   }
 }
 
