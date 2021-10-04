@@ -34,9 +34,9 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     bool public hasMaxVestableAmount;
 
     mapping (address => uint256) public balances;
-    mapping (address => uint256) public pairAmounts;
-    mapping (address => uint256) public cumulativeClaimAmounts;
-    mapping (address => uint256) public claimedAmounts;
+    mapping (address => uint256) public override pairAmounts;
+    mapping (address => uint256) public override cumulativeClaimAmounts;
+    mapping (address => uint256) public override claimedAmounts;
     mapping (address => uint256) public lastVestingTimes;
 
     mapping (address => uint256) public override transferredAverageStakedAmounts;
@@ -170,7 +170,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         bonusRewards[_account] = _amount;
     }
 
-    function claimable(address _account) public view returns (uint256) {
+    function claimable(address _account) public override view returns (uint256) {
         uint256 amount = cumulativeClaimAmounts[_account].sub(claimedAmounts[_account]);
         uint256 nextClaimable = _getNextClaimableAmount(_account);
         return amount.add(nextClaimable);
@@ -262,7 +262,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         revert("Vester: non-transferrable");
     }
 
-    function getVestedAmount(address _account) public view returns (uint256) {
+    function getVestedAmount(address _account) public override view returns (uint256) {
         uint256 balance = balances[_account];
         uint256 cumulativeClaimAmount = cumulativeClaimAmounts[_account];
         return balance.add(cumulativeClaimAmount);

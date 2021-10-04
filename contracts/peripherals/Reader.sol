@@ -11,6 +11,8 @@ import "../tokens/interfaces/IYieldTracker.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../amm/interfaces/IPancakeFactory.sol";
 
+import "../staking/interfaces/IVester.sol";
+
 contract Reader {
     using SafeMath for uint256;
 
@@ -105,6 +107,22 @@ contract Reader {
             IYieldTracker yieldTracker = IYieldTracker(_yieldTrackers[i]);
             amounts[i * propsLength] = yieldTracker.claimable(_account);
             amounts[i * propsLength + 1] = yieldTracker.getTokensPerInterval();
+        }
+        return amounts;
+    }
+
+    function getVestingInfo(address _account, address[] memory _vesters) public view returns (uint256[] memory) {
+        uint256 propsLength = 7;
+        uint256[] memory amounts = new uint256[](_vesters.length * propsLength);
+        for (uint256 i = 0; i < _vesters.length; i++) {
+            IVester vester = IVester(_vesters[i]);
+            amounts[i * propsLength] = vester.pairAmounts(_account);
+            amounts[i * propsLength + 1] = vester.getVestedAmount(_account);
+            amounts[i * propsLength + 2] = IERC20(_vesters[i]).balanceOf(_account);
+            amounts[i * propsLength + 3] = vester.claimedAmounts(_account);
+            amounts[i * propsLength + 4] = vester.claimable(_account);
+            amounts[i * propsLength + 5] = vester.getMaxVestableAmount(_account);
+            amounts[i * propsLength + 6] = vester.getCombinedAverageStakedAmount(_account);
         }
         return amounts;
     }
