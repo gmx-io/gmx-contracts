@@ -3,6 +3,7 @@ typechain/
 env.json
 .tmp-addresses*.json
 data/gmxMigration
+data/esGmxDistribution
 flattened
 
 #Hardhat files

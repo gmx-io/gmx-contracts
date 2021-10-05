@@ -21,8 +21,14 @@ async function main() {
       token.address, // _token
       token.tokenWeight, // _tokenWeight
       token.minProfitBps, // _minProfitBps
-      token.maxUsdgAmount // _maxUsdgAmount
+      expandDecimals(token.maxUsdgAmount, 18) // _maxUsdgAmount
     ), `vault.setTokenConfig(${token.name}) ${token.address}`)
+
+    await sendTxn(timelock.setBufferAmount(
+      vault.address,
+      token.address, // _token
+      expandDecimals(token.bufferAmount, token.decimals) // _bufferAmount
+    ), `vault.setBufferAmount(${token.name}) ${token.address}`)
   }
 }
 
