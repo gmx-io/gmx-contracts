@@ -191,7 +191,7 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 5000,
       minProfitBps: 150,
-      maxUsdgAmount: expandDecimals(5 * 1000 * 1000, 18),
+      maxUsdgAmount: 5 * 1000 * 1000,
       bufferAmount: 20000,
       isStable: false,
       isShortable: true
@@ -205,7 +205,7 @@ module.exports = {
       isStrictStable: true,
       tokenWeight: 10000,
       minProfitBps: 150,
-      maxUsdgAmount: expandDecimals(8 * 1000 * 1000, 18),
+      maxUsdgAmount: 8 * 1000 * 1000,
       bufferAmount: 1 * 1000 * 1000,
       isStable: true,
       isShortable: false
