@@ -85,7 +85,7 @@ contract wGLP is IERC20 {
         IRewardTracker(feeGlpTracker).unstakeForAccount(_sender, glp, _amount, _sender);
 
         IRewardTracker(feeGlpTracker).stakeForAccount(_sender, _recipient, glp, _amount);
-        IRewardTracker(stakedGlpTracker).stakeForAccount(_sender, _recipient, feeGlpTracker, _amount);
+        IRewardTracker(stakedGlpTracker).stakeForAccount(_recipient, _recipient, feeGlpTracker, _amount);
 
         emit Transfer(_sender, _recipient,_amount);
     }
