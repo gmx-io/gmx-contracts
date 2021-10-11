@@ -25,8 +25,8 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     address public usdg;
     address public glp;
 
-    uint256 public cooldownDuration;
-    mapping (address => uint256) public lastAddedAt;
+    uint256 public override cooldownDuration;
+    mapping (address => uint256) public override lastAddedAt;
 
     uint256 public aumAddition;
     uint256 public aumDeduction;
