@@ -6,11 +6,11 @@ import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
 import "../core/interfaces/IGlpManager.sol";
 
-contract FeeGlp {
+contract GlpBalance {
     using SafeMath for uint256;
 
     IGlpManager public glpManager;
-    address public feeGlpTracker;
+    address public stakedGlpTracker;
 
     mapping (address => mapping (address => uint256)) public allowances;
 
@@ -18,10 +18,10 @@ contract FeeGlp {
 
     constructor(
         IGlpManager _glpManager,
-        address _feeGlpTracker
+        address _stakedGlpTracker
     ) public {
         glpManager = _glpManager;
-        feeGlpTracker = _feeGlpTracker;
+        stakedGlpTracker = _stakedGlpTracker;
     }
 
     function allowance(address _owner, address _spender) external view returns (uint256) {
@@ -39,15 +39,15 @@ contract FeeGlp {
     }
 
     function transferFrom(address _sender, address _recipient, uint256 _amount) external returns (bool) {
-        uint256 nextAllowance = allowances[_sender][msg.sender].sub(_amount, "FeeGlp: transfer amount exceeds allowance");
+        uint256 nextAllowance = allowances[_sender][msg.sender].sub(_amount, "GlpBalance: transfer amount exceeds allowance");
         _approve(_sender, msg.sender, nextAllowance);
         _transfer(_sender, _recipient, _amount);
         return true;
     }
 
     function _approve(address _owner, address _spender, uint256 _amount) private {
-        require(_owner != address(0), "FeeGlp: approve from the zero address");
-        require(_spender != address(0), "FeeGlp: approve to the zero address");
+        require(_owner != address(0), "GlpBalance: approve from the zero address");
+        require(_spender != address(0), "GlpBalance: approve to the zero address");
 
         allowances[_owner][_spender] = _amount;
 
@@ -55,14 +55,14 @@ contract FeeGlp {
     }
 
     function _transfer(address _sender, address _recipient, uint256 _amount) private {
-        require(_sender != address(0), "FeeGlp: transfer from the zero address");
-        require(_recipient != address(0), "FeeGlp: transfer to the zero address");
+        require(_sender != address(0), "GlpBalance: transfer from the zero address");
+        require(_recipient != address(0), "GlpBalance: transfer to the zero address");
 
         require(
             glpManager.lastAddedAt(_sender).add(glpManager.cooldownDuration()) <= block.timestamp,
-            "FeeGlp: cooldown duration not yet passed"
+            "GlpBalance: cooldown duration not yet passed"
         );
 
-        IERC20(feeGlpTracker).transferFrom(_sender, _recipient, _amount);
+        IERC20(stakedGlpTracker).transferFrom(_sender, _recipient, _amount);
     }
 }

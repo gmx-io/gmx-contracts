@@ -1357,4 +1357,238 @@ describe("RewardRouterV2", function () {
     expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).gt("540000000000000000") // 0.54
     expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).lt("560000000000000000") // 0.56
   })
+
+  it("StakedGlp", async () => {
+    await eth.mint(feeGlpDistributor.address, expandDecimals(100, 18))
+    await feeGlpDistributor.setTokensPerInterval("41335970000000") // 0.00004133597 ETH per second
+
+    await bnb.mint(user1.address, expandDecimals(1, 18))
+    await bnb.connect(user1).approve(glpManager.address, expandDecimals(1, 18))
+    await rewardRouter.connect(user1).mintAndStakeGlp(
+      bnb.address,
+      expandDecimals(1, 18),
+      expandDecimals(299, 18),
+      expandDecimals(299, 18)
+    )
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(2991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(2991, 17))
+
+    const stakedGlp = await deployContract("StakedGlp", [glp.address, glpManager.address, stakedGlpTracker.address, feeGlpTracker.address])
+
+    await expect(stakedGlp.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17)))
+      .to.be.revertedWith("StakedGlp: transfer amount exceeds allowance")
+
+    await stakedGlp.connect(user1).approve(user2.address, expandDecimals(2991, 17))
+
+    await expect(stakedGlp.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17)))
+      .to.be.revertedWith("StakedGlp: cooldown duration not yet passed")
+
+    await increaseTime(provider, 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(stakedGlp.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17)))
+      .to.be.revertedWith("RewardTracker: forbidden")
+
+    await timelock.signalSetHandler(stakedGlpTracker.address, stakedGlp.address, true)
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+    await timelock.setHandler(stakedGlpTracker.address, stakedGlp.address, true)
+
+    await expect(stakedGlp.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17)))
+      .to.be.revertedWith("RewardTracker: forbidden")
+
+    await timelock.signalSetHandler(feeGlpTracker.address, stakedGlp.address, true)
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+    await timelock.setHandler(feeGlpTracker.address, stakedGlp.address, true)
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(2991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(2991, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user3.address)).eq(0)
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq(0)
+
+    expect(await stakedGlpTracker.stakedAmounts(user3.address)).eq(0)
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq(0)
+
+    await stakedGlp.connect(user2).transferFrom(user1.address, user3. address, expandDecimals(2991, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(0)
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(0)
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(0)
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(0)
+
+    expect(await feeGlpTracker.stakedAmounts(user3.address)).eq(expandDecimals(2991, 17))
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq(expandDecimals(2991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user3.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq(expandDecimals(2991, 17))
+
+    await expect(stakedGlp.connect(user2).transferFrom(user3.address, user1.address, expandDecimals(3000, 17)))
+      .to.be.revertedWith("StakedGlp: transfer amount exceeds allowance")
+
+    await stakedGlp.connect(user3).approve(user2.address, expandDecimals(3000, 17))
+
+    await expect(stakedGlp.connect(user2).transferFrom(user3.address, user1.address, expandDecimals(3000, 17)))
+      .to.be.revertedWith("RewardTracker: _amount exceeds stakedAmount")
+
+    await stakedGlp.connect(user2).transferFrom(user3.address, user1.address, expandDecimals(1000, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(1000, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(1000, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(1000, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(1000, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user3.address)).eq(expandDecimals(1991, 17))
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq(expandDecimals(1991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user3.address)).eq(expandDecimals(1991, 17))
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq(expandDecimals(1991, 17))
+
+    await stakedGlp.connect(user3).transfer(user1.address, expandDecimals(1500, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2500, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(2500, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2500, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(2500, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user3.address)).eq(expandDecimals(491, 17))
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq(expandDecimals(491, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user3.address)).eq(expandDecimals(491, 17))
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq(expandDecimals(491, 17))
+
+    await expect(stakedGlp.connect(user3).transfer(user1.address, expandDecimals(492, 17)))
+      .to.be.revertedWith("RewardTracker: _amount exceeds stakedAmount")
+
+    expect(await bnb.balanceOf(user1.address)).eq(0)
+
+    await rewardRouter.connect(user1).unstakeAndRedeemGlp(
+      bnb.address,
+      expandDecimals(2500, 17),
+      "830000000000000000", // 0.83
+      user1.address
+    )
+
+    expect(await bnb.balanceOf(user1.address)).eq("830833333333333333")
+
+    await usdg.addVault(glpManager.address)
+
+    expect(await bnb.balanceOf(user3.address)).eq("0")
+
+    await rewardRouter.connect(user3).unstakeAndRedeemGlp(
+      bnb.address,
+      expandDecimals(491, 17),
+      "160000000000000000", // 0.16
+      user3.address
+    )
+
+    expect(await bnb.balanceOf(user3.address)).eq("163175666666666666")
+  })
+
+  it("FeeGlp", async () => {
+    await eth.mint(feeGlpDistributor.address, expandDecimals(100, 18))
+    await feeGlpDistributor.setTokensPerInterval("41335970000000") // 0.00004133597 ETH per second
+
+    await bnb.mint(user1.address, expandDecimals(1, 18))
+    await bnb.connect(user1).approve(glpManager.address, expandDecimals(1, 18))
+    await rewardRouter.connect(user1).mintAndStakeGlp(
+      bnb.address,
+      expandDecimals(1, 18),
+      expandDecimals(299, 18),
+      expandDecimals(299, 18)
+    )
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(2991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(2991, 17))
+
+    const glpBalance = await deployContract("GlpBalance", [glpManager.address, stakedGlpTracker.address])
+
+    await expect(glpBalance.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17)))
+      .to.be.revertedWith("GlpBalance: transfer amount exceeds allowance")
+
+    await glpBalance.connect(user1).approve(user2.address, expandDecimals(2991, 17))
+
+    await expect(glpBalance.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17)))
+      .to.be.revertedWith("GlpBalance: cooldown duration not yet passed")
+
+    await increaseTime(provider, 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(glpBalance.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17)))
+      .to.be.revertedWith("RewardTracker: transfer amount exceeds allowance")
+
+    await timelock.signalSetHandler(stakedGlpTracker.address, glpBalance.address, true)
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+    await timelock.setHandler(stakedGlpTracker.address, glpBalance.address, true)
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(2991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.balanceOf(user1.address)).eq(expandDecimals(2991, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user3.address)).eq(0)
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq(0)
+
+    expect(await stakedGlpTracker.stakedAmounts(user3.address)).eq(0)
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq(0)
+    expect(await stakedGlpTracker.balanceOf(user3.address)).eq(0)
+
+    await glpBalance.connect(user2).transferFrom(user1.address, user3.address, expandDecimals(2991, 17))
+
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(2991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.balanceOf(user1.address)).eq(0)
+
+    expect(await feeGlpTracker.stakedAmounts(user3.address)).eq(0)
+    expect(await feeGlpTracker.depositBalances(user3.address, glp.address)).eq(0)
+
+    expect(await stakedGlpTracker.stakedAmounts(user3.address)).eq(0)
+    expect(await stakedGlpTracker.depositBalances(user3.address, feeGlpTracker.address)).eq(0)
+    expect(await stakedGlpTracker.balanceOf(user3.address)).eq(expandDecimals(2991, 17))
+
+    await expect(rewardRouter.connect(user1).unstakeAndRedeemGlp(
+      bnb.address,
+      expandDecimals(2991, 17),
+      "0",
+      user1.address
+    )).to.be.revertedWith("RewardTracker: burn amount exceeds balance")
+
+    await glpBalance.connect(user3).approve(user2.address, expandDecimals(3000, 17))
+
+    await expect(glpBalance.connect(user2).transferFrom(user3.address, user1.address, expandDecimals(2992, 17)))
+      .to.be.revertedWith("RewardTracker: transfer amount exceeds balance")
+
+    await glpBalance.connect(user2).transferFrom(user3.address, user1.address, expandDecimals(2991, 17))
+
+    expect(await bnb.balanceOf(user1.address)).eq(0)
+
+    await rewardRouter.connect(user1).unstakeAndRedeemGlp(
+      bnb.address,
+      expandDecimals(2991, 17),
+      "0",
+      user1.address
+    )
+
+    expect(await bnb.balanceOf(user1.address)).eq("994009000000000000")
+  })
 })

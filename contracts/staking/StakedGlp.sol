@@ -7,7 +7,7 @@ import "../core/interfaces/IGlpManager.sol";
 
 import "./interfaces/IRewardTracker.sol";
 
-contract StakedGLP {
+contract StakedGlp {
     using SafeMath for uint256;
 
     address public glp;
@@ -46,15 +46,15 @@ contract StakedGLP {
     }
 
     function transferFrom(address _sender, address _recipient, uint256 _amount) external returns (bool) {
-        uint256 nextAllowance = allowances[_sender][msg.sender].sub(_amount, "StakedGLP: transfer amount exceeds allowance");
+        uint256 nextAllowance = allowances[_sender][msg.sender].sub(_amount, "StakedGlp: transfer amount exceeds allowance");
         _approve(_sender, msg.sender, nextAllowance);
         _transfer(_sender, _recipient, _amount);
         return true;
     }
 
     function _approve(address _owner, address _spender, uint256 _amount) private {
-        require(_owner != address(0), "StakedGLP: approve from the zero address");
-        require(_spender != address(0), "StakedGLP: approve to the zero address");
+        require(_owner != address(0), "StakedGlp: approve from the zero address");
+        require(_spender != address(0), "StakedGlp: approve to the zero address");
 
         allowances[_owner][_spender] = _amount;
 
@@ -62,12 +62,12 @@ contract StakedGLP {
     }
 
     function _transfer(address _sender, address _recipient, uint256 _amount) private {
-        require(_sender != address(0), "StakedGLP: transfer from the zero address");
-        require(_recipient != address(0), "StakedGLP: transfer to the zero address");
+        require(_sender != address(0), "StakedGlp: transfer from the zero address");
+        require(_recipient != address(0), "StakedGlp: transfer to the zero address");
 
         require(
             glpManager.lastAddedAt(_sender).add(glpManager.cooldownDuration()) <= block.timestamp,
-            "StakedGLP: cooldown duration not yet passed"
+            "StakedGlp: cooldown duration not yet passed"
         );
 
         IRewardTracker(stakedGlpTracker).unstakeForAccount(_sender, feeGlpTracker, _amount, _sender);
