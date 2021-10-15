@@ -39,7 +39,8 @@ contract OrderBookReader {
                 uint256 sizeDelta,
                 bool isLong,
                 uint256 triggerPrice,
-                bool triggerAboveThreshold
+                bool triggerAboveThreshold,
+                // uint256 executionFee
             ) = orderBook.getIncreaseOrder(vars.account, vars.index);
 
             uintProps[vars.i * vars.uintLength] = uint256(purchaseTokenAmount);
@@ -79,7 +80,8 @@ contract OrderBookReader {
                 uint256 sizeDelta,
                 bool isLong,
                 uint256 triggerPrice,
-                bool triggerAboveThreshold
+                bool triggerAboveThreshold,
+                // uint256 executionFee
             ) = orderBook.getDecreaseOrder(vars.account, vars.index);
 
             uintProps[vars.i * vars.uintLength] = uint256(collateralDelta);
@@ -102,7 +104,7 @@ contract OrderBookReader {
         address _account,
         uint256[] memory _indices
     ) external view returns (uint256[] memory, address[] memory) {
-        Vars memory vars = Vars(0, 0, _account, 4, 3);
+        Vars memory vars = Vars(0, 0, _account, 5, 3);
 
         uint256[] memory uintProps = new uint256[](vars.uintLength * _indices.length);
         address[] memory addressProps = new address[](vars.addressLength * _indices.length);
@@ -118,13 +120,16 @@ contract OrderBookReader {
                 uint256 amountIn, 
                 uint256 minOut, 
                 uint256 triggerRatio, 
-                bool triggerAboveThreshold
+                bool triggerAboveThreshold,
+                bool shouldUnwrap,
+                // uint256 executionFee
             ) = orderBook.getSwapOrder(vars.account, vars.index);
 
             uintProps[vars.i * vars.uintLength] = uint256(amountIn);
             uintProps[vars.i * vars.uintLength + 1] = uint256(minOut);
             uintProps[vars.i * vars.uintLength + 2] = uint256(triggerRatio);
             uintProps[vars.i * vars.uintLength + 3] = uint256(triggerAboveThreshold ? 1 : 0);
+            uintProps[vars.i * vars.uintLength + 4] = uint256(shouldUnwrap ? 1 : 0);
 
             addressProps[vars.i * vars.addressLength] = (path0);
             addressProps[vars.i * vars.addressLength + 1] = (path1);
