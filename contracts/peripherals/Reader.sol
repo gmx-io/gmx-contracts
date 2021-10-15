@@ -24,15 +24,36 @@ contract Reader {
     function getMaxAmountIn(IVault _vault, address _tokenIn, address _tokenOut) public view returns (uint256) {
         uint256 priceIn = _vault.getMinPrice(_tokenIn);
         uint256 priceOut = _vault.getMaxPrice(_tokenOut);
-        uint256 poolAmount = _vault.poolAmounts(_tokenOut);
-        uint256 reservedAmount = _vault.reservedAmounts(_tokenOut);
-        uint256 bufferAmount = _vault.bufferAmounts(_tokenOut);
-        uint256 availableAmount = poolAmount.sub(reservedAmount > bufferAmount ? reservedAmount : bufferAmount);
 
         uint256 tokenInDecimals = _vault.tokenDecimals(_tokenIn);
         uint256 tokenOutDecimals = _vault.tokenDecimals(_tokenOut);
 
-        return availableAmount.mul(priceOut).div(priceIn).mul(10 ** tokenInDecimals).div(10 ** tokenOutDecimals);
+        uint256 amountIn;
+
+        {
+            uint256 poolAmount = _vault.poolAmounts(_tokenOut);
+            uint256 reservedAmount = _vault.reservedAmounts(_tokenOut);
+            uint256 bufferAmount = _vault.bufferAmounts(_tokenOut);
+            uint256 subAmount = reservedAmount > bufferAmount ? reservedAmount : bufferAmount;
+            if (subAmount >= poolAmount) {
+                return 0;
+            }
+            uint256 availableAmount = poolAmount.sub(subAmount);
+            amountIn = availableAmount.mul(priceOut).div(priceIn).mul(10 ** tokenInDecimals).div(10 ** tokenOutDecimals);
+        }
+
+        uint256 maxUsdgAmount = _vault.maxUsdgAmounts(_tokenIn);
+
+        if (maxUsdgAmount != 0) {
+            uint256 maxAmountIn = maxUsdgAmount.mul(10 ** tokenInDecimals).div(10 ** USDG_DECIMALS);
+            maxAmountIn = maxAmountIn.mul(PRICE_PRECISION).div(priceIn);
+
+            if (amountIn > maxAmountIn) {
+                return maxAmountIn;
+            }
+        }
+
+        return amountIn;
     }
 
     function getAmountOut(IVault _vault, address _tokenIn, address _tokenOut, uint256 _amountIn) public view returns (uint256, uint256) {
