@@ -100,6 +100,7 @@ describe("Vault.getFeeBasisPoints", function () {
     expect(await vault.getFeeBasisPoints(bnb.address, 1000, 100, 50, true)).eq(150)
     expect(await vault.getFeeBasisPoints(bnb.address, 5000, 100, 50, true)).eq(150)
     expect(await vault.getFeeBasisPoints(bnb.address, 10000, 100, 50, true)).eq(150)
+    expect(await vault.getFeeBasisPoints(bnb.address, 20000, 100, 50, true)).eq(150)
     expect(await vault.getFeeBasisPoints(bnb.address, 1000, 100, 50, false)).eq(50)
     expect(await vault.getFeeBasisPoints(bnb.address, 5000, 100, 50, false)).eq(50)
     expect(await vault.getFeeBasisPoints(bnb.address, 10000, 100, 50, false)).eq(50)
@@ -150,6 +151,7 @@ describe("Vault.getFeeBasisPoints", function () {
     expect(await vault.getFeeBasisPoints(bnb.address, 5000, 100, 50, false)).eq(28)
     expect(await vault.getFeeBasisPoints(bnb.address, 20000, 100, 50, false)).eq(28)
     expect(await vault.getFeeBasisPoints(bnb.address, 50000, 100, 50, false)).eq(28)
+    expect(await vault.getFeeBasisPoints(bnb.address, 80000, 100, 50, false)).eq(28)
 
     expect(await vault.getFeeBasisPoints(bnb.address, 1000, 50, 100, true)).eq(150)
     expect(await vault.getFeeBasisPoints(bnb.address, 5000, 50, 100, true)).eq(150)

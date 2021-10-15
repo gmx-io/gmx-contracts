@@ -5,7 +5,7 @@ const { expandDecimals, reportGasUsed, gasUsed } = require("../../shared/utiliti
 const { toChainlinkPrice } = require("../../shared/chainlink")
 const { toUsd } = require("../../shared/units")
 const { initVault, getBnbConfig, getBtcConfig, getDaiConfig } = require("../Vault/helpers")
-const { getDefault, validateOrderFields, getTxFees, positionWrapper } = require('./helpers');
+const { getDefault, validateOrderFields, getTxFees, positionWrapper, defaultCreateDecreaseOrderFactory } = require('./helpers');
 
 use(solidity);
 
@@ -20,6 +20,7 @@ describe("OrderBook, decrease position orders", () => {
     let orderBook;
     let defaults;
     let tokenDecimals;
+    let defaultCreateDecreaseOrder
 
     beforeEach(async () => {
         bnb = await deployContract("Token", [])
@@ -121,20 +122,9 @@ describe("OrderBook, decrease position orders", () => {
             user: user0,
             isLong: true
         };
-    });
 
-    function defaultCreateDecreaseOrder(props = {}) {
-        return orderBook.connect(getDefault(props, 'user', defaults.user)).createDecreaseOrder(
-            getDefault(props, 'indexToken', defaults.path[defaults.path.length - 1]),
-            getDefault(props, 'sizeDelta', defaults.sizeDelta),
-            getDefault(props, 'collateralToken', defaults.collateralToken),
-            getDefault(props, 'collateralDelta', defaults.collateralDelta),
-            getDefault(props, 'isLong', defaults.isLong),
-            getDefault(props, 'triggerPrice', defaults.triggerPrice),
-            getDefault(props, 'triggerAboveThreshold', defaults.triggerAboveThreshold),
-            {value: getDefault(props, 'value', props.executionFee || defaults.executionFee)}
-        );
-    }
+        defaultCreateDecreaseOrder = defaultCreateDecreaseOrderFactory(orderBook, defaults)
+    });
 
     async function getCreatedDecreaseOrder(address, orderIndex = 0) {
         const order = await orderBook.decreaseOrders(address, orderIndex);

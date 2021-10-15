@@ -1,4 +1,5 @@
 // price feeds https://docs.chain.link/docs/binance-smart-chain-addresses/
+const { expandDecimals } = require("../../test/shared/utilities")
 
 module.exports = {
   bsc: {
@@ -135,6 +136,7 @@ module.exports = {
       tokenWeight: 20000,
       minProfitBps: 150,
       maxUsdgAmount: 0,
+      bufferAmount: 80,
       isStable: false,
       isShortable: true
     },
@@ -145,9 +147,10 @@ module.exports = {
       priceFeed: "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612",
       priceDecimals: 8,
       isStrictStable: false,
-      tokenWeight: 20000,
+      tokenWeight: 40000,
       minProfitBps: 150,
       maxUsdgAmount: 0,
+      bufferAmount: 3500,
       isStable: false,
       isShortable: true
     },
@@ -158,9 +161,10 @@ module.exports = {
       priceFeed: "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3",
       priceDecimals: 8,
       isStrictStable: true,
-      tokenWeight: 40000,
+      tokenWeight: 20000,
       minProfitBps: 150,
-      maxUsdgAmount: 0,
+      maxUsdgAmount: 20 * 1000 * 1000,
+      bufferAmount: 7 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },
@@ -173,7 +177,8 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 5000,
       minProfitBps: 150,
-      maxUsdgAmount: 0,
+      maxUsdgAmount: 5 * 1000 * 1000,
+      bufferAmount: 20000,
       isStable: false,
       isShortable: true
     },
@@ -186,7 +191,8 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 5000,
       minProfitBps: 150,
-      maxUsdgAmount: 0,
+      maxUsdgAmount: 5 * 1000 * 1000,
+      bufferAmount: 20000,
       isStable: false,
       isShortable: true
     },
@@ -199,7 +205,8 @@ module.exports = {
       isStrictStable: true,
       tokenWeight: 10000,
       minProfitBps: 150,
-      maxUsdgAmount: 0,
+      maxUsdgAmount: 8 * 1000 * 1000,
+      bufferAmount: 1 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },

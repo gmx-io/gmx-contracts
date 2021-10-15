@@ -11,6 +11,8 @@ import "../tokens/interfaces/IYieldTracker.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../amm/interfaces/IPancakeFactory.sol";
 
+import "../staking/interfaces/IVester.sol";
+
 contract Reader {
     using SafeMath for uint256;
 
@@ -22,15 +24,36 @@ contract Reader {
     function getMaxAmountIn(IVault _vault, address _tokenIn, address _tokenOut) public view returns (uint256) {
         uint256 priceIn = _vault.getMinPrice(_tokenIn);
         uint256 priceOut = _vault.getMaxPrice(_tokenOut);
-        uint256 poolAmount = _vault.poolAmounts(_tokenOut);
-        uint256 reservedAmount = _vault.reservedAmounts(_tokenOut);
-        uint256 bufferAmount = _vault.bufferAmounts(_tokenOut);
-        uint256 availableAmount = poolAmount.sub(reservedAmount > bufferAmount ? reservedAmount : bufferAmount);
 
         uint256 tokenInDecimals = _vault.tokenDecimals(_tokenIn);
         uint256 tokenOutDecimals = _vault.tokenDecimals(_tokenOut);
 
-        return availableAmount.mul(priceOut).div(priceIn).mul(10 ** tokenInDecimals).div(10 ** tokenOutDecimals);
+        uint256 amountIn;
+
+        {
+            uint256 poolAmount = _vault.poolAmounts(_tokenOut);
+            uint256 reservedAmount = _vault.reservedAmounts(_tokenOut);
+            uint256 bufferAmount = _vault.bufferAmounts(_tokenOut);
+            uint256 subAmount = reservedAmount > bufferAmount ? reservedAmount : bufferAmount;
+            if (subAmount >= poolAmount) {
+                return 0;
+            }
+            uint256 availableAmount = poolAmount.sub(subAmount);
+            amountIn = availableAmount.mul(priceOut).div(priceIn).mul(10 ** tokenInDecimals).div(10 ** tokenOutDecimals);
+        }
+
+        uint256 maxUsdgAmount = _vault.maxUsdgAmounts(_tokenIn);
+
+        if (maxUsdgAmount != 0) {
+            uint256 maxAmountIn = maxUsdgAmount.mul(10 ** tokenInDecimals).div(10 ** USDG_DECIMALS);
+            maxAmountIn = maxAmountIn.mul(PRICE_PRECISION).div(priceIn);
+
+            if (amountIn > maxAmountIn) {
+                return maxAmountIn;
+            }
+        }
+
+        return amountIn;
     }
 
     function getAmountOut(IVault _vault, address _tokenIn, address _tokenOut, uint256 _amountIn) public view returns (uint256, uint256) {
@@ -105,6 +128,22 @@ contract Reader {
             IYieldTracker yieldTracker = IYieldTracker(_yieldTrackers[i]);
             amounts[i * propsLength] = yieldTracker.claimable(_account);
             amounts[i * propsLength + 1] = yieldTracker.getTokensPerInterval();
+        }
+        return amounts;
+    }
+
+    function getVestingInfo(address _account, address[] memory _vesters) public view returns (uint256[] memory) {
+        uint256 propsLength = 7;
+        uint256[] memory amounts = new uint256[](_vesters.length * propsLength);
+        for (uint256 i = 0; i < _vesters.length; i++) {
+            IVester vester = IVester(_vesters[i]);
+            amounts[i * propsLength] = vester.pairAmounts(_account);
+            amounts[i * propsLength + 1] = vester.getVestedAmount(_account);
+            amounts[i * propsLength + 2] = IERC20(_vesters[i]).balanceOf(_account);
+            amounts[i * propsLength + 3] = vester.claimedAmounts(_account);
+            amounts[i * propsLength + 4] = vester.claimable(_account);
+            amounts[i * propsLength + 5] = vester.getMaxVestableAmount(_account);
+            amounts[i * propsLength + 6] = vester.getCombinedAverageStakedAmount(_account);
         }
         return amounts;
     }

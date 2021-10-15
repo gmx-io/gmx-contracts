@@ -371,7 +371,23 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         );
     }
 
-    function cancelSwapOrder(uint256 _orderIndex) external nonReentrant {
+    function cancelMultiple(
+        uint256[] memory _swapOrderIndexes,
+        uint256[] memory _increaseOrderIndexes,
+        uint256[] memory _decreaseOrderIndexes
+    ) external {
+        for (uint256 i = 0; i < _swapOrderIndexes.length; i++) {
+            cancelSwapOrder(_swapOrderIndexes[i]);
+        }
+        for (uint256 i = 0; i < _increaseOrderIndexes.length; i++) {
+            cancelIncreaseOrder(_increaseOrderIndexes[i]);
+        }
+        for (uint256 i = 0; i < _decreaseOrderIndexes.length; i++) {
+            cancelDecreaseOrder(_decreaseOrderIndexes[i]);
+        }
+    }
+
+    function cancelSwapOrder(uint256 _orderIndex) public nonReentrant {
         SwapOrder memory order = swapOrders[msg.sender][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 
@@ -688,7 +704,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         );
     }
 
-    function cancelIncreaseOrder(uint256 _orderIndex) external nonReentrant {
+    function cancelIncreaseOrder(uint256 _orderIndex) public nonReentrant {
         IncreaseOrder memory order = increaseOrders[msg.sender][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 
@@ -879,7 +895,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         );
     }
 
-    function cancelDecreaseOrder(uint256 _orderIndex) external nonReentrant {
+    function cancelDecreaseOrder(uint256 _orderIndex) public nonReentrant {
         DecreaseOrder memory order = decreaseOrders[msg.sender][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 
