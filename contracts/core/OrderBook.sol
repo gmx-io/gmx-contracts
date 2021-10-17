@@ -281,7 +281,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
     }
 
     function getSwapOrder(address _account, uint256 _orderIndex) override public view returns (
-        address path0, 
+        address path0,
         address path1,
         address path2,
         uint256 amountIn,
@@ -293,14 +293,14 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
     ) {
         SwapOrder memory order = swapOrders[_account][_orderIndex];
         return (
-            order.path.length > 0 ? order.path[0] : address(0), 
-            order.path.length > 1 ? order.path[1] : address(0), 
-            order.path.length > 2 ? order.path[2] : address(0), 
+            order.path.length > 0 ? order.path[0] : address(0),
+            order.path.length > 1 ? order.path[1] : address(0),
+            order.path.length > 2 ? order.path[2] : address(0),
             order.amountIn,
             order.minOut,
             order.triggerRatio,
             order.triggerAboveThreshold,
-            order.shouldUnwrap, // add shouldUnwrap?
+            order.shouldUnwrap,
             order.executionFee
         );
     }
@@ -439,7 +439,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         // 1. USDG doesn't have a price feed so we need to calculate it based on redepmtion amount of a specific token
         // That's why USDG price in USD can vary depending on the redepmtion token
         // 2. In complex scenarios with path=[USDG, BNB, BTC] we need to know how much BNB we'll get for provided USDG
-        // to know how much BTC will be received 
+        // to know how much BTC will be received
         // That's why in such scenario BNB should be used to determine price of USDG
         if (tokenA == usdg) {
             // with both _path.length == 2 or 3 we need usdg price against _path[1]
@@ -525,7 +525,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
 
     function validatePositionOrderPrice(
         bool _triggerAboveThreshold,
-        uint256 _triggerPrice, 
+        uint256 _triggerPrice,
         address _indexToken,
         bool _maximizePrice,
         bool _raise
@@ -563,7 +563,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
     }
 
     function getIncreaseOrder(address _account, uint256 _orderIndex) override public view returns (
-        address purchaseToken, 
+        address purchaseToken,
         uint256 purchaseTokenAmount,
         address collateralToken,
         address indexToken,
@@ -852,7 +852,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         // decrease short should use max price
         (uint256 currentPrice, ) = validatePositionOrderPrice(
             order.triggerAboveThreshold,
-            order.triggerPrice, 
+            order.triggerPrice,
             order.indexToken,
             !order.isLong,
             true
@@ -917,10 +917,10 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
     }
 
     function updateDecreaseOrder(
-        uint256 _orderIndex, 
-        uint256 _collateralDelta, 
-        uint256 _sizeDelta, 
-        uint256 _triggerPrice, 
+        uint256 _orderIndex,
+        uint256 _collateralDelta,
+        uint256 _sizeDelta,
+        uint256 _triggerPrice,
         bool _triggerAboveThreshold
     ) external nonReentrant {
         DecreaseOrder storage order = decreaseOrders[msg.sender][_orderIndex];
@@ -961,7 +961,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         }
         if (_path.length == 3) {
             uint256 midOut = _vaultSwap(_path[0], _path[1], 0, address(this));
-            IERC20(_path[1]).safeTransfer(vault, midOut); 
+            IERC20(_path[1]).safeTransfer(vault, midOut);
             return _vaultSwap(_path[1], _path[2], _minOut, _receiver);
         }
 
