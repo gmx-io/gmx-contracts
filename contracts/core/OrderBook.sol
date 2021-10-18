@@ -600,7 +600,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         uint256 _executionFee,
         bool _shouldWrap
     ) external payable nonReentrant {
-        // always need this call because of mandatory executionFee user has to transfer in BNB
+        // always need this call because of mandatory executionFee user has to transfer in ETH
         _transferInETH();
 
         require(_executionFee >= minExecutionFee, "OrderBook: insufficient execution fee");
