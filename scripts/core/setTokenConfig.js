@@ -6,8 +6,11 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 async function main() {
+  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+  const signer = frame.getSigner()
+
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const timelock = await contractAt("Timelock", "0xbb8614a9ad437739c9910a9cb2254c608aa7fdb4")
+  const timelock = await contractAt("Timelock", "0x3F3E77421E30271568eF7A0ab5c5F2667675341e", signer)
 
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)
