@@ -256,12 +256,12 @@ contract Vault is ReentrancyGuard, IVault {
         isManager[_manager] = _isManager;
     }
 
-    function setInPrivateLiquidationMode(bool _inPrivateLiquidationMode) external {
+    function setInPrivateLiquidationMode(bool _inPrivateLiquidationMode) external override {
         _onlyGov();
         inPrivateLiquidationMode = _inPrivateLiquidationMode;
     }
 
-    function setLiquidator(address _liquidator, bool _isActive) external {
+    function setLiquidator(address _liquidator, bool _isActive) external override {
         _onlyGov();
         isLiquidator[_liquidator] = _isActive;
     }

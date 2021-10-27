@@ -12,6 +12,7 @@ import "../core/interfaces/IRouter.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../tokens/interfaces/IBaseToken.sol";
 import "../tokens/interfaces/IMintable.sol";
+import "../tokens/interfaces/IUSDG.sol";
 import "../staking/interfaces/IVester.sol";
 
 import "../libraries/math/SafeMath.sol";
@@ -42,6 +43,7 @@ contract Timelock is ITimelock {
     event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
     event SignalAddPlugin(address router, address plugin, bytes32 action);
+    event SignalRedeemUsdg(address vault, address token, uint256 amount);
     event SignalVaultSetTokenConfig(
         address vault,
         address token,
@@ -227,6 +229,14 @@ contract Timelock is ITimelock {
         IVault(_vault).withdrawFees(_token, _receiver);
     }
 
+    function setInPrivateLiquidationMode(address _vault, bool _inPrivateLiquidationMode) external onlyAdmin {
+        IVault(_vault).setInPrivateLiquidationMode(_inPrivateLiquidationMode);
+    }
+
+    function setLiquidator(address _vault, address _liquidator, bool _isActive) external onlyAdmin {
+        IVault(_vault).setLiquidator(_liquidator, _isActive);
+    }
+
     function addExcludedToken(address _token) external onlyAdmin {
         excludedTokens[_token] = true;
     }
@@ -343,6 +353,30 @@ contract Timelock is ITimelock {
         _validateAction(action);
         _clearAction(action);
         IRouter(_router).addPlugin(_plugin);
+    }
+
+    function signalRedeemUsdg(address _vault, address _token, uint256 _amount) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("redeemUsdg", _vault, _token, _amount));
+        _setPendingAction(action);
+        emit SignalRedeemUsdg(_vault, _token, _amount);
+    }
+
+    function redeemUsdg(address _vault, address _token, uint256 _amount) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("redeemUsdg", _vault, _token, _amount));
+        _validateAction(action);
+        _clearAction(action);
+
+        address usdg = IVault(_vault).usdg();
+        IVault(_vault).setManager(address(this), true);
+        IUSDG(usdg).addVault(address(this));
+
+        IUSDG(usdg).mint(address(this), _amount);
+        IERC20(usdg).transfer(address(_vault), _amount);
+
+        IVault(_vault).sellUSDG(_token, mintReceiver);
+
+        IVault(_vault).setManager(address(this), false);
+        IUSDG(usdg).removeVault(address(this));
     }
 
     function signalVaultSetTokenConfig(

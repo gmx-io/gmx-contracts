@@ -18,11 +18,11 @@ contract USDG is YieldToken, IUSDG {
         vaults[_vault] = true;
     }
 
-    function addVault(address _vault) external onlyGov {
+    function addVault(address _vault) external override onlyGov {
         vaults[_vault] = true;
     }
 
-    function removeVault(address _vault) external onlyGov {
+    function removeVault(address _vault) external override onlyGov {
         vaults[_vault] = false;
     }
 

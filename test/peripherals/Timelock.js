@@ -916,4 +916,116 @@ describe("Timelock", function () {
     await expect(timelock.connect(wallet).setExternalAdmin(timelock.address, user3.address))
       .to.be.revertedWith("Timelock: invalid _target")
   })
+
+  it("setInPrivateLiquidationMode", async () => {
+    await expect(timelock.connect(user0).setInPrivateLiquidationMode(vault.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vault.inPrivateLiquidationMode()).eq(false)
+    await timelock.connect(wallet).setInPrivateLiquidationMode(vault.address, true)
+    expect(await vault.inPrivateLiquidationMode()).eq(true)
+
+    await timelock.connect(wallet).setInPrivateLiquidationMode(vault.address, false)
+    expect(await vault.inPrivateLiquidationMode()).eq(false)
+  })
+
+  it("setLiquidator", async () => {
+    await expect(timelock.connect(user0).setLiquidator(vault.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vault.isLiquidator(user1.address)).eq(false)
+    await timelock.connect(wallet).setLiquidator(vault.address, user1.address, true)
+    expect(await vault.isLiquidator(user1.address)).eq(true)
+
+    await timelock.connect(wallet).setLiquidator(vault.address, user1.address, false)
+    expect(await vault.isLiquidator(user1.address)).eq(false)
+
+    await expect(vault.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user2.address))
+      .to.be.revertedWith("Vault: empty position")
+
+    await timelock.connect(wallet).setInPrivateLiquidationMode(vault.address, true)
+
+    await expect(vault.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user2.address))
+      .to.be.revertedWith("Vault: invalid liquidator")
+
+    await timelock.connect(wallet).setLiquidator(vault.address, user1.address, true)
+
+    await expect(vault.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user2.address))
+      .to.be.revertedWith("Vault: empty position")
+  })
+
+  it("redeemUsdg", async () => {
+    await expect(timelock.connect(user0).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18)))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18)))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(user0).signalRedeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18)))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).signalRedeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18))
+
+    await expect(timelock.connect(wallet).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18)))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 5 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18)))
+      .to.be.revertedWith("YieldToken: forbidden")
+
+    await usdg.setGov(timelock.address)
+
+    await expect(timelock.connect(wallet).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18)))
+      .to.be.revertedWith("Vault: _token not whitelisted")
+
+    await timelock.connect(wallet).signalSetPriceFeed(vault.address, vaultPriceFeed.address)
+    await increaseTime(provider, 5 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+    await timelock.connect(wallet).setPriceFeed(vault.address, vaultPriceFeed.address)
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+
+    await timelock.connect(wallet).signalVaultSetTokenConfig(
+      vault.address,
+      bnb.address, // _token
+      18, // _tokenDecimals
+      7000, // _tokenWeight
+      300, // _minProfitBps
+      expandDecimals(5000, 18), // _maxUsdgAmount
+      false, // _isStable
+      true // isShortable
+    )
+
+    await increaseTime(provider, 5 * 24 * 60 *60)
+    await mineBlock(provider)
+
+    await timelock.connect(wallet).vaultSetTokenConfig(
+      vault.address,
+      bnb.address, // _token
+      18, // _tokenDecimals
+      7000, // _tokenWeight
+      300, // _minProfitBps
+      expandDecimals(5000, 18), // _maxUsdgAmount
+      false, // _isStable
+      true // isShortable
+    )
+
+    await bnb.mint(vault.address, expandDecimals(3, 18))
+    await vault.buyUSDG(bnb.address, user3.address)
+
+    await timelock.signalSetGov(vault.address, user1.address)
+
+    await increaseTime(provider, 5 * 24 * 60 *60)
+    await mineBlock(provider)
+
+    await timelock.setGov(vault.address, user1.address)
+    await vault.connect(user1).setInManagerMode(true)
+    await vault.connect(user1).setGov(timelock.address)
+
+    expect(await bnb.balanceOf(mintReceiver.address)).eq(0)
+    await timelock.connect(wallet).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18))
+    expect(await bnb.balanceOf(mintReceiver.address)).eq("1994000000000000000") // 1.994
+  })
 })
