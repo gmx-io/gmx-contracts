@@ -167,13 +167,14 @@ contract Reader {
         uint256 propsLength = 2;
         uint256[] memory fundingRates = new uint256[](_tokens.length * propsLength);
         IVault vault = IVault(_vault);
-        uint256 fundingRateFactor = vault.fundingRateFactor();
 
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             if (token == address(0)) {
                 token = _weth;
             }
+
+            uint256 fundingRateFactor = vault.stableTokens(token) ? vault.stableFundingRateFactor() : vault.fundingRateFactor();
             uint256 reservedAmount = vault.reservedAmounts(token);
             uint256 poolAmount = vault.poolAmounts(token);
 

@@ -17,7 +17,7 @@ async function main() {
     mintReceiver.address,
     maxTokenSupply
   ])
-  await sendTxn(timelock.addExcludedToken(gmx.address), "timelock.addExcludedToken(gmx)")
+  // await sendTxn(timelock.addExcludedToken(gmx.address), "timelock.addExcludedToken(gmx)")
 }
 
 main()
