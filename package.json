@@ -24,6 +24,7 @@
     "typechain": "^5.1.2"
   },
   "dependencies": {
-    "bn.js": "^5.2.0"
+    "bn.js": "^5.2.0",
+    "csv-parse": "^4.16.3"
   }
 }

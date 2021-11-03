@@ -8,6 +8,7 @@ const {
   BSC_URL,
   BSC_DEPLOY_KEY,
   BSCSCAN_API_KEY,
+  POLYGONSCAN_API_KEY,
   ETHERSCAN_API_KEY,
   BSC_TESTNET_URL,
   BSC_TESTNET_DEPLOY_KEY,
@@ -15,6 +16,8 @@ const {
   ARBITRUM_TESTNET_URL,
   ARBITRUM_DEPLOY_KEY,
   ARBITRUM_URL,
+  POLYGON_DEPLOY_KEY,
+  POLYGON_URL,
   MAINNET_URL,
   MAINNET_DEPLOY_KEY
 } = require("./env.json")
@@ -60,9 +63,15 @@ module.exports = {
     },
     arbitrum: {
       url: ARBITRUM_URL,
-      gasPrice: 300000000000,
+      gasPrice: 30000000000,
       chainId: 42161,
       accounts: [ARBITRUM_DEPLOY_KEY]
+    },
+    polygon: {
+      url: POLYGON_URL,
+      gasPrice: 100000000000,
+      chainId: 137,
+      accounts: [POLYGON_DEPLOY_KEY]
     },
     mainnet: {
       url: MAINNET_URL,

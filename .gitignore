@@ -4,6 +4,7 @@ env.json
 .tmp-addresses*.json
 data/gmxMigration
 data/esGmxDistribution
+data/snapshotBalance
 flattened
 
 #Hardhat files
