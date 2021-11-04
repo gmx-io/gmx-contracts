@@ -24,6 +24,7 @@ contract Timelock is ITimelock {
     uint256 public constant PRICE_PRECISION = 10 ** 30;
     uint256 public constant MAX_BUFFER = 5 days;
     uint256 public constant MAX_FEE_BASIS_POINTS = 300; // 3%
+    uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02%
 
     uint256 public buffer;
     address public admin;
@@ -105,6 +106,12 @@ contract Timelock is ITimelock {
 
     function mint(address _token, uint256 _amount) external onlyAdmin {
         _mint(_token, mintReceiver, _amount);
+    }
+
+    function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external {
+        require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _fundingRateFactor");
+        require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _stableFundingRateFactor");
+        IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
     function setFees(

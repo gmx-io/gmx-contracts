@@ -332,7 +332,7 @@ contract Vault is ReentrancyGuard, IVault {
         hasDynamicFees = _hasDynamicFees;
     }
 
-    function setFundingRate(uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external {
+    function setFundingRate(uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external override {
         _onlyGov();
         _validate(_fundingInterval >= MIN_FUNDING_RATE_INTERVAL, 10);
         _validate(_fundingRateFactor <= MAX_FUNDING_RATE_FACTOR, 11);
