@@ -5,6 +5,7 @@ env.json
 data/gmxMigration
 data/esGmxDistribution
 data/snapshotBalance
+data/holders
 flattened
 
 #Hardhat files
