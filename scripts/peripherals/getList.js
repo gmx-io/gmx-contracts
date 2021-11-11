@@ -15,7 +15,7 @@ async function main() {
     const bnGmxBalance = await feeGmxTracker.depositBalances(account, bnGmx.address)
     const pendingRewards = await bonusGmxTracker.claimable(account)
     const totalRewards = bnGmxBalance.add(pendingRewards)
-    console.log(`${i}: ${account},${ethers.utils.formatUnits(bnGmxBalance, 18)},${ethers.utils.formatUnits(pendingRewards, 18)}`)
+    console.log(`${i},${account},${ethers.utils.formatUnits(bnGmxBalance, 18)},${ethers.utils.formatUnits(pendingRewards, 18)}`)
     data.push([account, ethers.utils.formatUnits(totalRewards)])
   }
 
