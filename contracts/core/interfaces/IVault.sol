@@ -34,6 +34,7 @@ interface IVault {
     function tokenBalances(address _token) external view returns (uint256);
     function lastFundingTimes(address _token) external view returns (uint256);
 
+    function setMaxLeverage(uint256 _maxLeverage) external;
     function setInManagerMode(bool _inManagerMode) external;
     function setManager(address _manager, bool _isManager) external;
     function setIsSwapEnabled(bool _isSwapEnabled) external;

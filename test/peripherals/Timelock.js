@@ -286,6 +286,36 @@ describe("Timelock", function () {
     expect(await vault.maxGasPrice()).eq(7000000000)
   })
 
+  it("setMaxLeverage", async () => {
+    await expect(timelock.connect(user0).setMaxLeverage(vault.address, 100 * 10000))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).setMaxLeverage(vault.address, 49 * 10000))
+      .to.be.revertedWith("Timelock: invalid _maxLeverage")
+
+    expect(await vault.maxLeverage()).eq(50 * 10000)
+    await timelock.connect(wallet).setMaxLeverage(vault.address, 100 * 10000)
+    expect(await vault.maxLeverage()).eq(100 * 10000)
+  })
+
+  it("setFundingRate", async () => {
+    await expect(timelock.connect(user0).setFundingRate(vault.address, 59 * 60, 100, 100))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).setFundingRate(vault.address, 59 * 60, 100, 100))
+      .to.be.revertedWith("Vault: invalid _fundingInterval")
+
+    expect(await vault.fundingRateFactor()).eq(600)
+    expect(await vault.stableFundingRateFactor()).eq(600)
+    await timelock.connect(wallet).setFundingRate(vault.address, 60 * 60, 0, 100)
+    expect(await vault.fundingRateFactor()).eq(0)
+    expect(await vault.stableFundingRateFactor()).eq(100)
+
+    await timelock.connect(wallet).setFundingRate(vault.address, 60 * 60, 100, 0)
+    expect(await vault.fundingRateFactor()).eq(100)
+    expect(await vault.stableFundingRateFactor()).eq(0)
+  })
+
   it("transferIn", async () => {
     await bnb.mint(user1.address, 1000)
     await expect(timelock.connect(user0).transferIn(user1.address, bnb.address, 1000))
@@ -618,6 +648,54 @@ describe("Timelock", function () {
       .to.be.revertedWith("Timelock: action not signalled")
   })
 
+  it("withdrawToken", async () => {
+    const gmx = await deployContract("GMX", [])
+    await gmx.setGov(timelock.address)
+
+    await expect(timelock.connect(user0).withdrawToken(gmx.address, bnb.address, user0.address, 100))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).withdrawToken(gmx.address, bnb.address, user0.address, 100))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(user0).signalWithdrawToken(gmx.address, bnb.address, user0.address, 100))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).signalWithdrawToken(gmx.address, bnb.address, user0.address, 100)
+
+    await expect(timelock.connect(wallet).withdrawToken(gmx.address, bnb.address, user0.address, 100))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 4 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).withdrawToken(gmx.address, bnb.address, user0.address, 100))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 1 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).withdrawToken(dai.address, bnb.address, user0.address, 100))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).withdrawToken(gmx.address, dai.address, user0.address, 100))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).withdrawToken(gmx.address, bnb.address, user1.address, 100))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).withdrawToken(gmx.address, bnb.address, user0.address, 101))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).withdrawToken(gmx.address, bnb.address, user0.address, 100))
+      .to.be.revertedWith("ERC20: transfer amount exceeds balance")
+
+    await bnb.mint(gmx.address, 100)
+    expect(await bnb.balanceOf(user0.address)).eq(0)
+    await timelock.connect(wallet).withdrawToken(gmx.address, bnb.address, user0.address, 100)
+    expect(await bnb.balanceOf(user0.address)).eq(100)
+  })
+
   it("vaultSetTokenConfig", async () => {
     await timelock.connect(wallet).signalSetPriceFeed(vault.address, vaultPriceFeed.address)
     await increaseTime(provider, 5 * 24 * 60 * 60 + 10)
@@ -892,7 +970,6 @@ describe("Timelock", function () {
     await timelock.connect(rewardManager).managedSetHandler(vester.address, user1.address, true)
     expect(await vester.isHandler(user1.address)).eq(true)
   })
-
 
   it("setAdmin", async () => {
     await expect(timelock.setAdmin(user1.address))

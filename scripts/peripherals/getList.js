@@ -10,17 +10,17 @@ async function main() {
   const data = []
 
   console.log("holderList", holderList.length)
-  for (let i = 0; i < holderList.length; i++) {
+  for (let i = 3490; i < holderList.length; i++) {
     const account = holderList[i]
     const bnGmxBalance = await feeGmxTracker.depositBalances(account, bnGmx.address)
     const pendingRewards = await bonusGmxTracker.claimable(account)
     const totalRewards = bnGmxBalance.add(pendingRewards)
-    console.log(`${i},${account},${ethers.utils.formatUnits(bnGmxBalance, 18)},${ethers.utils.formatUnits(pendingRewards, 18)}`)
+    console.log(`${i+1},${account},${ethers.utils.formatUnits(bnGmxBalance, 18)},${ethers.utils.formatUnits(pendingRewards, 18)},${ethers.utils.formatUnits(totalRewards)}`)
     data.push([account, ethers.utils.formatUnits(totalRewards)])
   }
 
-  console.log("final data:")
-  console.log(data.map((i) => i.join(",")).join("\n"))
+  // console.log("final data:")
+  // console.log(data.map((i) => i.join(",")).join("\n"))
 }
 
 main()

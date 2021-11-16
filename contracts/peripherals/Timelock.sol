@@ -25,6 +25,7 @@ contract Timelock is ITimelock {
     uint256 public constant MAX_BUFFER = 5 days;
     uint256 public constant MAX_FEE_BASIS_POINTS = 300; // 3%
     uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02%
+    uint256 public constant MAX_LEVERAGE_VALIDATION = 500000; // 50x
 
     uint256 public buffer;
     address public admin;
@@ -39,6 +40,7 @@ contract Timelock is ITimelock {
 
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
+    event SignalWithdrawToken(address target, address token, address receiver, uint256 amount, bytes32 action);
     event SignalMint(address token, address receiver, uint256 amount, bytes32 action);
     event SignalSetGov(address target, address gov, bytes32 action);
     event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
@@ -108,7 +110,12 @@ contract Timelock is ITimelock {
         _mint(_token, mintReceiver, _amount);
     }
 
-    function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external {
+    function setMaxLeverage(address _vault, uint256 _maxLeverage) external onlyAdmin {
+      require(_maxLeverage > MAX_LEVERAGE_VALIDATION, "Timelock: invalid _maxLeverage");
+      IVault(_vault).setMaxLeverage(_maxLeverage);
+    }
+
+    function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyAdmin {
         require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _fundingRateFactor");
         require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _stableFundingRateFactor");
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
@@ -294,6 +301,19 @@ contract Timelock is ITimelock {
         _validateAction(action);
         _clearAction(action);
         IERC20(_token).approve(_spender, _amount);
+    }
+
+    function signalWithdrawToken(address _target, address _token, address _receiver, uint256 _amount) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("withdrawToken", _target, _token, _receiver, _amount));
+        _setPendingAction(action);
+        emit SignalWithdrawToken(_target, _token, _receiver, _amount, action);
+    }
+
+    function withdrawToken(address _target, address _token, address _receiver, uint256 _amount) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("withdrawToken", _target, _token, _receiver, _amount));
+        _validateAction(action);
+        _clearAction(action);
+        IBaseToken(_target).withdrawToken(_token, _receiver, _amount);
     }
 
     function signalMint(address _token, address _receiver, uint256 _amount) external onlyAdmin {
