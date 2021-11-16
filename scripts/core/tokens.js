@@ -210,6 +210,20 @@ module.exports = {
       isStable: true,
       isShortable: false
     },
+    mim: {
+      name: "mim",
+      address: "0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A",
+      decimals: 18,
+      priceFeed: "0x87121F6c9A9F6E90E59591E4Cf4804873f54A95b",
+      priceDecimals: 8,
+      isStrictStable: true,
+      tokenWeight: 100,
+      minProfitBps: 150,
+      maxUsdgAmount: 10,
+      bufferAmount: 0,
+      isStable: true,
+      isShortable: false
+    },
     nativeToken: {
       name: "weth",
       address: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",

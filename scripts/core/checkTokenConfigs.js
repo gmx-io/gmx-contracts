@@ -5,8 +5,8 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 async function main() {
-  const { btc, eth, usdc, link, uni, usdt } = tokens
-  const tokenArr = [btc, eth, usdc, link, uni, usdt]
+  const { btc, eth, usdc, link, uni, usdt, mim } = tokens
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const tokenInfo = tokenArr[i]
