@@ -66,7 +66,6 @@ describe("Timelock", function () {
     await vault.setGov(timelock.address)
 
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
-    await vaultPriceFeed.setTokenConfig(btc.address, btcPriceFeed.address, 8, false)
     await vaultPriceFeed.setTokenConfig(dai.address, daiPriceFeed.address, 8, false)
 
     await vaultPriceFeed.setGov(timelock.address)
@@ -815,6 +814,129 @@ describe("Timelock", function () {
     expect(await vault.maxUsdgAmounts(dai.address)).eq(5000)
     expect(await vault.stableTokens(dai.address)).eq(true)
     expect(await vault.shortableTokens(dai.address)).eq(false)
+  })
+
+  it("priceFeedSetTokenConfig", async () => {
+    await timelock.connect(wallet).signalSetPriceFeed(vault.address, vaultPriceFeed.address)
+    await increaseTime(provider, 5 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+    await timelock.connect(wallet).setPriceFeed(vault.address, vaultPriceFeed.address)
+
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(70000))
+
+    await expect(timelock.connect(user0).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(user0).signalPriceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).signalPriceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 4 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: action time not yet passed")
+
+
+    await increaseTime(provider, 1 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      user0.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      bnb.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      bnbPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      9, // _priceDecimals
+      true // _isStrictStable
+    )).to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      false // _isStrictStable
+    )).to.be.revertedWith("Timelock: action not signalled")
+
+    expect(await vaultPriceFeed.priceFeeds(btc.address)).eq(AddressZero)
+    expect(await vaultPriceFeed.priceDecimals(btc.address)).eq(0)
+    expect(await vaultPriceFeed.strictStableTokens(btc.address)).eq(false)
+    await expect(vaultPriceFeed.getPrice(btc.address, true, false, false))
+      .to.be.revertedWith("VaultPriceFeed: invalid price feed")
+
+    await timelock.connect(wallet).priceFeedSetTokenConfig(
+      vaultPriceFeed.address,
+      btc.address, // _token
+      btcPriceFeed.address, // _priceFeed
+      8, // _priceDecimals
+      true // _isStrictStable
+    )
+
+    expect(await vaultPriceFeed.priceFeeds(btc.address)).eq(btcPriceFeed.address)
+    expect(await vaultPriceFeed.priceDecimals(btc.address)).eq(8)
+    expect(await vaultPriceFeed.strictStableTokens(btc.address)).eq(true)
+    expect(await vaultPriceFeed.getPrice(btc.address, true, false, false)).eq(toNormalizedPrice(70000))
   })
 
   it("addPlugin", async () => {

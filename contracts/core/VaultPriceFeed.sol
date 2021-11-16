@@ -139,7 +139,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
         address _priceFeed,
         uint256 _priceDecimals,
         bool _isStrictStable
-    ) external onlyGov {
+    ) external override onlyGov {
         priceFeeds[_token] = _priceFeed;
         priceDecimals[_token] = _priceDecimals;
         strictStableTokens[_token] = _isStrictStable;

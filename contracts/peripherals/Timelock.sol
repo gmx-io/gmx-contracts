@@ -57,6 +57,13 @@ contract Timelock is ITimelock {
         bool isStable,
         bool isShortable
     );
+    event SignalPriceFeedSetTokenConfig(
+        address vaultPriceFeed,
+        address token,
+        address priceFeed,
+        uint256 priceDecimals,
+        bool isStrictStable
+    );
     event ClearAction(bytes32 action);
 
     modifier onlyAdmin() {
@@ -475,6 +482,60 @@ contract Timelock is ITimelock {
             _maxUsdgAmount,
             _isStable,
             _isShortable
+        );
+    }
+
+    function signalPriceFeedSetTokenConfig(
+        address _vaultPriceFeed,
+        address _token,
+        address _priceFeed,
+        uint256 _priceDecimals,
+        bool _isStrictStable
+    ) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked(
+            "priceFeedSetTokenConfig",
+            _vaultPriceFeed,
+            _token,
+            _priceFeed,
+            _priceDecimals,
+            _isStrictStable
+        ));
+
+        _setPendingAction(action);
+
+        emit SignalPriceFeedSetTokenConfig(
+            _vaultPriceFeed,
+            _token,
+            _priceFeed,
+            _priceDecimals,
+            _isStrictStable
+        );
+    }
+
+    function priceFeedSetTokenConfig(
+        address _vaultPriceFeed,
+        address _token,
+        address _priceFeed,
+        uint256 _priceDecimals,
+        bool _isStrictStable
+    ) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked(
+            "priceFeedSetTokenConfig",
+            _vaultPriceFeed,
+            _token,
+            _priceFeed,
+            _priceDecimals,
+            _isStrictStable
+        ));
+
+        _validateAction(action);
+        _clearAction(action);
+
+        IVaultPriceFeed(_vaultPriceFeed).setTokenConfig(
+            _token,
+            _priceFeed,
+            _priceDecimals,
+            _isStrictStable
         );
     }
 
