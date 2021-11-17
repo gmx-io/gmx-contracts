@@ -10,7 +10,7 @@ async function main() {
   const signer = frame.getSigner()
 
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const timelock = await contractAt("Timelock", "0x8669ffb94c7be87924279ee95de50cb73406b077", signer)
+  const timelock = await contractAt("Timelock", "0xd89EfBEB054340e9c2fe4BCe8f36D1f8a4ae6E0c", signer)
 
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)
