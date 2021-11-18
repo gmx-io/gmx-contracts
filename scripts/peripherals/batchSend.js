@@ -1,6 +1,6 @@
 const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
-const { DISTRIBUTION_LIST } = require("../../data/batchSender/competitionNovBatch1")
+const { DISTRIBUTION_LIST } = require("../../data/batchSend/competitionNovBatch1")
 
 async function main() {
   const wallet = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
