@@ -15,8 +15,8 @@ async function main() {
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)
 
-  const { btc, eth, usdc, link, uni, usdt } = tokens
-  const tokenArr = [btc, eth, usdc, link, uni, usdt]
+  const { btc, eth, usdc, link, uni, usdt, mim } = tokens
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim]
 
   for (const token of tokenArr) {
     await sendTxn(timelock.setTokenConfig(
