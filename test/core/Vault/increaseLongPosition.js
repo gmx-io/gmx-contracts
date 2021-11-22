@@ -1,6 +1,6 @@
 const { expect, use } = require("chai")
 const { solidity } = require("ethereum-waffle")
-const { deployContract } = require("../../shared/fixtures")
+const { deployContract, contractAt } = require("../../shared/fixtures")
 const { expandDecimals, getBlockTime, increaseTime, mineBlock, reportGasUsed } = require("../../shared/utilities")
 const { toChainlinkPrice } = require("../../shared/chainlink")
 const { toUsd, toNormalizedPrice } = require("../../shared/units")
@@ -37,7 +37,13 @@ describe("Vault.increaseLongPosition", function () {
     dai = await deployContract("Token", [])
     daiPriceFeed = await deployContract("PriceFeed", [])
 
-    vault = await deployContract("Vault", [])
+    const vaultImplementation = await deployContract("Vault", [])
+    const vaultProxy = await deployContract("TransparentUpgradeableProxy", [
+        vaultImplementation.address,
+        user3.address,
+        []
+    ])
+    vault = await contractAt("Vault", vaultProxy.address)
     usdg = await deployContract("USDG", [vault.address])
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])

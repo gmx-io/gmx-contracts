@@ -36,8 +36,8 @@ contract Vault is ReentrancyGuard, IVault {
     uint256 public constant MAX_FUNDING_RATE_FACTOR = 10000; // 1%
 
     bool public override isInitialized;
-    bool public override isSwapEnabled = true;
-    bool public override isLeverageEnabled = true;
+    bool public override isSwapEnabled;
+    bool public override isLeverageEnabled;
 
     address public errorController;
 
@@ -49,29 +49,29 @@ contract Vault is ReentrancyGuard, IVault {
 
     uint256 public override whitelistedTokenCount;
 
-    uint256 public override maxLeverage = 50 * 10000; // 50x
+    uint256 public override maxLeverage;
 
     uint256 public override liquidationFeeUsd;
-    uint256 public override taxBasisPoints = 50; // 0.5%
-    uint256 public override stableTaxBasisPoints = 20; // 0.2%
-    uint256 public override mintBurnFeeBasisPoints = 30; // 0.3%
-    uint256 public override swapFeeBasisPoints = 30; // 0.3%
-    uint256 public override stableSwapFeeBasisPoints = 4; // 0.04%
-    uint256 public override marginFeeBasisPoints = 10; // 0.1%
+    uint256 public override taxBasisPoints;
+    uint256 public override stableTaxBasisPoints;
+    uint256 public override mintBurnFeeBasisPoints;
+    uint256 public override swapFeeBasisPoints;
+    uint256 public override stableSwapFeeBasisPoints;
+    uint256 public override marginFeeBasisPoints;
 
     uint256 public override minProfitTime;
-    bool public override hasDynamicFees = false;
+    bool public override hasDynamicFees;
 
-    uint256 public override fundingInterval = 8 hours;
+    uint256 public override fundingInterval;
     uint256 public override fundingRateFactor;
     uint256 public override stableFundingRateFactor;
     uint256 public override totalTokenWeights;
 
-    bool public includeAmmPrice = true;
-    bool public useSwapPricing = false;
+    bool public includeAmmPrice;
+    bool public useSwapPricing;
 
-    bool public override inManagerMode = false;
-    bool public override inPrivateLiquidationMode = false;
+    bool public override inManagerMode;
+    bool public override inPrivateLiquidationMode;
 
     uint256 public override maxGasPrice;
 
@@ -206,12 +206,6 @@ contract Vault is ReentrancyGuard, IVault {
     event IncreaseGuaranteedUsd(address token, uint256 amount);
     event DecreaseGuaranteedUsd(address token, uint256 amount);
 
-    // once the parameters are verified to be working correctly,
-    // gov should be set to a timelock contract or a governance contract
-    constructor() public {
-        gov = msg.sender;
-    }
-
     function initialize(
         address _router,
         address _usdg,
@@ -220,9 +214,32 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 _fundingRateFactor,
         uint256 _stableFundingRateFactor
     ) external {
-        _onlyGov();
         _validate(!isInitialized, 1);
         isInitialized = true;
+
+        // once the parameters are verified to be working correctly,
+        // gov should be set to a timelock contract or a governance contract
+        gov = msg.sender;
+
+        isSwapEnabled = true;
+        isLeverageEnabled = true;
+
+        maxLeverage = 50 * 10000;
+
+        taxBasisPoints = 50; // 0.5%
+        stableTaxBasisPoints = 20; // 0.2%
+        mintBurnFeeBasisPoints = 30; // 0.3%
+        swapFeeBasisPoints = 30; // 0.3%
+        stableSwapFeeBasisPoints = 4; // 0.04%
+        marginFeeBasisPoints = 10; // 0.1%
+
+        fundingInterval = 8 hours;
+
+        includeAmmPrice = true;
+        useSwapPricing = false;
+
+        inManagerMode = false;
+        inPrivateLiquidationMode = false;
 
         router = _router;
         usdg = _usdg;
