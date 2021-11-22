@@ -1,6 +1,6 @@
 const { expandDecimals } = require("../../shared/utilities")
 const { toUsd } = require("../../shared/units")
-const { deployContract } = require("../../shared/fixtures")
+const { deployContract, contractAt } = require("../../shared/fixtures")
 
 const errors = [
   "Vault: zero error",
@@ -60,6 +60,26 @@ const errors = [
   "Vault: forbidden",
   "Vault: maxGasPrice exceeded"
 ]
+
+async function deployAndInitVaultWithDeps() {
+  const vaultImplementation = await deployContract("Vault", [])
+  const proxyAdmin = await deployContract("ProxyAdmin", [])
+  const data = vaultImplementation.interface.encodeFunctionData('initGov()')
+  const vaultProxy = await deployContract("TransparentUpgradeableProxy", [
+      vaultImplementation.address,
+      proxyAdmin.address,
+      data
+  ])
+  const bnb = await deployContract("Token", [])
+  const vault = await contractAt("Vault", vaultProxy.address)
+  const usdg = await deployContract("USDG", [vault.address])
+  const router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
+  const vaultPriceFeed = await deployContract("VaultPriceFeed", [])
+
+  await initVault(vault, router, usdg, vaultPriceFeed)
+
+  return [vault, bnb, usdg, router, vaultPriceFeed, proxyAdmin]
+}
 
 async function initVaultErrors(vault) {
   const vaultErrorController = await deployContract("VaultErrorController", [])
@@ -139,6 +159,7 @@ function getDaiConfig(dai, daiPriceFeed) {
 
 module.exports = {
   errors,
+  deployAndInitVaultWithDeps,
   initVault,
   validateVaultBalance,
   getBnbConfig,

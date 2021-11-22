@@ -2,7 +2,7 @@ const { expect, use } = require("chai")
 const { solidity } = require("ethereum-waffle")
 const { deployContract } = require("../shared/fixtures")
 const { expandDecimals, getBlockTime, increaseTime, mineBlock, reportGasUsed } = require("../shared/utilities")
-const { initVault } = require("../core/Vault/helpers")
+const { deployAndInitVaultWithDeps } = require("../core/Vault/helpers")
 const { toChainlinkPrice } = require("../shared/chainlink")
 const { toUsd, toNormalizedPrice } = require("../shared/units")
 
@@ -29,14 +29,7 @@ describe("OrderBookReader", function () {
     btcPriceFeed = await deployContract("PriceFeed", [])
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(50000))
 
-    bnb = await deployContract("Token", [])
-
-    vault = await deployContract("Vault", [])
-    usdg = await deployContract("USDG", [vault.address])
-    router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
-    vaultPriceFeed = await deployContract("VaultPriceFeed", [])
-
-    await initVault(vault, router, usdg, vaultPriceFeed);
+    ;[vault, bnb, usdg, router, vaultPriceFeed] = await deployAndInitVaultWithDeps()
     await vaultPriceFeed.setTokenConfig(btc.address, btcPriceFeed.address, 8, false)
 
     orderBook = await deployContract("OrderBook", [])

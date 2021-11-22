@@ -4,7 +4,7 @@ const { deployContract } = require("../shared/fixtures")
 const { expandDecimals, getBlockTime, increaseTime, mineBlock, reportGasUsed, newWallet } = require("../shared/utilities")
 const { toChainlinkPrice } = require("../shared/chainlink")
 const { toUsd, toNormalizedPrice } = require("../shared/units")
-const { initVault, getBnbConfig, getBtcConfig, getDaiConfig } = require("./Vault/helpers")
+const { deployAndInitVaultWithDeps, getBnbConfig, getBtcConfig, getDaiConfig } = require("./Vault/helpers")
 
 use(solidity)
 
@@ -32,7 +32,6 @@ describe("GlpManager", function () {
   let reader
 
   beforeEach(async () => {
-    bnb = await deployContract("Token", [])
     bnbPriceFeed = await deployContract("PriceFeed", [])
 
     btc = await deployContract("Token", [])
@@ -47,13 +46,9 @@ describe("GlpManager", function () {
     busd = await deployContract("Token", [])
     busdPriceFeed = await deployContract("PriceFeed", [])
 
-    vault = await deployContract("Vault", [])
-    usdg = await deployContract("USDG", [vault.address])
-    router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
-    vaultPriceFeed = await deployContract("VaultPriceFeed", [])
     glp = await deployContract("GLP", [])
 
-    await initVault(vault, router, usdg, vaultPriceFeed)
+    ;[vault, bnb, usdg, router, vaultPriceFeed] = await deployAndInitVaultWithDeps()
     glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
 
     distributor0 = await deployContract("TimeDistributor", [])

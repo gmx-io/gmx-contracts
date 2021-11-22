@@ -4,7 +4,7 @@ const { deployContract } = require("../../shared/fixtures")
 const { expandDecimals, getBlockTime, increaseTime, mineBlock, reportGasUsed, newWallet } = require("../../shared/utilities")
 const { toChainlinkPrice } = require("../../shared/chainlink")
 const { toUsd, toNormalizedPrice } = require("../../shared/units")
-const { initVault, getDaiConfig, getBnbConfig, getBtcConfig } = require("./helpers")
+const { deployAndInitVaultWithDeps, getDaiConfig, getBnbConfig, getBtcConfig } = require("./helpers")
 
 use(solidity)
 
@@ -31,7 +31,6 @@ describe("Vault.getPrice", function () {
   let yieldTracker0
 
   beforeEach(async () => {
-    bnb = await deployContract("Token", [])
     bnbPriceFeed = await deployContract("PriceFeed", [])
 
     btc = await deployContract("Token", [])
@@ -49,12 +48,7 @@ describe("Vault.getPrice", function () {
     busd = await deployContract("Token", [])
     busdPriceFeed = await deployContract("PriceFeed", [])
 
-    vault = await deployContract("Vault", [])
-    usdg = await deployContract("USDG", [vault.address])
-    router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
-    vaultPriceFeed = await deployContract("VaultPriceFeed", [])
-
-    await initVault(vault, router, usdg, vaultPriceFeed)
+    ;[vault, bnb, usdg, router, vaultPriceFeed] = await deployAndInitVaultWithDeps()
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])

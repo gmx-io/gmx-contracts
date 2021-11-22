@@ -5,13 +5,13 @@ pragma solidity 0.6.12;
 import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
 import "../libraries/token/SafeERC20.sol";
-import "../libraries/utils/ReentrancyGuard.sol";
+import "../libraries/utils/ReentrancyGuardUpgradeable.sol";
 
 import "../tokens/interfaces/IUSDG.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IVaultPriceFeed.sol";
 
-contract Vault is ReentrancyGuard, IVault {
+contract Vault is ReentrancyGuardUpgradeable, IVault {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -206,6 +206,20 @@ contract Vault is ReentrancyGuard, IVault {
     event IncreaseGuaranteedUsd(address token, uint256 amount);
     event DecreaseGuaranteedUsd(address token, uint256 amount);
 
+    // once the parameters are verified to be working correctly,
+    // gov should be set to a timelock contract or a governance contract
+    constructor() public {
+        gov = msg.sender;
+    }
+
+    // initGov should be used together with Proxy
+    function initGov() public {
+        require(gov == address(0), "gov is initialized");
+        // once the parameters are verified to be working correctly,
+        // gov should be set to a timelock contract or a governance contract
+        gov = msg.sender;
+    }
+
     function initialize(
         address _router,
         address _usdg,
@@ -216,10 +230,6 @@ contract Vault is ReentrancyGuard, IVault {
     ) external {
         _validate(!isInitialized, 1);
         isInitialized = true;
-
-        // once the parameters are verified to be working correctly,
-        // gov should be set to a timelock contract or a governance contract
-        gov = msg.sender;
 
         isSwapEnabled = true;
         isLeverageEnabled = true;
