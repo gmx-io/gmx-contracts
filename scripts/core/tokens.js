@@ -224,6 +224,20 @@ module.exports = {
       isStable: true,
       isShortable: false
     },
+    frax: {
+      name: "frax",
+      address: "0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F",
+      decimals: 18,
+      priceFeed: "0x0809E3d38d1B4214958faf06D8b1B1a2b73f2ab8",
+      priceDecimals: 8,
+      isStrictStable: true,
+      tokenWeight: 1,
+      minProfitBps: 150,
+      maxUsdgAmount: 10,
+      bufferAmount: 0,
+      isStable: true,
+      isShortable: false
+    },
     nativeToken: {
       name: "weth",
       address: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
