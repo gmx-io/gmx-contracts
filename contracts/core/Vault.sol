@@ -231,6 +231,8 @@ contract Vault is ReentrancyGuardUpgradeable, IVault {
         _validate(!isInitialized, 1);
         isInitialized = true;
 
+        __ReentrancyGuard_init();
+
         isSwapEnabled = true;
         isLeverageEnabled = true;
 
