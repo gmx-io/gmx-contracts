@@ -10,30 +10,30 @@ async function main() {
   const signer = frame.getSigner()
 
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const vaultGov = await vault.gov()
 
-  const vaultTimelock = await contractAt("Timelock", vaultGov, signer)
-  const vaultMethod = "signalVaultSetTokenConfig"
-  // const vaultMethod = "vaultSetTokenConfig"
+  const priceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
+  const priceFeedGov = await priceFeed.gov()
+  const priceFeedTimelock = await contractAt("Timelock", priceFeedGov, signer)
+
+  const priceFeedMethod = "signalPriceFeedSetTokenConfig"
+  // const priceFeedMethod = "priceFeedSetTokenConfig"
 
   console.log("vault", vault.address)
-  console.log("vaultTimelock", vaultTimelock.address)
-  console.log("vaultMethod", vaultMethod)
+  console.log("priceFeed", priceFeed.address)
+  console.log("priceFeedTimelock", priceFeedTimelock.address)
+  console.log("priceFeedMethod", priceFeedMethod)
 
   const { frax } = tokens
   const tokenArr = [frax]
 
   for (const token of tokenArr) {
-    await sendTxn(vaultTimelock[vaultMethod](
-      vault.address,
+    await sendTxn(priceFeedTimelock[priceFeedMethod](
+      priceFeed.address, // _vaultPriceFeed
       token.address, // _token
-      token.decimals, // _tokenDecimals
-      token.tokenWeight, // _tokenWeight
-      token.minProfitBps, // _minProfitBps
-      expandDecimals(token.maxUsdgAmount, 18), // _maxUsdgAmount
-      token.isStable, // _isStable
-      token.isShortable // _isShortable
-    ), `vault.${vaultMethod}(${token.name}) ${token.address}`)
+      token.priceFeed, // _priceFeed
+      token.priceDecimals, // _priceDecimals
+      token.isStrictStable // _isStrictStable
+    ), `priceFeed.${priceFeedMethod}(${token.name}) ${token.address}`)
   }
 }
 
