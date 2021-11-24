@@ -102,9 +102,9 @@ contract TransparentUpgradeableProxy is UpgradeableProxy {
      *
      * NOTE: Only the admin can call this function. See {ProxyAdmin-upgrade}.
      */
-    // function upgradeTo(address newImplementation) external virtual ifAdmin {
-    //     _upgradeTo(newImplementation);
-    // }
+    function upgradeTo(address newImplementation) external virtual ifAdmin {
+        _upgradeTo(newImplementation);
+    }
 
     /**
      * @dev Upgrade the implementation of the proxy, and then call a function from the new implementation as specified

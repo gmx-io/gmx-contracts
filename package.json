@@ -21,7 +21,8 @@
     "ethers": "^5.4.6",
     "hardhat": "^2.6.1",
     "hardhat-contract-sizer": "^2.0.3",
-    "typechain": "^5.1.2"
+    "typechain": "^5.1.2",
+    "eslint": "^8.3.0"
   },
   "dependencies": {
     "bn.js": "^5.2.0",

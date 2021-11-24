@@ -76,7 +76,7 @@ function defaultCreateSwapOrderFactory(orderBook, defaults, tokenDecimals) {
     return async function defaultCreateSwapOrder(props = {}) {
         if (!('triggerRatio' in props) && !('minOut' in props)) {
             throw new Error('Either triggerRatio or minOut should be provided');
-        };
+        }
 
         props.triggerRatio = props.triggerRatio || 0;
         props.amountIn = getDefault(props, 'amountIn', defaults.amountIn);
@@ -108,6 +108,7 @@ function defaultCreateSwapOrderFactory(orderBook, defaults, tokenDecimals) {
 function getSwapFees(token, amount) {
     // ideally to get all this from Vault in runtime
     //
+    console.log(111111111111111)
     let feesPoints;
     if ([dai.address, busd.address, usdg.address].includes(token)) {
         feesPoints = 4;

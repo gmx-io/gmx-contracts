@@ -212,7 +212,7 @@ contract Vault is ReentrancyGuardUpgradeable, IVault {
         gov = msg.sender;
     }
 
-    // initGov should be used together with Proxy
+    // initGov should be used with Proxy
     function initGov() public {
         require(gov == address(0), "gov is initialized");
         // once the parameters are verified to be working correctly,
@@ -228,6 +228,7 @@ contract Vault is ReentrancyGuardUpgradeable, IVault {
         uint256 _fundingRateFactor,
         uint256 _stableFundingRateFactor
     ) external {
+        _onlyGov();
         _validate(!isInitialized, 1);
         isInitialized = true;
 
@@ -1278,7 +1279,7 @@ contract Vault is ReentrancyGuardUpgradeable, IVault {
     }
 
     // we have this validation as a function instead of a modifier to reduce contract size
-    function _onlyGov() private view {
+    function _onlyGov() internal view {
         _validate(msg.sender == gov, 53);
     }
 

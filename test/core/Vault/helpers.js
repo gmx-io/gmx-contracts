@@ -81,6 +81,15 @@ async function deployAndInitVaultWithDeps() {
   return [vault, bnb, usdg, router, vaultPriceFeed, proxyAdmin]
 }
 
+async function upgradeVault(vaultProxy, proxyAdmin, newVaultContractName) {
+  const newVault = await deployContract(newVaultContractName, [])
+  await proxyAdmin.upgrade(vaultProxy.address, newVault.address)
+  const initializeName = `${newVaultContractName}_initialize`
+  const newVaultProxy = await contractAt(newVaultContractName, vaultProxy.address)
+  await newVaultProxy[initializeName]()
+  return newVaultProxy
+}
+
 async function initVaultErrors(vault) {
   const vaultErrorController = await deployContract("VaultErrorController", [])
   await vault.setErrorController(vaultErrorController.address)
@@ -161,6 +170,7 @@ module.exports = {
   errors,
   deployAndInitVaultWithDeps,
   initVault,
+  upgradeVault,
   validateVaultBalance,
   getBnbConfig,
   getBtcConfig,
