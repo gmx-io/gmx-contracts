@@ -20,8 +20,8 @@ async function main() {
   console.log("vaultTimelock", vaultTimelock.address)
   console.log("vaultMethod", vaultMethod)
 
-  const { frax } = tokens
-  const tokenArr = [frax]
+  const { link, uni } = tokens
+  const tokenArr = [link, uni]
 
   for (const token of tokenArr) {
     await sendTxn(vaultTimelock[vaultMethod](
