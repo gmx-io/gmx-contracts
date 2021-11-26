@@ -3,6 +3,7 @@
 import "../libraries/math/SafeMath.sol";
 
 import "./interfaces/ISecondaryPriceFeed.sol";
+import "./interfaces/IFastPriceEvents.sol";
 import "../access/Governable.sol";
 
 pragma solidity 0.6.12;
@@ -11,7 +12,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     using SafeMath for uint256;
 
     uint256 public constant PRICE_PRECISION = 10 ** 30;
-    uint256 public constant COMPACTED_PRECISION = 10 ** 3;
 
     // uint256(~0) is 256 bits of 1s
     // shift the 1s by (256 - 32) to get (256 - 32) 0s followed by 32 1s
@@ -19,6 +19,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
 
     bool public isInitialized;
     bool public isSpreadEnabled = false;
+    address public fastPriceEvents;
+
+    address public admin;
+    address public tokenManager;
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
@@ -39,7 +43,12 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     mapping (address => bool) public isSigner;
     mapping (address => bool) public disableFastPriceVotes;
 
+    // array of tokens used in setCompactedPrices, saves L1 calldata gas costs
     address[] public tokens;
+    // array of tokenPrecisions used in setCompactedPrices, saves L1 calldata gas costs
+    // if the token price will be sent with 3 decimals, then tokenPrecision for that token
+    // should be 10 ** 3
+    uint256[] public tokenPrecisions;
 
     event SetPrice(address token, uint256 price);
 
@@ -48,10 +57,29 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         _;
     }
 
-    constructor(uint256 _priceDuration, uint256 _maxDeviationBasisPoints) public {
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "FastPriceFeed: forbidden");
+        _;
+    }
+
+    modifier onlyTokenManager() {
+        require(msg.sender == tokenManager, "FastPriceFeed: forbidden");
+        _;
+    }
+
+    constructor(
+      uint256 _priceDuration,
+      uint256 _maxDeviationBasisPoints,
+      address _fastPriceEvents,
+      address _admin,
+      address _tokenManager
+    ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
+        fastPriceEvents = _fastPriceEvents;
+        admin = _admin;
+        tokenManager = _tokenManager;
     }
 
     function initialize(uint256 _minAuthorizations, address[] memory _signers) public onlyGov {
@@ -64,6 +92,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
             address signer = _signers[i];
             isSigner[signer] = true;
         }
+    }
+
+    function setAdmin(address _admin) external onlyTokenManager {
+        admin = _admin;
     }
 
     function setPriceDuration(uint256 _priceDuration) external onlyGov {
@@ -79,7 +111,13 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         volBasisPoints = _volBasisPoints;
     }
 
-    function setPrices(address[] memory _tokens, uint256[] memory _prices) external onlyGov {
+    function setTokens(address[] memory _tokens, uint256[] memory _tokenPrecisions) external onlyGov {
+        require(_tokens.length == _tokenPrecisions.length, "FastPriceFeed: invalid lengths");
+        tokens = _tokens;
+        tokenPrecisions = _tokenPrecisions;
+    }
+
+    function setPrices(address[] memory _tokens, uint256[] memory _prices) external onlyAdmin {
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             prices[token] = _prices[i];
@@ -88,11 +126,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         lastUpdatedAt = block.timestamp;
     }
 
-    function setTokens(address[] memory _tokens) external onlyGov {
-        tokens = _tokens;
-    }
-
-    function setCompactedPrices(uint256[] memory _priceBitArray) external onlyGov {
+    function setCompactedPrices(uint256[] memory _priceBitArray) external onlyAdmin {
         lastUpdatedAt = block.timestamp;
 
         for (uint256 i = 0; i < _priceBitArray.length; i++) {
@@ -106,9 +140,11 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
                 uint256 price = (priceBits >> startBit) & PRICE_BITMASK;
 
                 address token = tokens[i * 8 + j];
-                uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(COMPACTED_PRECISION);
+                uint256 tokenPrecision = tokenPrecisions[i * 8 + j];
+                uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
                 prices[token] = adjustedPrice;
-                emit SetPrice(token, adjustedPrice);
+
+                IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
             }
         }
     }
