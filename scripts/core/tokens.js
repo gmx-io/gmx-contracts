@@ -238,6 +238,20 @@ module.exports = {
       isStable: true,
       isShortable: false
     },
+    dai: {
+      name: "dai",
+      address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+      decimals: 18,
+      priceFeed: "0xc5C8E77B397E531B8EC06BFb0048328B30E9eCfB",
+      priceDecimals: 8,
+      isStrictStable: true,
+      tokenWeight: 1,
+      minProfitBps: 150,
+      maxUsdgAmount: 10,
+      bufferAmount: 0,
+      isStable: true,
+      isShortable: false
+    },
     nativeToken: {
       name: "weth",
       address: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",

@@ -23,8 +23,8 @@ async function main() {
   console.log("priceFeedTimelock", priceFeedTimelock.address)
   console.log("priceFeedMethod", priceFeedMethod)
 
-  const { frax } = tokens
-  const tokenArr = [frax]
+  const { dai } = tokens
+  const tokenArr = [dai]
 
   for (const token of tokenArr) {
     await sendTxn(priceFeedTimelock[priceFeedMethod](
