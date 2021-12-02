@@ -10,8 +10,8 @@ async function main() {
   // const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x1CF4579904EB2ACDA0E4081E39eC10d0c32B5DE3")
   const usdDecimals = 30
 
-  const { btc, eth, usdc, link, uni, usdt, mim, frax } = tokens
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax]
+  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = tokenArr[i]
