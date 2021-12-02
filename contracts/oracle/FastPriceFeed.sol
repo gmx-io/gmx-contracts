@@ -50,8 +50,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     // should be 10 ** 3
     uint256[] public tokenPrecisions;
 
-    event SetPrice(address token, uint256 price);
-
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
         _;
@@ -98,6 +96,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         admin = _admin;
     }
 
+    function setFastPriceEvents(address _fastPriceEvents) external onlyGov {
+      fastPriceEvents = _fastPriceEvents;
+    }
+
     function setPriceDuration(uint256 _priceDuration) external onlyGov {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
@@ -121,7 +123,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             prices[token] = _prices[i];
-            emit SetPrice(token, _prices[i]);
+            IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
         }
         lastUpdatedAt = block.timestamp;
     }
