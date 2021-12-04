@@ -298,8 +298,8 @@ contract Reader {
             amounts[i * propsLength + 7] = vault.getMinPrice(token);
             amounts[i * propsLength + 8] = vault.getMaxPrice(token);
             amounts[i * propsLength + 9] = vault.guaranteedUsd(token);
-            amounts[i * propsLength + 10] = priceFeed.getPrice(token, false, false, false);
-            amounts[i * propsLength + 11] = priceFeed.getPrice(token, true, false, false);
+            amounts[i * propsLength + 10] = priceFeed.getPrimaryPrice(token, false);
+            amounts[i * propsLength + 11] = priceFeed.getPrimaryPrice(token, true);
         }
 
         return amounts;
