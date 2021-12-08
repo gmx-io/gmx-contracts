@@ -2,19 +2,21 @@ const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 async function main() {
-  const weth = await contractAt("Token", "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
+  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+  const signer = frame.getSigner()
+  const weth = await contractAt("Token", "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", signer)
   const tokenDecimals = 18
 
   const rewardTrackerArr = [
     {
       name: "feeGmxTracker",
       address: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
-      transferAmount: "60"
+      transferAmount: "81"
     },
     {
       name: "feeGlpTracker",
       address: "0x4e971a87900b931fF39d1Aad67697F49835400b6",
-      transferAmount: "142"
+      transferAmount: "189"
     }
   ]
 
