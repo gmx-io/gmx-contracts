@@ -42,12 +42,12 @@ async function withdrawFeesArb() {
   const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
   const signer = frame.getSigner()
 
-  const receiver = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
+  const receiver = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const gov = await contractAt("Timelock", "0xd89EfBEB054340e9c2fe4BCe8f36D1f8a4ae6E0c", signer)
-  const { btc, eth, usdc, link, uni, usdt, mim, frax } = tokens
+  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
 
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax]
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = await contractAt("Token", tokenArr[i].address)
