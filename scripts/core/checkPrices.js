@@ -6,8 +6,8 @@ const tokens = require('./tokens')[network];
 
 async function main() {
   const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x1CF4579904EB2ACDA0E4081E39eC10d0c32B5DE3")
-  let vaultPriceFeed2
-  // const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x1CF4579904EB2ACDA0E4081E39eC10d0c32B5DE3")
+  // let vaultPriceFeed2
+  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x9162c114a85280f6905B2C7c541731Ff69D04782")
   const usdDecimals = 30
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens

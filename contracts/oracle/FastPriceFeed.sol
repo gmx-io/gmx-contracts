@@ -123,7 +123,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             prices[token] = _prices[i];
-            IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
+            if (fastPriceEvents != address(0)) {
+              IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
+            }
         }
         lastUpdatedAt = block.timestamp;
     }
@@ -146,7 +148,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
                 uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
                 prices[token] = adjustedPrice;
 
-                IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
+                if (fastPriceEvents != address(0)) {
+                  IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
+                }
             }
         }
     }

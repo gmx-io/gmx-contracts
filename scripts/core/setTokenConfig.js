@@ -15,7 +15,7 @@ async function main() {
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)
 
-  const { btc, eth, usdc, link, uni, usdt, dai, mim, frax } = tokens
+  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
   const tokenArr = [link]
 
   for (const token of tokenArr) {
