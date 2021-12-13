@@ -6,12 +6,16 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 async function deployPriceFeedArb() {
+  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+  const signer = frame.getSigner()
+
+  const timelock = { address: "0xAF2f95aA67476bFaFd8194e96B3b6dE77272ae2A" }
   const fastPriceFeedGov = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
   const fastPriceFeedAdmin = { address: "0x67F1B9E91D7bB46556ba013c1B187C461e2a1Ffd" }
   const signers = ["0x8A78BA7F6c187e381ffE9B6414FC11cebd5993c1"]
   const tokenManager = { address: "0x1EF8156b46e6f5A1973BfF4975177fd13275Ad59" }
 
-  const fastPriceEvents = await deployContract("FastPriceEvents", [])
+  const fastPriceEvents = await contractAt("FastPriceEvents", "0x4530b7DE1958270A2376be192a24175D795e1b07", signer)
 
   const chainlinkFlags = { address: "0x3C14e07Edd0dC67442FA96f1Ec6999c57E810a83" }
   const secondaryPriceFeed = await deployContract("FastPriceFeed", [
@@ -24,7 +28,6 @@ async function deployPriceFeedArb() {
   await sendTxn(secondaryPriceFeed.initialize(1, signers), "secondaryPriceFeed.initialize")
 
   await sendTxn(fastPriceEvents.setIsPriceFeed(secondaryPriceFeed.address, true), "fastPriceEvents.setIsPriceFeed")
-  await sendTxn(fastPriceEvents.setGov(fastPriceFeedGov.address), "fastPriceEvents.setGov")
 
   const vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
@@ -50,6 +53,7 @@ async function deployPriceFeedArb() {
     ), `vaultPriceFeed.setTokenConfig(${token.name}) ${token.address} ${token.priceFeed}`)
   }
 
+  await sendTxn(vaultPriceFeed.setGov(timelock.address), "vaultPriceFeed.setGov")
   await sendTxn(secondaryPriceFeed.setTokens(fastPriceTokens.map(t => t.address), fastPriceTokens.map(t => t.fastPricePrecision)), "secondaryPriceFeed.setTokens")
   await sendTxn(secondaryPriceFeed.setGov(fastPriceFeedGov.address), "secondaryPriceFeed.setGov")
 }
