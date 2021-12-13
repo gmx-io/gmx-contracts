@@ -707,6 +707,7 @@ contract Vault is ReentrancyGuard, IVault {
         if (liquidationState == 2) {
             // max leverage exceeded but there is collateral remaining after deducting losses so decreasePosition instead
             _decreasePosition(_account, _collateralToken, _indexToken, 0, position.size, _isLong, _account);
+            includeAmmPrice = true;
             return;
         }
 
