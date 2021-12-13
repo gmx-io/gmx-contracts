@@ -20,6 +20,7 @@ interface IVault {
     function hasDynamicFees() external view returns (bool);
     function fundingInterval() external view returns (uint256);
     function totalTokenWeights() external view returns (uint256);
+    function getTargetUsdgAmount(address _token) external view returns (uint256);
 
     function inManagerMode() external view returns (bool);
     function inPrivateLiquidationMode() external view returns (bool);
