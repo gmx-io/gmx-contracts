@@ -67,6 +67,11 @@ async function initVaultErrors(vault) {
   await vaultErrorController.setErrors(vault.address, errors);
 }
 
+async function initVaultUtils(vault) {
+  const vaultUtils = await deployContract("VaultUtils", [vault.address])
+  await vault.setVaultUtils(vaultUtils.address)
+}
+
 async function initVault(vault, router, usdg, priceFeed) {
     await vault.initialize(
       router.address, // router
@@ -76,6 +81,7 @@ async function initVault(vault, router, usdg, priceFeed) {
       600, // fundingRateFactor
       600 // stableFundingRateFactor
     )
+    await initVaultUtils(vault)
     await initVaultErrors(vault)
 }
 

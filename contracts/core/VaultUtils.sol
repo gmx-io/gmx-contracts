@@ -6,7 +6,7 @@ import "../libraries/math/SafeMath.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IVaultUtils.sol";
 
-contract Vault is IVaultUtils {
+contract VaultUtils is IVaultUtils {
     using SafeMath for uint256;
 
     IVault public vault;
