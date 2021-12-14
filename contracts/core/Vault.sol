@@ -991,7 +991,7 @@ contract Vault is ReentrancyGuard, IVault {
         return vaultUtils.getFundingFee(_collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
     }
 
-    function getPositionFee(uint256 _sizeDelta) public view returns (uint256) {
+    function getPositionFee(uint256 _sizeDelta) public override view returns (uint256) {
         if (_sizeDelta == 0) { return 0; }
         uint256 afterFeeUsd = _sizeDelta.mul(BASIS_POINTS_DIVISOR.sub(marginFeeBasisPoints)).div(BASIS_POINTS_DIVISOR);
         return _sizeDelta.sub(afterFeeUsd);
