@@ -181,7 +181,8 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 averagePrice,
         uint256 entryFundingRate,
         uint256 reserveAmount,
-        int256 realisedPnl
+        int256 realisedPnl,
+        uint256 markPrice
     );
     event ClosePosition(
         bytes32 key,
@@ -617,7 +618,7 @@ contract Vault is ReentrancyGuard, IVault {
         }
 
         emit IncreasePosition(key, _account, _collateralToken, _indexToken, collateralDeltaUsd, _sizeDelta, _isLong, price, fee);
-        emit UpdatePosition(key, position.size, position.collateral, position.averagePrice, position.entryFundingRate, position.reserveAmount, position.realisedPnl);
+        emit UpdatePosition(key, position.size, position.collateral, position.averagePrice, position.entryFundingRate, position.reserveAmount, position.realisedPnl, price);
     }
 
     function decreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver) external override nonReentrant returns (uint256) {
@@ -660,7 +661,7 @@ contract Vault is ReentrancyGuard, IVault {
 
             uint256 price = _isLong ? getMinPrice(_indexToken) : getMaxPrice(_indexToken);
             emit DecreasePosition(key, _account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, price, usdOut.sub(usdOutAfterFee));
-            emit UpdatePosition(key, position.size, position.collateral, position.averagePrice, position.entryFundingRate, position.reserveAmount, position.realisedPnl);
+            emit UpdatePosition(key, position.size, position.collateral, position.averagePrice, position.entryFundingRate, position.reserveAmount, position.realisedPnl, price);
         } else {
             if (_isLong) {
                 _increaseGuaranteedUsd(_collateralToken, collateral);
