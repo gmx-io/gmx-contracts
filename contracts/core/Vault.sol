@@ -865,7 +865,10 @@ contract Vault is ReentrancyGuard, IVault {
     }
 
     function updateCumulativeFundingRate(address _collateralToken, address _indexToken) public {
-        vaultUtils.updateCumulativeFundingRate(_collateralToken, _indexToken);
+        bool shouldUpdate = vaultUtils.updateCumulativeFundingRate(_collateralToken, _indexToken);
+        if (!shouldUpdate) {
+            return;
+        }
 
         if (lastFundingTimes[_collateralToken] == 0) {
             lastFundingTimes[_collateralToken] = block.timestamp.div(fundingInterval).mul(fundingInterval);

@@ -17,16 +17,16 @@ contract VaultUtils is IVaultUtils {
         vault = _vault;
     }
 
-    function validateIncreasePosition(address /* _account */, address /* _collateralToken */, address /* _indexToken */, uint256 /* _sizeDelta */, bool /* _isLong */) external override {
-        // no-op
+    function updateCumulativeFundingRate(address /* _collateralToken */, address /* _indexToken */) public override returns (bool) {
+        return true;
     }
 
-    function validateDecreasePosition(address /* _account */, address /* _collateralToken */, address /* _indexToken */, uint256 /* _collateralDelta */, uint256 /* _sizeDelta */, bool /* _isLong */, address /* _receiver */) external override {
-        // no-op
+    function validateIncreasePosition(address /* _account */, address /* _collateralToken */, address /* _indexToken */, uint256 /* _sizeDelta */, bool /* _isLong */) external override view {
+        // no additional checks yet
     }
 
-    function updateCumulativeFundingRate(address /* _collateralToken */, address /* _indexToken */) public override {
-        // no-op
+    function validateDecreasePosition(address /* _account */, address /* _collateralToken */, address /* _indexToken */, uint256 /* _collateralDelta */, uint256 /* _sizeDelta */, bool /* _isLong */, address /* _receiver */) external override view {
+        // no additional checks yet
     }
 
     function getEntryFundingRate(address _collateralToken, address /* _indexToken */, bool /* _isLong */) public override view returns (uint256) {
