@@ -43,6 +43,7 @@ interface IVault {
     function setIsLeverageEnabled(bool _isLeverageEnabled) external;
     function setMaxGasPrice(uint256 _maxGasPrice) external;
     function setBufferAmount(address _token, uint256 _amount) external;
+    function setMaxGlobalShortSize(address _token, uint256 _amount) external;
     function setInPrivateLiquidationMode(bool _inPrivateLiquidationMode) external;
     function setLiquidator(address _liquidator, bool _isActive) external;
 

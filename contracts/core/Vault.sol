@@ -133,6 +133,7 @@ contract Vault is ReentrancyGuard, IVault {
 
     mapping (address => uint256) public override globalShortSizes;
     mapping (address => uint256) public override globalShortAveragePrices;
+    mapping (address => uint256) public maxGlobalShortSizes;
 
     mapping (uint256 => string) public errors;
 
@@ -309,6 +310,11 @@ contract Vault is ReentrancyGuard, IVault {
     function setBufferAmount(address _token, uint256 _amount) external override {
         _onlyGov();
         bufferAmounts[_token] = _amount;
+    }
+
+    function setMaxGlobalShortSize(address _token, uint256 _amount) external override {
+        _onlyGov();
+        maxGlobalShortSizes[_token] = _amount;
     }
 
     function setFees(
@@ -614,7 +620,8 @@ contract Vault is ReentrancyGuard, IVault {
             } else {
                 globalShortAveragePrices[_indexToken] = getNextGlobalShortAveragePrice(_indexToken, price, _sizeDelta);
             }
-            globalShortSizes[_indexToken] = globalShortSizes[_indexToken].add(_sizeDelta);
+
+            _increaseGlobalShortSize(_indexToken, _sizeDelta);
         }
 
         emit IncreasePosition(key, _account, _collateralToken, _indexToken, collateralDeltaUsd, _sizeDelta, _isLong, price, fee);
@@ -1186,6 +1193,15 @@ contract Vault is ReentrancyGuard, IVault {
     function _decreaseGuaranteedUsd(address _token, uint256 _usdAmount) private {
         guaranteedUsd[_token] = guaranteedUsd[_token].sub(_usdAmount);
         emit DecreaseGuaranteedUsd(_token, _usdAmount);
+    }
+
+    function _increaseGlobalShortSize(address _token, uint256 _amount) private {
+        globalShortSizes[_token] = globalShortSizes[_token].add(_amount);
+
+        uint256 maxSize = maxGlobalShortSizes[_token];
+        if (maxSize != 0) {
+            require(globalShortSizes[_token] <= maxSize, "Vault: max shorts exceeded");
+        }
     }
 
     function _decreaseGlobalShortSize(address _token, uint256 _amount) private {
