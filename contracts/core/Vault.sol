@@ -748,40 +748,7 @@ contract Vault is ReentrancyGuard, IVault {
 
     // validateLiquidation returns (state, fees)
     function validateLiquidation(address _account, address _collateralToken, address _indexToken, bool _isLong, bool _raise) public view returns (uint256, uint256) {
-        bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
-        Position memory position = positions[key];
-
-        (bool hasProfit, uint256 delta) = getDelta(_indexToken, position.size, position.averagePrice, _isLong, position.lastIncreasedTime);
-        uint256 marginFees = getFundingFee(_collateralToken, _indexToken, _isLong, position.size, position.entryFundingRate);
-        marginFees = marginFees.add(getPositionFee(position.size));
-
-        if (!hasProfit && position.collateral < delta) {
-            if (_raise) { revert("Vault: losses exceed collateral"); }
-            return (1, marginFees);
-        }
-
-        uint256 remainingCollateral = position.collateral;
-        if (!hasProfit) {
-            remainingCollateral = position.collateral.sub(delta);
-        }
-
-        if (remainingCollateral < marginFees) {
-            if (_raise) { revert("Vault: fees exceed collateral"); }
-            // cap the fees to the remainingCollateral
-            return (1, remainingCollateral);
-        }
-
-        if (remainingCollateral < marginFees.add(liquidationFeeUsd)) {
-            if (_raise) { revert("Vault: liquidation fees exceed collateral"); }
-            return (1, marginFees);
-        }
-
-        if (remainingCollateral.mul(maxLeverage) < position.size.mul(BASIS_POINTS_DIVISOR)) {
-            if (_raise) { revert("Vault: maxLeverage exceeded"); }
-            return (2, marginFees);
-        }
-
-        return (0, marginFees);
+        return vaultUtils.validateLiquidation(_account, _collateralToken, _indexToken, _isLong, _raise);
     }
 
     function getMaxPrice(address _token) public override view returns (uint256) {
