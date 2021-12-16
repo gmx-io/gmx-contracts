@@ -16,7 +16,7 @@ async function main() {
   console.log("timelock", timelock.address)
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [mim, frax, dai]
+  const tokenArr = [usdt, dai]
 
   for (const token of tokenArr) {
     await sendTxn(timelock.setTokenConfig(
