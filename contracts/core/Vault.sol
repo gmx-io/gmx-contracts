@@ -582,7 +582,7 @@ contract Vault is ReentrancyGuard, IVault {
             position.averagePrice = getNextAveragePrice(_indexToken, position.size, position.averagePrice, _isLong, price, _sizeDelta, position.lastIncreasedTime);
         }
 
-        uint256 fee = _collectMarginFees(_collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
+        uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
         uint256 collateralDelta = _transferIn(_collateralToken);
         uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta);
 
@@ -965,10 +965,8 @@ contract Vault is ReentrancyGuard, IVault {
         return vaultUtils.getFundingFee(_collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
     }
 
-    function getPositionFee(uint256 _sizeDelta) public override view returns (uint256) {
-        if (_sizeDelta == 0) { return 0; }
-        uint256 afterFeeUsd = _sizeDelta.mul(BASIS_POINTS_DIVISOR.sub(marginFeeBasisPoints)).div(BASIS_POINTS_DIVISOR);
-        return _sizeDelta.sub(afterFeeUsd);
+    function getPositionFee(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta) public view returns (uint256) {
+        return vaultUtils.getPositionFee(_account, _collateralToken, _indexToken, _isLong, _sizeDelta);
     }
 
     // cases to consider
@@ -995,7 +993,7 @@ contract Vault is ReentrancyGuard, IVault {
         bytes32 key = getPositionKey(_account, _collateralToken, _indexToken, _isLong);
         Position storage position = positions[key];
 
-        uint256 fee = _collectMarginFees(_collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
+        uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
         bool hasProfit;
         uint256 adjustedDelta;
 
@@ -1101,8 +1099,8 @@ contract Vault is ReentrancyGuard, IVault {
         return afterFeeAmount;
     }
 
-    function _collectMarginFees(address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta, uint256 _size, uint256 _entryFundingRate) private returns (uint256) {
-        uint256 feeUsd = getPositionFee(_sizeDelta);
+    function _collectMarginFees(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta, uint256 _size, uint256 _entryFundingRate) private returns (uint256) {
+        uint256 feeUsd = getPositionFee(_account, _collateralToken, _indexToken, _isLong, _sizeDelta);
 
         uint256 fundingFee = getFundingFee(_collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
         feeUsd = feeUsd.add(fundingFee);

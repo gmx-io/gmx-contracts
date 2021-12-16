@@ -55,7 +55,7 @@ contract VaultUtils is IVaultUtils {
 
         (bool hasProfit, uint256 delta) = _vault.getDelta(_indexToken, position.size, position.averagePrice, _isLong, position.lastIncreasedTime);
         uint256 marginFees = getFundingFee(_collateralToken, _indexToken, _isLong, position.size, position.entryFundingRate);
-        marginFees = marginFees.add(_vault.getPositionFee(position.size));
+        marginFees = marginFees.add(getPositionFee(_account, _collateralToken, _indexToken, _isLong, position.size));
 
         if (!hasProfit && position.collateral < delta) {
             if (_raise) { revert("Vault: losses exceed collateral"); }
@@ -88,6 +88,12 @@ contract VaultUtils is IVaultUtils {
 
     function getEntryFundingRate(address _collateralToken, address /* _indexToken */, bool /* _isLong */) public override view returns (uint256) {
         return vault.cumulativeFundingRates(_collateralToken);
+    }
+
+    function getPositionFee(address /* _account */, address /* _collateralToken */, address /* _indexToken */, bool /* _isLong */, uint256 _sizeDelta) public override view returns (uint256) {
+        if (_sizeDelta == 0) { return 0; }
+        uint256 afterFeeUsd = _sizeDelta.mul(BASIS_POINTS_DIVISOR.sub(vault.marginFeeBasisPoints())).div(BASIS_POINTS_DIVISOR);
+        return _sizeDelta.sub(afterFeeUsd);
     }
 
     function getFundingFee(address _collateralToken, address /* _indexToken */, bool /* _isLong */, uint256 _size, uint256 _entryFundingRate) public override view returns (uint256) {
@@ -154,5 +160,4 @@ contract VaultUtils is IVaultUtils {
         uint256 taxBps = _taxBasisPoints.mul(averageDiff).div(targetAmount);
         return _feeBasisPoints.add(taxBps);
     }
-
 }

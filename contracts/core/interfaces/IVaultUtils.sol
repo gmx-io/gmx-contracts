@@ -8,6 +8,7 @@ interface IVaultUtils {
     function validateDecreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver) external view;
     function validateLiquidation(address _account, address _collateralToken, address _indexToken, bool _isLong, bool _raise) external view returns (uint256, uint256);
     function getEntryFundingRate(address _collateralToken, address _indexToken, bool _isLong) external view returns (uint256);
+    function getPositionFee(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta) external view returns (uint256);
     function getFundingFee(address _collateralToken, address _indexToken, bool _isLong, uint256 _size, uint256 _entryFundingRate) external view returns (uint256);
     function getBuyUsdgFeeBasisPoints(address _token, uint256 _usdgAmount) external view returns (uint256);
     function getSellUsdgFeeBasisPoints(address _token, uint256 _usdgAmount) external view returns (uint256);
