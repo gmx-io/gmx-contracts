@@ -961,8 +961,8 @@ contract Vault is ReentrancyGuard, IVault {
         return vaultUtils.getEntryFundingRate(_collateralToken, _indexToken, _isLong);
     }
 
-    function getFundingFee(address _collateralToken, address _indexToken, bool _isLong, uint256 _size, uint256 _entryFundingRate) public view returns (uint256) {
-        return vaultUtils.getFundingFee(_collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
+    function getFundingFee(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _size, uint256 _entryFundingRate) public view returns (uint256) {
+        return vaultUtils.getFundingFee(_account, _collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
     }
 
     function getPositionFee(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta) public view returns (uint256) {
@@ -1102,7 +1102,7 @@ contract Vault is ReentrancyGuard, IVault {
     function _collectMarginFees(address _account, address _collateralToken, address _indexToken, bool _isLong, uint256 _sizeDelta, uint256 _size, uint256 _entryFundingRate) private returns (uint256) {
         uint256 feeUsd = getPositionFee(_account, _collateralToken, _indexToken, _isLong, _sizeDelta);
 
-        uint256 fundingFee = getFundingFee(_collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
+        uint256 fundingFee = getFundingFee(_account, _collateralToken, _indexToken, _isLong, _size, _entryFundingRate);
         feeUsd = feeUsd.add(fundingFee);
 
         uint256 feeTokens = usdToTokenMin(_collateralToken, feeUsd);
