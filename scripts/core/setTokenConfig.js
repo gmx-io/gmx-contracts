@@ -16,7 +16,7 @@ async function main() {
   console.log("timelock", timelock.address)
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [usdc, usdt]
+  const tokenArr = [mim, frax, dai]
 
   for (const token of tokenArr) {
     await sendTxn(timelock.setTokenConfig(
@@ -27,11 +27,11 @@ async function main() {
       expandDecimals(token.maxUsdgAmount, 18) // _maxUsdgAmount
     ), `vault.setTokenConfig(${token.name}) ${token.address}`)
 
-    await sendTxn(timelock.setBufferAmount(
-      vault.address,
-      token.address, // _token
-      expandDecimals(token.bufferAmount, token.decimals) // _bufferAmount
-    ), `vault.setBufferAmount(${token.name}) ${token.address}`)
+    // await sendTxn(timelock.setBufferAmount(
+    //   vault.address,
+    //   token.address, // _token
+    //   expandDecimals(token.bufferAmount, token.decimals) // _bufferAmount
+    // ), `vault.setBufferAmount(${token.name}) ${token.address}`)
   }
 }
 
