@@ -261,5 +261,71 @@ module.exports = {
       address: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       decimals: 18
     }
+  },
+  avax: {
+    avax: {
+      name: "avax",
+      address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+      decimals: 18,
+      priceFeed: "0x0A77230d17318075983913bC2145DB16C7366156",
+      priceDecimals: 8,
+      fastPricePrecision: 1000,
+      isStrictStable: false,
+      tokenWeight: 25000,
+      minProfitBps: 150,
+      maxUsdgAmount: 30 * 1000 *1000,
+      bufferAmount: 0,
+      isStable: false,
+      isShortable: true
+    },
+    btc: {
+      name: "btc",
+      address: "0x50b7545627a5162f82a992c33b87adc75187b218",
+      decimals: 8,
+      priceFeed: "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
+      priceDecimals: 8,
+      fastPricePrecision: 1000,
+      isStrictStable: false,
+      tokenWeight: 15000,
+      minProfitBps: 150,
+      maxUsdgAmount: 30 * 1000 *1000,
+      bufferAmount: 0,
+      isStable: false,
+      isShortable: true
+    },
+    eth: {
+      name: "eth",
+      address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
+      decimals: 18,
+      priceFeed: "0x976B3D034E162d8bD72D6b9C989d545b839003b0",
+      priceDecimals: 8,
+      fastPricePrecision: 1000,
+      isStrictStable: false,
+      tokenWeight: 20000,
+      minProfitBps: 150,
+      maxUsdgAmount: 30 * 1000 * 1000,
+      bufferAmount: 0,
+      isStable: false,
+      isShortable: true
+    },
+    mim: {
+      name: "mim",
+      address: "0x130966628846BFd36ff31a822705796e8cb8C18D",
+      decimals: 18,
+      priceFeed: "0x54EdAB30a7134A16a54218AE64C73e1DAf48a8Fb",
+      priceDecimals: 8,
+      isStrictStable: true,
+      tokenWeight: 40000,
+      minProfitBps: 150,
+      maxUsdgAmount: 50 * 1000 * 1000,
+      bufferAmount: 0,
+      isStable: true,
+      isShortable: false
+    },
+    nativeToken: {
+      name: "wavax",
+      address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+      decimals: 18
+    }
   }
 }

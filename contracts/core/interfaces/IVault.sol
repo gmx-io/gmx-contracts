@@ -104,6 +104,7 @@ interface IVault {
     function feeReserves(address _token) external view returns (uint256);
     function globalShortSizes(address _token) external view returns (uint256);
     function globalShortAveragePrices(address _token) external view returns (uint256);
+    function maxGlobalShortSizes(address _token) external view returns (uint256);
     function tokenDecimals(address _token) external view returns (uint256);
     function tokenWeights(address _token) external view returns (uint256);
     function guaranteedUsd(address _token) external view returns (uint256);

@@ -133,7 +133,7 @@ contract Vault is ReentrancyGuard, IVault {
 
     mapping (address => uint256) public override globalShortSizes;
     mapping (address => uint256) public override globalShortAveragePrices;
-    mapping (address => uint256) public maxGlobalShortSizes;
+    mapping (address => uint256) public override maxGlobalShortSizes;
 
     mapping (uint256 => string) public errors;
 

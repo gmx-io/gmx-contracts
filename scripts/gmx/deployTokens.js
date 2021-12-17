@@ -2,7 +2,7 @@ const { deployContract, contractAt, writeTmpAddresses } = require("../shared/hel
 
 async function main() {
   await deployContract("EsGMX", [])
-  await deployContract("GLP", [])
+  // await deployContract("GLP", [])
 }
 
 main()
