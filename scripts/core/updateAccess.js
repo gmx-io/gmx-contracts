@@ -105,6 +105,7 @@ async function main() {
   // await updateGov(esGmx, "esGmx")
   // await updateGov(bnGmx, "bnGmx")
 
+  // TODO: update gov for fast price feed
   // const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   // const vaultPriceFeedAddress = await vault.priceFeed()
   // const vaultPriceFeed = await contractAt("VaultPriceFeed", vaultPriceFeedAddress)
