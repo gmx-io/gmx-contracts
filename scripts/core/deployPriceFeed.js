@@ -59,16 +59,24 @@ async function deployPriceFeedArb() {
 }
 
 async function deployPriceFeedAvax() {
+  const { avax, btc, eth } = tokens
+  // const tokenArr = []
+  const fastPriceTokens = [avax, btc, eth]
+  if (fastPriceTokens.find(t => !t.fastPricePrecision)) {
+    throw new Error("Invalid price precision")
+  }
+
   // const timelock = { address: "0xAF2f95aA67476bFaFd8194e96B3b6dE77272ae2A" }
   // const fastPriceFeedGov = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
-  // const fastPriceFeedAdmin = { address: "0x67F1B9E91D7bB46556ba013c1B187C461e2a1Ffd" }
-  const signers = ["0x8A78BA7F6c187e381ffE9B6414FC11cebd5993c1"]
-  const tokenManager = { address: "0x1EF8156b46e6f5A1973BfF4975177fd13275Ad59" }
+  const fastPriceFeedAdmin = { address: "0xB6A92Ae811B6A3530b4C01a78651ad295D9570d4" }
+  const signers = ["0x1D6d107F5960A66f293Ac07EDd08c1ffE79B548a"]
+  const tokenManager = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
 
   const fastPriceEvents = await deployContract("FastPriceEvents", [])
 
   const secondaryPriceFeed = await deployContract("FastPriceFeed", [
     5 * 60, // _priceDuration
+    1, // _minBlockInterval
     250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
     fastPriceFeedAdmin.address, // _admin
@@ -81,21 +89,14 @@ async function deployPriceFeedAvax() {
   const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x131238112aa25c0D8CD237a6c384d1A86D2BB152")
   await sendTxn(vaultPriceFeed.setSecondaryPriceFeed(secondaryPriceFeed.address), "vaultPriceFeed.setSecondaryPriceFeed")
 
-  const { avax, btc, eth, mim } = tokens
-  const tokenArr = []
-  const fastPriceTokens = [avax, btc, eth, mim]
-  if (fastPriceTokens.find(t => !t.fastPricePrecision)) {
-    throw new Error("Invalid price precision")
-  }
-
-  for (const token of tokenArr) {
-    await sendTxn(vaultPriceFeed.setTokenConfig(
-      token.address, // _token
-      token.priceFeed, // _priceFeed
-      token.priceDecimals, // _priceDecimals
-      token.isStrictStable // _isStrictStable
-    ), `vaultPriceFeed.setTokenConfig(${token.name}) ${token.address} ${token.priceFeed}`)
-  }
+  // for (const token of tokenArr) {
+  //   await sendTxn(vaultPriceFeed.setTokenConfig(
+  //     token.address, // _token
+  //     token.priceFeed, // _priceFeed
+  //     token.priceDecimals, // _priceDecimals
+  //     token.isStrictStable // _isStrictStable
+  //   ), `vaultPriceFeed.setTokenConfig(${token.name}) ${token.address} ${token.priceFeed}`)
+  // }
 
   // await sendTxn(vaultPriceFeed.setGov(timelock.address), "vaultPriceFeed.setGov")
   await sendTxn(secondaryPriceFeed.setTokens(fastPriceTokens.map(t => t.address), fastPriceTokens.map(t => t.fastPricePrecision)), "secondaryPriceFeed.setTokens")
