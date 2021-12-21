@@ -27,7 +27,7 @@ async function main() {
       token.decimals, // _tokenDecimals
       token.tokenWeight, // _tokenWeight
       token.minProfitBps, // _minProfitBps
-      token.maxUsdgAmount, // _maxUsdgAmount
+      expandDecimals(token.maxUsdgAmount, 18), // _maxUsdgAmount
       token.isStable, // _isStable
       token.isShortable // _isShortable
     ), `vault.setTokenConfig(${token.name}) ${token.address}`)
