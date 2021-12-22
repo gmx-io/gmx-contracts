@@ -62,6 +62,9 @@ async function main() {
   const vaultErrorController = await deployContract("VaultErrorController", [])
   await sendTxn(vault.setErrorController(vaultErrorController.address), "vault.setErrorController")
   await sendTxn(vaultErrorController.setErrors(vault.address, errors), "vaultErrorController.setErrors")
+
+  const vaultUtils = await deployContract("VaultUtils", [vault.address])
+  await sendTxn(vault.setVaultUtils(vaultUtils.address), "vault.setVaultUtils")
 }
 
 main()
