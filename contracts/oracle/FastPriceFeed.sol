@@ -53,6 +53,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     // should be 10 ** 3
     uint256[] public tokenPrecisions;
 
+    event DisableFastPrice(address signer);
+
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
         _;
@@ -165,6 +167,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         require(!disableFastPriceVotes[msg.sender], "FastPriceFeed: already voted");
         disableFastPriceVotes[msg.sender] = true;
         disableFastPriceVoteCount = disableFastPriceVoteCount.add(1);
+
+        emit DisableFastPrice(msg.sender);
     }
 
     function enableFastPrice() external onlySigner {
