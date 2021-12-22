@@ -93,6 +93,8 @@ async function main() {
     glpVester.address
   ), "rewardRouter.initialize")
 
+  await sendTxn(glpManager.setHandler(rewardRouter.address), "glpManager.setHandler(rewardRouter)")
+
   // allow rewardRouter to stake in stakedGmxTracker
   await sendTxn(stakedGmxTracker.setHandler(rewardRouter.address, true), "stakedGmxTracker.setHandler(rewardRouter)")
   // allow bonusGmxTracker to stake stakedGmxTracker
