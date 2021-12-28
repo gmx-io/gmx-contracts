@@ -1,3 +1,6 @@
+const { contractAt, sendTxn } = require("../shared/helpers")
+const { expandDecimals } = require("../../test/shared/utilities")
+
 const path = require('path')
 const fs = require('fs')
 const parse = require('csv-parse')
@@ -55,7 +58,7 @@ const run = async () => {
   const earliestTxn = 1639872000 // Sunday, 19 December 2021 00:00:00
 
   const balanceList = []
-  let total = 0
+  let totalBalance = 0
   for (let i = 0; i < tokenHolders.length; i++) {
     const tokenHolder = tokenHolders[i]
     const account = tokenHolder.HolderAddress.toLowerCase()
@@ -65,18 +68,49 @@ const run = async () => {
 
     const balance =  parseFloat(tokenHolder.Balance)
     balanceList.push({ account, balance })
-    console.log("list", account, balance)
-    total += balance
+    totalBalance += balance
   }
 
-  console.log("balanceList", balanceList.length, total)
+  console.log("balanceList", balanceList.length, totalBalance)
 
-  // const distributionList = {}
-  // const totalEsGmx = 5000
-  //
-  // for (let i = 0; i < balanceList; i++) {
-  //
-  // }
+  let accounts = []
+  let amounts = []
+  const totalEsGmx = 5000
+  let totalEsGmxAmount = bigNumberify(0)
+
+  const batchSender = await contractAt("BatchSender", "0x401Ab96410BcdCA81b79c68D0D664D478906C184")
+  const esGmx = await contractAt("Token", "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA")
+  // await sendTxn(esGmx.approve(batchSender.address, expandDecimals(totalEsGmx, 18)), "esGmx.approve")
+
+  const batchSize = 500
+
+  for (let i = 0; i < balanceList.length; i++) {
+    const { account, balance } = balanceList[i]
+    const esGmxValue = totalEsGmx * balance / totalBalance
+    const esGmxAmount = ethers.utils.parseUnits(esGmxValue.toFixed(4), 18)
+
+    accounts.push(account)
+    amounts.push(esGmxAmount)
+    totalEsGmxAmount = totalEsGmxAmount.add(esGmxAmount)
+
+    console.log(`${i+1}:`, account, esGmxValue, esGmxAmount.toString())
+
+    if (accounts.length === batchSize) {
+      console.log("sending batch", i, accounts.length, amounts.length)
+
+      // await sendTxn(batchSender.send(esGmx.address,  accounts, amounts), "batchSender.send")
+
+      accounts = []
+      amounts = []
+    }
+  }
+
+  if (accounts.length > 0) {
+    console.log("sending final batch", balanceList.length, accounts.length, amounts.length)
+    await sendTxn(batchSender.send(esGmx.address,  accounts, amounts), "batchSender.send")
+  }
+
+  console.log("totalEsGmxAmount", totalEsGmxAmount.toString())
 }
 
 run()
