@@ -9,15 +9,24 @@ async function main() {
   const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a")
   const gmxDecimals = 18
 
+  const minCount = 0
+  let count = 0
+
   for (let i = 0; i < list.length; i++) {
     const item = list[i]
     if (item.usdc && parseFloat(item.usdc) !== 0) {
+      count++
       const amount = ethers.utils.parseUnits(item.usdc, usdcDecimals)
-      await sendTxn(usdc.transfer(item.account, amount), `usdc.transfer(${item.account}, ${amount})`)
+      if (count >= minCount) {
+        await sendTxn(usdc.transfer(item.account, amount), `${count}: usdc.transfer(${item.account}, ${amount})`)
+      }
     }
     if (item.gmx && parseFloat(item.gmx) !== 0) {
+      count++
       const amount = ethers.utils.parseUnits(item.gmx, gmxDecimals)
-      await sendTxn(gmx.transfer(item.account, amount), `gmx.transfer(${item.account}, ${amount})`)
+      if (count >= minCount) {
+        await sendTxn(gmx.transfer(item.account, amount), `${count}: gmx.transfer(${item.account}, ${amount})`)
+      }
     }
   }
 }
