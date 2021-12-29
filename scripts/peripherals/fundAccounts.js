@@ -4,8 +4,8 @@ async function main() {
 
   const transfers = [
     {
-      address: "0xEBa076279F41571f7860661eE36665b54F4cA315", // price sender
-      amount: "1.7"
+      address: "0x67F1B9E91D7bB46556ba013c1B187C461e2a1Ffd", // price sender
+      amount: "2.2"
     },
     {
       address: "0xd4266F8F82F7405429EE18559e548979D49160F3", // order keeper
