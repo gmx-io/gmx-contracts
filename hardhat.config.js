@@ -73,7 +73,7 @@ module.exports = {
       url: AVAX_URL,
       gasPrice: 100000000000,
       chainId: 43114,
-      accounts: [ARBITRUM_DEPLOY_KEY]
+      accounts: [AVAX_DEPLOY_KEY]
     },
     polygon: {
       url: POLYGON_URL,
