@@ -4,15 +4,9 @@ const { expandDecimals } = require("../../test/shared/utilities")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-async function main() {
-  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x1CF4579904EB2ACDA0E4081E39eC10d0c32B5DE3")
-  // let vaultPriceFeed2
-  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0xEFF37c0969DcBf69B0b142dAc4e56A0930AECBa8")
-  const usdDecimals = 30
+const usdDecimals = 30
 
-  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
-
+async function checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr) {
   for (let i = 0; i < tokenArr.length; i++) {
     const token = tokenArr[i]
     const maxPrice1 = await vaultPriceFeed1.getPrice(token.address, true, true, true)
@@ -58,6 +52,37 @@ async function main() {
       }
     }
   }
+}
+
+async function checkPricesAvax() {
+  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x131238112aa25c0D8CD237a6c384d1A86D2BB152")
+  let vaultPriceFeed2
+  // const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0xEFF37c0969DcBf69B0b142dAc4e56A0930AECBa8")
+
+  const { avax, btc, eth, mim, usdce, usdc } = tokens
+  const tokenArr = [avax, btc, eth, mim, usdce, usdc]
+
+  await checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr)
+}
+
+async function checkPricesArb() {
+  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x1CF4579904EB2ACDA0E4081E39eC10d0c32B5DE3")
+  // let vaultPriceFeed2
+  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0xEFF37c0969DcBf69B0b142dAc4e56A0930AECBa8")
+
+  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
+
+  await checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr)
+}
+
+async function main() {
+  if (network === "avax") {
+    await checkPricesAvax()
+    return
+  }
+
+  await checkPricesArb()
 }
 
 main()

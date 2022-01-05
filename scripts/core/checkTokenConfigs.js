@@ -4,10 +4,7 @@ const { expandDecimals } = require("../../test/shared/utilities")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-async function main() {
-  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
-
+async function checkTokenConfig(tokenArr) {
   for (let i = 0; i < tokenArr.length; i++) {
     const tokenInfo = tokenArr[i]
     const token = await contractAt("Token", tokenInfo.address)
@@ -32,6 +29,29 @@ async function main() {
     console.log(`isShortable: ${tokenInfo.isShortable}, isStable: ${tokenInfo.isStable}, isStrictStable: ${tokenInfo.isStrictStable}`)
     console.log("\n-------\n")
   }
+}
+
+async function checkTokenConfigAvax() {
+  const { avax, btc, eth, mim, usdce, usdc } = tokens
+  const tokenArr = [avax, btc, eth, mim, usdce, usdc]
+
+  await checkTokenConfig(tokenArr)
+}
+
+async function checkTokenConfigArb() {
+  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
+
+  await checkTokenConfig(tokenArr)
+}
+
+async function main() {
+  if (network === "avax") {
+    await checkTokenConfigAvax()
+    return
+  }
+
+  await checkTokenConfigArb()
 }
 
 main()

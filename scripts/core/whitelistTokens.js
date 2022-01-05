@@ -11,8 +11,8 @@ async function main() {
   console.log("vault", vault.address)
   console.log("vaultPriceFeed", vaultPriceFeed.address)
 
-  const { avax, btc, eth, mim } = tokens
-  const tokenArr = [avax, btc, eth, mim]
+  const { avax, btc, eth, mim, usdce, usdc } = tokens
+  const tokenArr = [mim, usdce, usdc]
 
   for (const token of tokenArr) {
     await sendTxn(vaultPriceFeed.setTokenConfig(
