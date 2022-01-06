@@ -1,7 +1,9 @@
 const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
-async function main() {
+const network = (process.env.HARDHAT_NETWORK || 'mainnet');
+
+async function runForArbitrum() {
   const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
   const rewardManager = { address: ethers.constants.AddressZero }
   const buffer = 24 * 60 * 60
@@ -17,9 +19,33 @@ async function main() {
     mintReceiver.address,
     maxTokenSupply
   ])
+}
 
-  // const gmx = { address: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" }
-  // await sendTxn(timelock.addExcludedToken(gmx.address), "timelock.addExcludedToken(gmx)")
+async function runForAvax() {
+  const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
+  const rewardManager = { address: ethers.constants.AddressZero }
+  const buffer = 60
+  const tokenManager = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
+  const mintReceiver = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
+  const maxTokenSupply = expandDecimals("13250000", 18)
+
+  const timelock = await deployContract("Timelock", [
+    admin,
+    buffer,
+    rewardManager.address,
+    tokenManager.address,
+    mintReceiver.address,
+    maxTokenSupply
+  ])
+}
+
+async function main() {
+  if (network === "avax") {
+    await runForAvax()
+    return
+  }
+
+  await runForArbitrum()
 }
 
 main()
