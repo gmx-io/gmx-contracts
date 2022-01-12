@@ -60,13 +60,44 @@ async function withdrawFeesArb() {
       throw new Error("vaultAmount > vault.balance")
     }
 
-    await sendTxn(gov.withdrawFees(vault.address, token.address, receiver.address), `gov.withdrawFees ${i}`)
+    await sendTxn(gov.withdrawFees(vault.address, token.address, receiver.address), `gov.withdrawFees ${i}, ${tokenArr[i].name}`)
+  }
+}
+
+async function withdrawFeesAvax() {
+  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+  const signer = frame.getSigner()
+
+  const receiver = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
+  const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
+  const gov = await contractAt("Timelock", "0x59c46156ED614164eC66A3CFa5822797f533c902", signer)
+  const { avax, btc, eth, mim, usdce, usdc } = tokens
+
+  const tokenArr = [avax, btc, eth, mim, usdce, usdc]
+
+  for (let i = 0; i < tokenArr.length; i++) {
+    const token = await contractAt("Token", tokenArr[i].address)
+    const poolAmount = await vault.poolAmounts(token.address)
+    const feeReserve = await vault.feeReserves(token.address)
+    const balance = await token.balanceOf(vault.address)
+    const vaultAmount = poolAmount.add(feeReserve)
+
+    if (vaultAmount.gt(balance)) {
+      throw new Error("vaultAmount > vault.balance")
+    }
+
+    await sendTxn(gov.withdrawFees(vault.address, token.address, receiver.address), `gov.withdrawFees ${i}, ${tokenArr[i].name}`)
   }
 }
 
 async function main() {
   if (network === "bsc") {
     await withdrawFeesBsc()
+    return
+  }
+
+  if (network === "avax") {
+    await withdrawFeesAvax()
     return
   }
 
