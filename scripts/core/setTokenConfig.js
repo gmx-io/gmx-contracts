@@ -20,7 +20,7 @@ async function getAvaxValues(signer) {
   const timelock = await contractAt("Timelock", "0x59c46156ED614164eC66A3CFa5822797f533c902", signer)
 
   const { avax, btc, eth, mim, usdce, usdc } = tokens
-  const tokenArr = [mim, usdce, usdc]
+  const tokenArr = [avax, usdce]
 
   return { vault, timelock, tokenArr }
 }
