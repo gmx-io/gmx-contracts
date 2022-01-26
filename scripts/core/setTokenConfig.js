@@ -10,7 +10,7 @@ async function getArbValues(signer) {
   const timelock = await contractAt("Timelock", "0xd89EfBEB054340e9c2fe4BCe8f36D1f8a4ae6E0c", signer)
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [usdc, mim]
+  const tokenArr = [eth, usdc]
 
   return { vault, timelock, tokenArr }
 }
