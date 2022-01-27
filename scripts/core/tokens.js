@@ -163,9 +163,9 @@ module.exports = {
       priceFeed: "0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3",
       priceDecimals: 8,
       isStrictStable: true,
-      tokenWeight: 24000,
+      tokenWeight: 25000,
       minProfitBps: 150,
-      maxUsdgAmount: 20 * 1000 * 1000,
+      maxUsdgAmount: 30 * 1000 * 1000,
       bufferAmount: 5 * 1000 * 1000,
       isStable: true,
       isShortable: false
@@ -193,9 +193,9 @@ module.exports = {
       priceDecimals: 8,
       fastPricePrecision: 1000,
       isStrictStable: false,
-      tokenWeight: 3000,
+      tokenWeight: 2000,
       minProfitBps: 150,
-      maxUsdgAmount: 5 * 1000 * 1000,
+      maxUsdgAmount: 3 * 1000 * 1000,
       bufferAmount: 20000,
       isStable: false,
       isShortable: false
