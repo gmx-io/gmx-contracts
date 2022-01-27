@@ -202,6 +202,16 @@ contract Reader {
         return supply;
     }
 
+    function getTotalBalance(IERC20 _token, address[] memory _accounts) public view returns (uint256) {
+        uint256 totalBalance = 0;
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            address account = _accounts[i];
+            uint256 balance = _token.balanceOf(account);
+            totalBalance = totalBalance.add(balance);
+        }
+        return totalBalance;
+    }
+
     function getTokenBalances(address _account, address[] memory _tokens) public view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](_tokens.length);
         for (uint256 i = 0; i < _tokens.length; i++) {
