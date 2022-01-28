@@ -10,7 +10,7 @@ async function getArbValues(signer) {
   const timelock = await contractAt("Timelock", "0xd89EfBEB054340e9c2fe4BCe8f36D1f8a4ae6E0c", signer)
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [usdc, uni]
+  const tokenArr = [mim]
 
   return { vault, timelock, tokenArr }
 }
@@ -20,7 +20,7 @@ async function getAvaxValues(signer) {
   const timelock = await contractAt("Timelock", "0x59c46156ED614164eC66A3CFa5822797f533c902", signer)
 
   const { avax, btc, eth, mim, usdce, usdc } = tokens
-  const tokenArr = [mim, usdce]
+  const tokenArr = [mim]
 
   return { vault, timelock, tokenArr }
 }
