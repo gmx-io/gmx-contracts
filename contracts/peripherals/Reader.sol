@@ -12,14 +12,21 @@ import "../tokens/interfaces/IYieldToken.sol";
 import "../amm/interfaces/IPancakeFactory.sol";
 
 import "../staking/interfaces/IVester.sol";
+import "../access/Governable.sol";
 
-contract Reader {
+contract Reader is Governable {
     using SafeMath for uint256;
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
     uint256 public constant POSITION_PROPS_LENGTH = 9;
     uint256 public constant PRICE_PRECISION = 10 ** 30;
     uint256 public constant USDG_DECIMALS = 18;
+
+    bool public hasMaxGlobalShortSizes;
+
+    function setConfig(bool _hasMaxGlobalShortSizes) public onlyGov {
+        hasMaxGlobalShortSizes = _hasMaxGlobalShortSizes;
+    }
 
     function getMaxAmountIn(IVault _vault, address _tokenIn, address _tokenOut) public view returns (uint256) {
         uint256 priceIn = _vault.getMinPrice(_tokenIn);
@@ -327,6 +334,8 @@ contract Reader {
             if (token == address(0)) {
                 token = _weth;
             }
+
+            uint256 maxGlobalShortSize = hasMaxGlobalShortSizes ? vault.maxGlobalShortSizes(token) : 0;
             amounts[i * propsLength] = vault.poolAmounts(token);
             amounts[i * propsLength + 1] = vault.reservedAmounts(token);
             amounts[i * propsLength + 2] = vault.usdgAmounts(token);
@@ -334,7 +343,7 @@ contract Reader {
             amounts[i * propsLength + 4] = vault.tokenWeights(token);
             amounts[i * propsLength + 5] = vault.bufferAmounts(token);
             amounts[i * propsLength + 6] = vault.maxUsdgAmounts(token);
-            amounts[i * propsLength + 7] = vault.maxGlobalShortSizes(token);
+            amounts[i * propsLength + 7] = maxGlobalShortSize;
             amounts[i * propsLength + 8] = vault.getMinPrice(token);
             amounts[i * propsLength + 9] = vault.getMaxPrice(token);
             amounts[i * propsLength + 10] = vault.guaranteedUsd(token);
