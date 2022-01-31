@@ -2,19 +2,12 @@ const { deployContract, contractAt, writeTmpAddresses, sendTxn } = require("../s
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
-// returns [hasMaxGlobalShortSizes]
-function getReaderConfig() {
-  if (network === "avax") {
-    return [true]
-  }
-  if (network === "arbitrum") {
-    return [false]
-  }
-}
-
 async function main() {
   const reader = await deployContract("Reader", [], "Reader")
-  await sendTxn(reader.setConfig(getReaderConfig()), "Reader.setConfig")
+
+  if (network === "avax") {
+    await sendTxn(reader.setConfig(false), "Reader.setConfig")
+  }
 
   writeTmpAddresses({
     reader: reader.address
