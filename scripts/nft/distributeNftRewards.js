@@ -29,6 +29,7 @@ const processFile = async (file) => {
 const distribute = async () => {
   const nftHolders = {}
   const nftTxns = await processFile(inputDir + "nft-transfers.csv")
+  const shouldSendTokens = false
 
   for (let i = 0; i < nftTxns.length; i++) {
     const txn = nftTxns[i]
@@ -50,6 +51,8 @@ const distribute = async () => {
     nftHolders[to].count++
     nftHolders[from].count--
   }
+
+  console.log("nftHolders", nftHolders["0x11C0496B14aE98B5B155eBEEA4CaF1309715e24C".toLowerCase()])
 
   const stakedGmxBalances = await processFile(inputDir + "staked-gmx-balances.csv")
   const vestedBalances = await processFile(inputDir + "vested-balances.csv")
@@ -114,7 +117,9 @@ const distribute = async () => {
 
   const batchSender = await contractAt("BatchSender", "0x401Ab96410BcdCA81b79c68D0D664D478906C184")
   const esGmx = await contractAt("Token", "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA")
-  await sendTxn(esGmx.approve(batchSender.address, expandDecimals(totalEsGmx, 18)), "esGmx.approve")
+  if (shouldSendTokens) {
+    await sendTxn(esGmx.approve(batchSender.address, expandDecimals(totalEsGmx, 18)), "esGmx.approve")
+  }
 
   const batchSize = 500
 
@@ -130,7 +135,7 @@ const distribute = async () => {
     console.log(`${i+1}:`, account, esGmxValue, esGmxAmount.toString())
     console.log(account, esGmxValue)
 
-    if (accounts.length === batchSize) {
+    if (accounts.length === batchSize && shouldSendTokens) {
       console.log("sending batch", i, accounts.length, amounts.length)
       await sendTxn(batchSender.send(esGmx.address,  accounts, amounts), "batchSender.send")
 
@@ -139,7 +144,7 @@ const distribute = async () => {
     }
   }
 
-  if (accounts.length > 0) {
+  if (accounts.length > 0 && shouldSendTokens) {
     console.log("sending final batch", balanceList.length, accounts.length, amounts.length)
     await sendTxn(batchSender.send(esGmx.address,  accounts, amounts), "batchSender.send")
   }

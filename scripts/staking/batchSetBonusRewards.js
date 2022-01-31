@@ -1,10 +1,9 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { getFrameSigner, deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 const { DISTRIBUTION_LIST } = require("../../data/esGmxDistribution/distributionList1")
 
 async function main() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
 
   const wallet = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
   const timelock = await contractAt("Timelock", "0x3F3E77421E30271568eF7A0ab5c5F2667675341e", signer)

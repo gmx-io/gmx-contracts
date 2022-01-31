@@ -1,4 +1,4 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { getFrameSigner, deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
@@ -44,8 +44,7 @@ async function getAvaxValues(signer) {
 }
 
 async function main() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
   let rewardToken, tokenDecimals, rewardTrackerArr
 
   if (network === "arbitrum") {

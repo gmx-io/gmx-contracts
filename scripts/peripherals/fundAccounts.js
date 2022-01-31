@@ -1,3 +1,4 @@
+const { getFrameSigner } = require("../shared/helpers")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 function getArbTransfers() {
@@ -35,8 +36,7 @@ function getAvaxTransfers() {
 }
 
 async function main() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
 
   let transfers
 
