@@ -6,7 +6,7 @@ async function main() {
   const reader = await deployContract("Reader", [], "Reader")
 
   if (network === "avax") {
-    await sendTxn(reader.setConfig(false), "Reader.setConfig")
+    await sendTxn(reader.setConfig(true), "Reader.setConfig")
   }
 
   writeTmpAddresses({

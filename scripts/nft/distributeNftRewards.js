@@ -132,8 +132,7 @@ const distribute = async () => {
     amounts.push(esGmxAmount)
     totalEsGmxAmount = totalEsGmxAmount.add(esGmxAmount)
 
-    console.log(`${i+1}:`, account, esGmxValue, esGmxAmount.toString())
-    console.log(account, esGmxValue)
+    console.log(`${i+1},${account},${esGmxValue},${esGmxAmount.toString()}`)
 
     if (accounts.length === batchSize && shouldSendTokens) {
       console.log("sending batch", i, accounts.length, amounts.length)
