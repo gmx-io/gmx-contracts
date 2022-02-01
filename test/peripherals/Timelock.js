@@ -112,7 +112,9 @@ describe("Timelock", function () {
       bnb.address,
       100,
       200,
-      1000
+      1000,
+      0,
+      0
     )).to.be.revertedWith("Timelock: forbidden")
 
     await expect(timelock.connect(wallet).setTokenConfig(
@@ -120,7 +122,9 @@ describe("Timelock", function () {
       bnb.address,
       100,
       200,
-      1000
+      1000,
+      0,
+      0
     )).to.be.revertedWith("Timelock: token not yet whitelisted")
 
     await timelock.connect(wallet).signalVaultSetTokenConfig(
@@ -163,7 +167,9 @@ describe("Timelock", function () {
       bnb.address,
       100, // _tokenWeight
       200, // _minProfitBps
-      1000 // _maxUsdgAmount
+      1000, // _maxUsdgAmount
+      300, // _bufferAmount
+      500 // _usdgAmount
     )
 
     expect(await vault.whitelistedTokenCount()).eq(1)
@@ -175,6 +181,8 @@ describe("Timelock", function () {
     expect(await vault.maxUsdgAmounts(bnb.address)).eq(1000)
     expect(await vault.stableTokens(bnb.address)).eq(false)
     expect(await vault.shortableTokens(bnb.address)).eq(true)
+    expect(await vault.bufferAmounts(bnb.address)).eq(300)
+    expect(await vault.usdgAmounts(bnb.address)).eq(500)
   })
 
   it("setBuffer", async () => {
@@ -267,13 +275,13 @@ describe("Timelock", function () {
     expect(await vault.isLeverageEnabled()).eq(false)
   })
 
-  it("setBufferAmount", async () => {
-    await expect(timelock.connect(user0).setBufferAmount(vault.address, bnb.address, 100))
+  it("setMaxGlobalShortSize", async () => {
+    await expect(timelock.connect(user0).setMaxGlobalShortSize(vault.address, bnb.address, 100))
       .to.be.revertedWith("Timelock: forbidden")
 
-    expect(await vault.bufferAmounts(bnb.address)).eq(0)
-    await timelock.connect(wallet).setBufferAmount(vault.address, bnb.address, 100)
-    expect(await vault.bufferAmounts(bnb.address)).eq(100)
+    expect(await vault.maxGlobalShortSizes(bnb.address)).eq(0)
+    await timelock.connect(wallet).setMaxGlobalShortSize(vault.address, bnb.address, 100)
+    expect(await vault.maxGlobalShortSizes(bnb.address)).eq(100)
   })
 
   it("setMaxGasPrice", async () => {
