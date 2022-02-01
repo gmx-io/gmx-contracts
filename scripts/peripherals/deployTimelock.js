@@ -24,7 +24,7 @@ async function runForArbitrum() {
 async function runForAvax() {
   const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
   const rewardManager = { address: ethers.constants.AddressZero }
-  const buffer = 60
+  const buffer = 24 * 60 * 60
   const tokenManager = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
   const mintReceiver = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
   const maxTokenSupply = expandDecimals("13250000", 18)
