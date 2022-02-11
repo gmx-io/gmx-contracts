@@ -292,7 +292,8 @@ module.exports = {
       maxUsdgAmount: 30 * 1000 * 1000,
       bufferAmount: 3000,
       isStable: false,
-      isShortable: true
+      isShortable: true,
+      maxGlobalShortSize: 10 * 1000 * 1000
     },
     btc: {
       name: "btc",
@@ -307,7 +308,8 @@ module.exports = {
       maxUsdgAmount: 30 * 1000 *1000,
       bufferAmount: 100,
       isStable: false,
-      isShortable: true
+      isShortable: true,
+      maxGlobalShortSize: 10 * 1000 * 1000
     },
     mim: {
       name: "mim",
