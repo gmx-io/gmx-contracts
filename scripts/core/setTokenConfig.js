@@ -34,7 +34,7 @@ async function getAvaxValues(signer) {
 async function main() {
   const signer = await getFrameSigner()
 
-  let vault, timelock, tokenArr, reader
+  let vault, timelock, reader, tokenArr, vaultTokenInfo
 
   if (network === "arbitrum") {
     ;({ vault, timelock, reader, tokenArr, vaultTokenInfo }  = await getArbValues(signer));
