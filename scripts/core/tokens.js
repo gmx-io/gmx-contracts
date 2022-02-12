@@ -151,7 +151,7 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 25000,
       minProfitBps: 150,
-      maxUsdgAmount: 50 * 1000 * 1000,
+      maxUsdgAmount: 60 * 1000 * 1000,
       bufferAmount: 10000,
       isStable: false,
       isShortable: true
@@ -165,7 +165,7 @@ module.exports = {
       isStrictStable: true,
       tokenWeight: 30000,
       minProfitBps: 150,
-      maxUsdgAmount: 50 * 1000 * 1000,
+      maxUsdgAmount: 60 * 1000 * 1000,
       bufferAmount: 35 * 1000 * 1000,
       isStable: true,
       isShortable: false
