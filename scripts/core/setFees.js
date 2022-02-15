@@ -28,7 +28,7 @@ async function main() {
     1, // _stableSwapFeeBasisPoints
     10, // _marginFeeBasisPoints
     toUsd(5), // _liquidationFeeUsd
-    12 * 60 * 60, // _minProfitTime
+    6 * 60 * 60, // _minProfitTime
     true // _hasDynamicFees
   ), "vault.setFees")
 }
