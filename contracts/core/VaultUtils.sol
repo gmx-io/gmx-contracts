@@ -21,11 +21,27 @@ contract VaultUtils is IVaultUtils {
 
     IVault public vault;
 
+    address public gov;
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
     uint256 public constant FUNDING_RATE_PRECISION = 1000000;
 
+    uint256 public withdrawalCooldownDuration = 0;
+    uint256 public constant MAX_WITHDRAWAL_COOLDOWN_DURATION = 30 days;
+
     constructor(IVault _vault) public {
         vault = _vault;
+        gov = msg.sender;
+    }
+
+    // we have this validation as a function instead of a modifier to reduce contract size
+    function _onlyGov() private view {
+        require(msg.sender == gov, "VaultUtils: Forbidden");
+    }
+
+    function setWithdrawalCooldownDuration(uint256 _withdrawalCooldownDuration) external {
+        _onlyGov();
+        require(_withdrawalCooldownDuration <= MAX_WITHDRAWAL_COOLDOWN_DURATION, "VaultUtils: Max withdrawal cooldown duration");
+        withdrawalCooldownDuration = _withdrawalCooldownDuration;
     }
 
     function updateCumulativeFundingRate(address /* _collateralToken */, address /* _indexToken */) public override returns (bool) {
@@ -36,13 +52,23 @@ contract VaultUtils is IVaultUtils {
         // no additional checks yet
     }
 
-    function validateDecreasePosition(address /* _account */, address /* _collateralToken */, address /* _indexToken */, uint256 /* _collateralDelta */, uint256 /* _sizeDelta */, bool /* _isLong */, address /* _receiver */) external override view {
-        // no additional checks yet
+    function validateDecreasePosition(address _account, address _collateralToken, address _indexToken , uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address /* _receiver */) external override view {
+        Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
+
+        if (position.size > 0 && _sizeDelta < position.size) {
+            uint256 sizeRatio = _sizeDelta.mul(BASIS_POINTS_DIVISOR).div(position.size);
+            uint256 collateralRatio = _collateralDelta.mul(BASIS_POINTS_DIVISOR - 1).div(position.collateral);
+
+            bool isCooldown = position.lastIncreasedTime + withdrawalCooldownDuration > block.timestamp;
+            bool isWithdrawal = collateralRatio > sizeRatio;
+            if (isCooldown && isWithdrawal) { // add 1 to avoid rounding issues
+                revert("VaultUtils: Withdrawal cooldown period");
+            }
+        }
     }
 
-    function validateLiquidation(address _account, address _collateralToken, address _indexToken, bool _isLong, bool _raise) public view override returns (uint256, uint256) {
+    function getPosition(address _account, address _collateralToken, address _indexToken, bool _isLong) internal view returns (Position memory) {
         IVault _vault = vault;
-
         Position memory position;
         {
             (uint256 size, uint256 collateral, uint256 averagePrice, uint256 entryFundingRate, /* reserveAmount */, /* realisedPnl */, /* hasProfit */, uint256 lastIncreasedTime) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
@@ -52,6 +78,12 @@ contract VaultUtils is IVaultUtils {
             position.entryFundingRate = entryFundingRate;
             position.lastIncreasedTime = lastIncreasedTime;
         }
+        return position;
+    }
+
+    function validateLiquidation(address _account, address _collateralToken, address _indexToken, bool _isLong, bool _raise) public view override returns (uint256, uint256) {
+        Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
+        IVault _vault = vault;
 
         (bool hasProfit, uint256 delta) = _vault.getDelta(_indexToken, position.size, position.averagePrice, _isLong, position.lastIncreasedTime);
         uint256 marginFees = getFundingFee(_account, _collateralToken, _indexToken, _isLong, position.size, position.entryFundingRate);
