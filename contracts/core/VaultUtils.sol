@@ -33,7 +33,6 @@ contract VaultUtils is IVaultUtils {
         gov = msg.sender;
     }
 
-    // we have this validation as a function instead of a modifier to reduce contract size
     function _onlyGov() private view {
         require(msg.sender == gov, "VaultUtils: Forbidden");
     }
@@ -61,7 +60,7 @@ contract VaultUtils is IVaultUtils {
 
             bool isCooldown = position.lastIncreasedTime + withdrawalCooldownDuration > block.timestamp;
             bool isWithdrawal = collateralRatio > sizeRatio;
-            if (isCooldown && isWithdrawal) { // add 1 to avoid rounding issues
+            if (isCooldown && isWithdrawal) {
                 revert("VaultUtils: Withdrawal cooldown period");
             }
         }
