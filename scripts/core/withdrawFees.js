@@ -1,4 +1,4 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { getFrameSigner, deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
@@ -39,12 +39,11 @@ async function withdrawFeesBsc() {
 }
 
 async function withdrawFeesArb() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
 
   const receiver = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const gov = await contractAt("Timelock", "0xd89EfBEB054340e9c2fe4BCe8f36D1f8a4ae6E0c", signer)
+  const gov = await contractAt("Timelock", await vault.gov(), signer)
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
 
   const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
@@ -65,12 +64,11 @@ async function withdrawFeesArb() {
 }
 
 async function withdrawFeesAvax() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
 
   const receiver = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const gov = await contractAt("Timelock", "0x59c46156ED614164eC66A3CFa5822797f533c902", signer)
+  const gov = await contractAt("Timelock", await vault.gov(), signer)
   const { avax, btc, eth, mim, usdce, usdc } = tokens
 
   const tokenArr = [avax, btc, eth, mim, usdce, usdc]

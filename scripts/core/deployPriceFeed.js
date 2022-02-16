@@ -1,4 +1,4 @@
-const { deployContract, contractAt , sendTxn, readTmpAddresses, writeTmpAddresses } = require("../shared/helpers")
+const { getFrameSigner, deployContract, contractAt , sendTxn, readTmpAddresses, writeTmpAddresses } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 const { toUsd } = require("../../test/shared/units")
 
@@ -6,8 +6,7 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 async function deployPriceFeedArb() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
 
   const timelock = { address: "0xAF2f95aA67476bFaFd8194e96B3b6dE77272ae2A" }
   const fastPriceFeedGov = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }

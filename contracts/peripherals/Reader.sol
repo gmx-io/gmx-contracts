@@ -12,14 +12,21 @@ import "../tokens/interfaces/IYieldToken.sol";
 import "../amm/interfaces/IPancakeFactory.sol";
 
 import "../staking/interfaces/IVester.sol";
+import "../access/Governable.sol";
 
-contract Reader {
+contract Reader is Governable {
     using SafeMath for uint256;
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
     uint256 public constant POSITION_PROPS_LENGTH = 9;
     uint256 public constant PRICE_PRECISION = 10 ** 30;
     uint256 public constant USDG_DECIMALS = 18;
+
+    bool public hasMaxGlobalShortSizes;
+
+    function setConfig(bool _hasMaxGlobalShortSizes) public onlyGov {
+        hasMaxGlobalShortSizes = _hasMaxGlobalShortSizes;
+    }
 
     function getMaxAmountIn(IVault _vault, address _tokenIn, address _tokenOut) public view returns (uint256) {
         uint256 priceIn = _vault.getMinPrice(_tokenIn);
@@ -45,7 +52,8 @@ contract Reader {
         uint256 maxUsdgAmount = _vault.maxUsdgAmounts(_tokenIn);
 
         if (maxUsdgAmount != 0) {
-            uint256 maxAmountIn = maxUsdgAmount.mul(10 ** tokenInDecimals).div(10 ** USDG_DECIMALS);
+            uint256 maxAmountIn = maxUsdgAmount.sub(_vault.usdgAmounts(_tokenIn));
+            maxAmountIn = maxAmountIn.mul(10 ** tokenInDecimals).div(10 ** USDG_DECIMALS);
             maxAmountIn = maxAmountIn.mul(PRICE_PRECISION).div(priceIn);
 
             if (amountIn > maxAmountIn) {
@@ -202,6 +210,16 @@ contract Reader {
         return supply;
     }
 
+    function getTotalBalance(IERC20 _token, address[] memory _accounts) public view returns (uint256) {
+        uint256 totalBalance = 0;
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            address account = _accounts[i];
+            uint256 balance = _token.balanceOf(account);
+            totalBalance = totalBalance.add(balance);
+        }
+        return totalBalance;
+    }
+
     function getTokenBalances(address _account, address[] memory _tokens) public view returns (uint256[] memory) {
         uint256[] memory balances = new uint256[](_tokens.length);
         for (uint256 i = 0; i < _tokens.length; i++) {
@@ -306,7 +324,7 @@ contract Reader {
     }
 
     function getVaultTokenInfoV2(address _vault, address _weth, uint256 _usdgAmount, address[] memory _tokens) public view returns (uint256[] memory) {
-        uint256 propsLength = 13;
+        uint256 propsLength = 14;
 
         IVault vault = IVault(_vault);
         IVaultPriceFeed priceFeed = IVaultPriceFeed(vault.priceFeed());
@@ -317,6 +335,8 @@ contract Reader {
             if (token == address(0)) {
                 token = _weth;
             }
+
+            uint256 maxGlobalShortSize = hasMaxGlobalShortSizes ? vault.maxGlobalShortSizes(token) : 0;
             amounts[i * propsLength] = vault.poolAmounts(token);
             amounts[i * propsLength + 1] = vault.reservedAmounts(token);
             amounts[i * propsLength + 2] = vault.usdgAmounts(token);
@@ -324,12 +344,13 @@ contract Reader {
             amounts[i * propsLength + 4] = vault.tokenWeights(token);
             amounts[i * propsLength + 5] = vault.bufferAmounts(token);
             amounts[i * propsLength + 6] = vault.maxUsdgAmounts(token);
-            amounts[i * propsLength + 7] = vault.maxGlobalShortSizes(token);
-            amounts[i * propsLength + 8] = vault.getMinPrice(token);
-            amounts[i * propsLength + 9] = vault.getMaxPrice(token);
-            amounts[i * propsLength + 10] = vault.guaranteedUsd(token);
-            amounts[i * propsLength + 11] = priceFeed.getPrimaryPrice(token, false);
-            amounts[i * propsLength + 12] = priceFeed.getPrimaryPrice(token, true);
+            amounts[i * propsLength + 7] = vault.globalShortSizes(token);
+            amounts[i * propsLength + 8] = maxGlobalShortSize;
+            amounts[i * propsLength + 9] = vault.getMinPrice(token);
+            amounts[i * propsLength + 10] = vault.getMaxPrice(token);
+            amounts[i * propsLength + 11] = vault.guaranteedUsd(token);
+            amounts[i * propsLength + 12] = priceFeed.getPrimaryPrice(token, false);
+            amounts[i * propsLength + 13] = priceFeed.getPrimaryPrice(token, true);
         }
 
         return amounts;

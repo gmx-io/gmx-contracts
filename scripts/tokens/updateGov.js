@@ -1,9 +1,8 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { getFrameSigner, deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 async function main() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
 
   // 0x4a3930b629f899fe19c1f280c73a376382d61a78, glpManager gov
   // 0x4a3930b629f899fe19c1f280c73a376382d61a78, stakedGmxTracker gov

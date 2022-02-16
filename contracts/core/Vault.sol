@@ -421,7 +421,7 @@ contract Vault is ReentrancyGuard, IVault {
         approvedRouters[msg.sender][_router] = false;
     }
 
-    function setUsdgAmount(address _token, uint256 _amount) external {
+    function setUsdgAmount(address _token, uint256 _amount) external override {
         _onlyGov();
 
         uint256 usdgAmount = usdgAmounts[_token];
