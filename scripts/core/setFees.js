@@ -23,8 +23,8 @@ async function main() {
     vault.address,
     50, // _taxBasisPoints
     5, // _stableTaxBasisPoints
-    20, // _mintBurnFeeBasisPoints
-    20, // _swapFeeBasisPoints
+    25, // _mintBurnFeeBasisPoints
+    25, // _swapFeeBasisPoints
     1, // _stableSwapFeeBasisPoints
     8, // _marginFeeBasisPoints
     toUsd(5), // _liquidationFeeUsd
