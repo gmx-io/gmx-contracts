@@ -141,7 +141,7 @@ describe("Vault.withdrawCollateral", function () {
     expect(await btc.balanceOf(user2.address)).eq(16878 + 2123)
   })
 
-  it("withdraw cooldown period", async () => {
+  it("withdraw during cooldown duration", async () => {
     await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
     await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
 
@@ -169,10 +169,11 @@ describe("Vault.withdrawCollateral", function () {
 
     // does not allow to withdraw without changing the size
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(0), true, user2.address))
-      .to.be.revertedWith("VaultUtils: Withdrawal cooldown period")
+      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
 
     // also does not allow to withdraw with too small size change
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(10), true, user2.address)).to.be.revertedWith("VaultUtils: Withdrawal cooldown period")
+    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(10), true, user2.address))
+      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
 
     // it's okay to withdraw AND decrease size with at least same proportion (e.g. if leverage is decreased or the same)
     await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(1), toUsd(10), true, user2.address)

@@ -78,12 +78,12 @@ contract VaultUtils is IVaultUtils, Governable {
             uint256 prevLeverage = position.size.mul(BASIS_POINTS_DIVISOR).div(position.collateral);
             uint256 nextSize = position.size.sub(_sizeDelta);
             uint256 nextCollateral = position.collateral.sub(_collateralDelta);
-            // use BASIS_POINTS_DIVISOR + 1 to allow for a 0.01% decrease in leverage even if within the cooldown duration
-            uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
+            // use BASIS_POINTS_DIVISOR - 1 to allow for a 0.01% decrease in leverage even if within the cooldown duration
+            uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR - 1).div(nextCollateral);
 
             require(nextLeverage >= minLeverage, "VaultUtils: leverage is too low");
 
-            bool isWithdrawal = nextLeverage < prevLeverage;
+            bool isWithdrawal = nextLeverage > prevLeverage;
 
             if (isCooldown && isWithdrawal) {
                 revert("VaultUtils: cooldown duration not yet passed");

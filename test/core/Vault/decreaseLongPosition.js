@@ -378,22 +378,22 @@ describe("Vault.decreaseLongPosition", function () {
     await btc.connect(user1).transfer(vault.address, 100000)
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
     position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(5), position[0].div(4), true, user2.address))
+    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(4), position[0].div(5), true, user2.address))
       .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
 
     await increaseTime(provider, 6 * 60 * 60 - 100)
     await mineBlock(provider)
 
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(5), position[0].div(4), true, user2.address))
+    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(4), position[0].div(5), true, user2.address))
       .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
 
     await increaseTime(provider, 110)
     await mineBlock(provider)
 
-    await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(5), position[0].div(4), true, user2.address)
+    await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(4), position[0].div(5), true, user2.address)
 
     position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, 0, position[0].div(4), true, user2.address))
+    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, 0, position[0].div(2), true, user2.address))
       .to.be.revertedWith("VaultUtils: leverage is too low")
   })
 })
