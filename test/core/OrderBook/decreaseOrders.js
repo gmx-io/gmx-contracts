@@ -17,10 +17,22 @@ describe("OrderBook, decrease position orders", () => {
     const provider = waffle.provider
     const [wallet, user0, user1, user2, user3] = provider.getWallets()
 
+    let vault;
+    let vaultUtils;
     let orderBook;
     let defaults;
     let tokenDecimals;
     let defaultCreateDecreaseOrder
+
+    let usdg
+    let router
+    let bnb
+    let bnbPriceFeed
+    let btc
+    let btcPriceFeed
+    let dai
+    let daiPriceFeed
+    let vaultPriceFeed
 
     beforeEach(async () => {
         bnb = await deployContract("Token", [])
@@ -43,7 +55,9 @@ describe("OrderBook, decrease position orders", () => {
         router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
         vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
-        await initVault(vault, router, usdg, vaultPriceFeed)
+        const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
+        vaultUtils = initVaultResult.vaultUtils
+        await vaultUtils.setMinLeverage(1000)
 
         distributor0 = await deployContract("TimeDistributor", [])
         yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
