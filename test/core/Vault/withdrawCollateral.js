@@ -168,7 +168,8 @@ describe("Vault.withdrawCollateral", function () {
     await vaultUtils.setWithdrawalCooldownDuration(3600)
 
     // does not allow to withdraw without changing the size
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(0), true, user2.address)).to.be.revertedWith("VaultUtils: Withdrawal cooldown period")
+    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(0), true, user2.address))
+      .to.be.revertedWith("VaultUtils: Withdrawal cooldown period")
 
     // also does not allow to withdraw with too small size change
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(10), true, user2.address)).to.be.revertedWith("VaultUtils: Withdrawal cooldown period")

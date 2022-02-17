@@ -3,6 +3,7 @@
 pragma solidity 0.6.12;
 
 import "../libraries/math/SafeMath.sol";
+import "../libraries/token/IERC20.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IVaultUtils.sol";
 
@@ -26,8 +27,11 @@ contract VaultUtils is IVaultUtils, Governable {
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
     uint256 public constant FUNDING_RATE_PRECISION = 1000000;
 
-    uint256 public withdrawalCooldownDuration = 6 hours;
     uint256 public constant MAX_WITHDRAWAL_COOLDOWN_DURATION = 30 days;
+    uint256 public constant MIN_LEVERAGE_CAP = 10 * BASIS_POINTS_DIVISOR;
+
+    uint256 public withdrawalCooldownDuration = 0;
+    uint256 public minLeverage = 25000; // 2.5x
 
     constructor(IVault _vault) public {
         vault = _vault;
@@ -38,29 +42,51 @@ contract VaultUtils is IVaultUtils, Governable {
         withdrawalCooldownDuration = _withdrawalCooldownDuration;
     }
 
+    function setMinLeverage(uint256 _minLeverage) external onlyGov {
+        require(_minLeverage <= MIN_LEVERAGE_CAP, "VaultUtils: Min leverage cap exceeded");
+        minLeverage = _minLeverage;
+    }
+
     function updateCumulativeFundingRate(address /* _collateralToken */, address /* _indexToken */) public override returns (bool) {
         return true;
     }
 
-    function validateIncreasePosition(address /* _account */, address /* _collateralToken */, address /* _indexToken */, uint256 /* _sizeDelta */, bool /* _isLong */) external override view {
-        // no additional checks yet
+    function validateIncreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong) external override view {
+        Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
+
+        IVault _vault = vault;
+        uint256 prevBalance = vault.tokenBalances(_collateralToken);
+        uint256 nextBalance = IERC20(_collateralToken).balanceOf(address(_vault));
+        uint256 collateralDelta = nextBalance.sub(prevBalance);
+        uint256 collateralDeltaUsd = _vault.tokenToUsdMin(_collateralToken, collateralDelta);
+
+        uint256 nextSize = position.size.add(_sizeDelta);
+        uint256 nextCollateral = position.collateral.add(collateralDeltaUsd);
+
+        if (nextCollateral > 0) {
+            uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
+            require(nextLeverage >= minLeverage, "VaultUtils: leverage is too low");
+        }
     }
 
     function validateDecreasePosition(address _account, address _collateralToken, address _indexToken , uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address /* _receiver */) external override view {
         Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
 
         if (position.size > 0 && _sizeDelta < position.size) {
+            bool isCooldown = position.lastIncreasedTime + withdrawalCooldownDuration > block.timestamp;
+
             uint256 prevLeverage = position.size.mul(BASIS_POINTS_DIVISOR).div(position.collateral);
             uint256 nextSize = position.size.sub(_sizeDelta);
             uint256 nextCollateral = position.collateral.sub(_collateralDelta);
             // use BASIS_POINTS_DIVISOR + 1 to allow for a 0.01% decrease in leverage even if within the cooldown duration
             uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
 
-            bool isCooldown = position.lastIncreasedTime + withdrawalCooldownDuration > block.timestamp;
+            require(nextLeverage >= minLeverage, "VaultUtils: leverage is too low");
+
             bool isWithdrawal = nextLeverage < prevLeverage;
 
             if (isCooldown && isWithdrawal) {
-                revert("VaultUtils: Cooldown duration not yet passed");
+                revert("VaultUtils: cooldown duration not yet passed");
             }
         }
     }

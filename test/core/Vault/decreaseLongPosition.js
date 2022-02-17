@@ -150,7 +150,7 @@ describe("Vault.decreaseLongPosition", function () {
       .to.be.revertedWith("Vault: position size exceeded")
 
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(10), toUsd(50), true, user2.address))
-      .to.be.revertedWith("Vault: position collateral exceeded")
+      .to.be.revertedWith("SafeMath: subtraction overflow")
 
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(8.91), toUsd(50), true, user2.address))
       .to.be.revertedWith("Vault: liquidation fees exceed collateral")
@@ -359,6 +359,8 @@ describe("Vault.decreaseLongPosition", function () {
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(41000 + 307))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(47100))
 
+    await vaultUtils.setWithdrawalCooldownDuration(6 * 60 * 60)
+
     // position is still closable inside withdrawal cooldown period
     await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, 0, toUsd(90), true, user2.address)
     let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
@@ -377,17 +379,21 @@ describe("Vault.decreaseLongPosition", function () {
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
     position = await vault.getPosition(user0.address, btc.address, btc.address, true)
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(5), position[0].div(4), true, user2.address))
-      .to.be.revertedWith("VaultUtils: Cooldown duration not yet passed")
+      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
 
     await increaseTime(provider, 6 * 60 * 60 - 100)
     await mineBlock(provider)
 
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(5), position[0].div(4), true, user2.address))
-      .to.be.revertedWith("VaultUtils: Cooldown duration not yet passed")
+      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
 
     await increaseTime(provider, 110)
     await mineBlock(provider)
 
     await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(5), position[0].div(4), true, user2.address)
+
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, 0, position[0].div(4), true, user2.address))
+      .to.be.revertedWith("VaultUtils: leverage is too low")
   })
 })
