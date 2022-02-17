@@ -237,7 +237,7 @@ contract Vault is ReentrancyGuard, IVault {
         stableFundingRateFactor = _stableFundingRateFactor;
     }
 
-    function setVaultUtils(IVaultUtils _vaultUtils) external {
+    function setVaultUtils(IVaultUtils _vaultUtils) external override {
         _onlyGov();
         vaultUtils = _vaultUtils;
     }

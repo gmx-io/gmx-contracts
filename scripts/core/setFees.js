@@ -23,12 +23,12 @@ async function main() {
     vault.address,
     50, // _taxBasisPoints
     5, // _stableTaxBasisPoints
-    25, // _mintBurnFeeBasisPoints
-    25, // _swapFeeBasisPoints
+    20, // _mintBurnFeeBasisPoints
+    20, // _swapFeeBasisPoints
     1, // _stableSwapFeeBasisPoints
-    10, // _marginFeeBasisPoints
+    8, // _marginFeeBasisPoints
     toUsd(5), // _liquidationFeeUsd
-    6 * 60 * 60, // _minProfitTime
+    3 * 60 * 60, // _minProfitTime
     true // _hasDynamicFees
   ), "vault.setFees")
 }
