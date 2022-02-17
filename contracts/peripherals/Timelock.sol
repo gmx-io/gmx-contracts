@@ -7,6 +7,7 @@ import "./interfaces/ITimelock.sol";
 import "./interfaces/IHandlerTarget.sol";
 import "../access/interfaces/IAdmin.sol";
 import "../core/interfaces/IVault.sol";
+import "../core/interfaces/IVaultUtils.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
 import "../core/interfaces/IRouter.sol";
 import "../tokens/interfaces/IYieldToken.sol";
@@ -245,6 +246,10 @@ contract Timelock is ITimelock {
 
     function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external onlyAdmin {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
+    }
+
+    function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {
+        IVault(_vault).setVaultUtils(_vaultUtils);
     }
 
     function setMaxGasPrice(address _vault,uint256 _maxGasPrice) external onlyAdmin {

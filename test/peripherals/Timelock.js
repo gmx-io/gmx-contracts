@@ -14,6 +14,7 @@ describe("Timelock", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3, rewardManager, tokenManager, mintReceiver] = provider.getWallets()
   let vault
+  let vaultUtils
   let vaultPriceFeed
   let usdg
   let router
@@ -42,7 +43,8 @@ describe("Timelock", function () {
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
-    await initVault(vault, router, usdg, vaultPriceFeed)
+    const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
+    vaultUtils = initVaultResult.vaultUtils
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -255,6 +257,15 @@ describe("Timelock", function () {
     expect(await vaultPriceFeed.priceSampleSpace()).eq(3)
     await timelock.connect(wallet).setPriceSampleSpace(vaultPriceFeed.address, 1)
     expect(await vaultPriceFeed.priceSampleSpace()).eq(1)
+  })
+
+  it("setVaultUtils", async () => {
+    await expect(timelock.connect(user0).setVaultUtils(vault.address, user1.address))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vault.vaultUtils()).eq(vaultUtils.address)
+    await timelock.connect(wallet).setVaultUtils(vault.address, user1.address)
+    expect(await vault.vaultUtils()).eq(user1.address)
   })
 
   it("setIsSwapEnabled", async () => {
