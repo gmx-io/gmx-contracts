@@ -29,7 +29,7 @@ describe("VaultUtils", function () {
   })
 
   it("withdraw collateral", async () => {
-    await expect(vaultUtils.connect(user0).setWithdrawalCooldownDuration(1234)).to.be.revertedWith("VaultUtils: Forbidden")
+    await expect(vaultUtils.connect(user0).setWithdrawalCooldownDuration(1234)).to.be.revertedWith("Governable: forbidden")
 
     await vaultUtils.setWithdrawalCooldownDuration(1234)
     expect(await vaultUtils.withdrawalCooldownDuration()).to.be.equal(1234)

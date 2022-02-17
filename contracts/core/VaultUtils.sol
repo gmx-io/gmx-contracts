@@ -6,7 +6,9 @@ import "../libraries/math/SafeMath.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IVaultUtils.sol";
 
-contract VaultUtils is IVaultUtils {
+import "../access/Governable.sol";
+
+contract VaultUtils is IVaultUtils, Governable {
     using SafeMath for uint256;
 
     struct Position {
@@ -21,24 +23,17 @@ contract VaultUtils is IVaultUtils {
 
     IVault public vault;
 
-    address public gov;
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
     uint256 public constant FUNDING_RATE_PRECISION = 1000000;
 
-    uint256 public withdrawalCooldownDuration = 0;
+    uint256 public withdrawalCooldownDuration = 6 hours;
     uint256 public constant MAX_WITHDRAWAL_COOLDOWN_DURATION = 30 days;
 
     constructor(IVault _vault) public {
         vault = _vault;
-        gov = msg.sender;
     }
 
-    function _onlyGov() private view {
-        require(msg.sender == gov, "VaultUtils: Forbidden");
-    }
-
-    function setWithdrawalCooldownDuration(uint256 _withdrawalCooldownDuration) external {
-        _onlyGov();
+    function setWithdrawalCooldownDuration(uint256 _withdrawalCooldownDuration) external onlyGov {
         require(_withdrawalCooldownDuration <= MAX_WITHDRAWAL_COOLDOWN_DURATION, "VaultUtils: Max withdrawal cooldown duration");
         withdrawalCooldownDuration = _withdrawalCooldownDuration;
     }
@@ -55,13 +50,17 @@ contract VaultUtils is IVaultUtils {
         Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
 
         if (position.size > 0 && _sizeDelta < position.size) {
-            uint256 sizeRatio = _sizeDelta.mul(BASIS_POINTS_DIVISOR).div(position.size);
-            uint256 collateralRatio = _collateralDelta.mul(BASIS_POINTS_DIVISOR - 1).div(position.collateral);
+            uint256 prevLeverage = position.size.mul(BASIS_POINTS_DIVISOR).div(position.collateral);
+            uint256 nextSize = position.size.sub(_sizeDelta);
+            uint256 nextCollateral = position.collateral.sub(_collateralDelta);
+            // use BASIS_POINTS_DIVISOR + 1 to allow for a 0.01% decrease in leverage even if within the cooldown duration
+            uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
 
             bool isCooldown = position.lastIncreasedTime + withdrawalCooldownDuration > block.timestamp;
-            bool isWithdrawal = collateralRatio > sizeRatio;
+            bool isWithdrawal = nextLeverage < prevLeverage;
+
             if (isCooldown && isWithdrawal) {
-                revert("VaultUtils: Withdrawal cooldown period");
+                revert("VaultUtils: Cooldown duration not yet passed");
             }
         }
     }
