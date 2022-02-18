@@ -26,7 +26,7 @@ async function main() {
     25, // _mintBurnFeeBasisPoints
     25, // _swapFeeBasisPoints
     1, // _stableSwapFeeBasisPoints
-    8, // _marginFeeBasisPoints
+    10, // _marginFeeBasisPoints
     toUsd(5), // _liquidationFeeUsd
     3 * 60 * 60, // _minProfitTime
     true // _hasDynamicFees
