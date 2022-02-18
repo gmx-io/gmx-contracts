@@ -87,7 +87,7 @@ contract PositionManager is ReentrancyGuard, Governable {
         uint256 _sizeDelta,
         bool _isLong,
         uint256 _price
-    ) external {
+    ) external nonReentrant {
         if (_amountIn > 0) {
             if (_path.length > 1) {
                 IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
@@ -109,7 +109,7 @@ contract PositionManager is ReentrancyGuard, Governable {
         uint256 _sizeDelta,
         bool _isLong,
         uint256 _price
-    ) external payable {
+    ) external payable nonReentrant {
         require(_path[0] == weth, "PositionManager: invalid _path");
         if (msg.value > 0) {
             uint256 _amountIn = msg.value;
