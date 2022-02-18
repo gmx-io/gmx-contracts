@@ -76,31 +76,31 @@ describe("PositionManager", function () {
     await vault.setTokenConfig(...getBnbConfig(bnb, bnbPriceFeed))
   })
 
-  // it("inits", async () => {
-  //   expect(await positionManager.router()).eq(router.address)
-  //   expect(await positionManager.vault()).eq(vault.address)
-  //   expect(await positionManager.weth()).eq(bnb.address)
-  //   expect(await positionManager.depositFee()).eq(50)
-  //   expect(await positionManager.gov()).eq(wallet.address)
-  // })
+  it("inits", async () => {
+    expect(await positionManager.router()).eq(router.address)
+    expect(await positionManager.vault()).eq(vault.address)
+    expect(await positionManager.weth()).eq(bnb.address)
+    expect(await positionManager.depositFee()).eq(50)
+    expect(await positionManager.gov()).eq(wallet.address)
+  })
 
-  // it("setDepositFee", async () => {
-  //   await expect(positionManager.connect(user0).setDepositFee(10))
-  //     .to.be.revertedWith("Governable: forbidden")
+  it("setDepositFee", async () => {
+    await expect(positionManager.connect(user0).setDepositFee(10))
+      .to.be.revertedWith("Governable: forbidden")
 
-  //   expect(await positionManager.depositFee()).eq(50)
-  //   await positionManager.connect(wallet).setDepositFee(10)
-  //   expect(await positionManager.depositFee()).eq(10)
-  // })
+    expect(await positionManager.depositFee()).eq(50)
+    await positionManager.connect(wallet).setDepositFee(10)
+    expect(await positionManager.depositFee()).eq(10)
+  })
 
-  // it("approve", async () => {
-  //   await expect(positionManager.connect(user0).approve(bnb.address, user1.address, 10))
-  //     .to.be.revertedWith("Governable: forbidden")
+  it("approve", async () => {
+    await expect(positionManager.connect(user0).approve(bnb.address, user1.address, 10))
+      .to.be.revertedWith("Governable: forbidden")
 
-  //   expect(await bnb.allowance(positionManager.address, user1.address)).eq(0)
-  //   await positionManager.connect(wallet).approve(bnb.address, user1.address, 10)
-  //   expect(await bnb.allowance(positionManager.address, user1.address)).eq(10)
-  // })
+    expect(await bnb.allowance(positionManager.address, user1.address)).eq(0)
+    await positionManager.connect(wallet).approve(bnb.address, user1.address, 10)
+    expect(await bnb.allowance(positionManager.address, user1.address)).eq(10)
+  })
 
   it("depositCollateral", async () => {
     const timelock = await deployContract("Timelock", [
