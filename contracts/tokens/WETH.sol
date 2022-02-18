@@ -64,6 +64,10 @@ contract WETH is IERC20 {
         _balances[msg.sender] = _balances[msg.sender].add(msg.value);
     }
 
+    function depositTo(address recipient) public payable {
+        _balances[recipient] = _balances[recipient].add(msg.value);
+    }
+
     function withdraw(uint256 amount) public {
         require(_balances[msg.sender] >= amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);

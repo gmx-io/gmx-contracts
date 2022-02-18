@@ -104,7 +104,7 @@ describe("PositionManager", function () {
     expect(await bnb.allowance(positionManager.address, user1.address)).eq(10)
   })
 
-  it("depositCollateral", async () => {
+  it("increasePosition", async () => {
     const timelock = await deployContract("Timelock", [
       wallet.address,
       5 * 24 * 60 * 60,
@@ -187,7 +187,7 @@ describe("PositionManager", function () {
     expect(position[1]).eq("828525600000000000000000000000000")
   })
 
-  it("depositCollateralETH", async () => {
+  it("increasePositionETH", async () => {
     const timelock = await deployContract("Timelock", [
       wallet.address,
       5 * 24 * 60 * 60,
@@ -268,5 +268,85 @@ describe("PositionManager", function () {
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
     expect(position[0]).eq(toUsd(2600))
     expect(position[1]).eq("897378260869565217100000000000000")
+  })
+
+  it("increasePositionETH with swap", async () => {
+    const timelock = await deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      expandDecimals(1000, 18)
+    ])
+
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
+
+    await bnb.mint(user1.address, expandDecimals(100, 18))
+    await bnb.connect(user1).approve(router.address, expandDecimals(100, 18))
+    await router.connect(user1).swap([bnb.address, usdg.address], expandDecimals(100, 18), expandDecimals(29000, 18), user1.address)
+
+    await dai.mint(user1.address, expandDecimals(30000, 18))
+    await dai.connect(user1).approve(router.address, expandDecimals(30000, 18))
+    await router.connect(user1).swap([dai.address, usdg.address], expandDecimals(30000, 18), expandDecimals(29000, 18), user1.address)
+
+    await btc.mint(user1.address, expandDecimals(1, 8))
+    await btc.connect(user1).approve(router.address, expandDecimals(1, 8))
+    await router.connect(user1).swap([btc.address, usdg.address], expandDecimals(1, 8), expandDecimals(59000, 18), user1.address)
+
+    await dai.mint(user0.address, expandDecimals(200, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+    await positionManager.connect(user0).increasePositionETH([bnb.address, btc.address], btc.address, 0, toUsd(2000), true, toUsd(60000), { value: expandDecimals(1, 18) })
+
+    const position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2000))
+    expect(position[1]).eq("297100000000000000000000000000000")
+  });
+
+  it("increasePosition and increasePositionETH to short", async () => {
+    const timelock = await deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      expandDecimals(1000, 18)
+    ])
+
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
+
+    await bnb.mint(user1.address, expandDecimals(100, 18))
+    await bnb.connect(user1).approve(router.address, expandDecimals(100, 18))
+    await router.connect(user1).swap([bnb.address, usdg.address], expandDecimals(100, 18), expandDecimals(29000, 18), user1.address)
+
+    await dai.mint(user1.address, expandDecimals(30000, 18))
+    await dai.connect(user1).approve(router.address, expandDecimals(30000, 18))
+    await router.connect(user1).swap([dai.address, usdg.address], expandDecimals(30000, 18), expandDecimals(29000, 18), user1.address)
+
+    await btc.mint(user1.address, expandDecimals(1, 8))
+    await btc.connect(user1).approve(router.address, expandDecimals(1, 8))
+    await router.connect(user1).swap([btc.address, usdg.address], expandDecimals(1, 8), expandDecimals(59000, 18), user1.address)
+
+    await dai.mint(user0.address, expandDecimals(200, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+    await positionManager.connect(user0).increasePositionETH([bnb.address, dai.address], btc.address, 0, toUsd(3000), false, 0, { value: expandDecimals(1, 18) })
+
+    let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("296100000000000000000000000000000")
+
+    await btc.mint(user0.address, expandDecimals(1, 8))
+    await btc.connect(user0).approve(router.address, expandDecimals(1, 8))
+    await positionManager.connect(user0).increasePosition([btc.address, dai.address], bnb.address, "500000", 0, toUsd(3000), false, 0)
+
+    position = await vault.getPosition(user0.address, dai.address, bnb.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("296100000000000000000000000000000")
   })
 })

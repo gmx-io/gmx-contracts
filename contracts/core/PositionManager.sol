@@ -63,8 +63,8 @@ contract PositionManager is ReentrancyGuard, Governable {
         bool _isLong,
         uint256 _sizeDelta
     ) internal view returns (bool) {
-        if (_sizeDelta == 0 && _collateralDeltaToken > 0) return true;
-        if (_collateralDeltaToken == 0) return false;
+        // _collateralDeltaToken is always > 0 inside this function
+        if (_sizeDelta == 0) return true;
 
         IVault _vault = IVault(vault);
         (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
@@ -112,11 +112,12 @@ contract PositionManager is ReentrancyGuard, Governable {
     ) external payable {
         require(_path[0] == weth, "PositionManager: invalid _path");
         if (msg.value > 0) {
-            IWETH(weth).deposit{value: msg.value}();
             uint256 _amountIn = msg.value;
             if (_path.length > 1) {
-                IERC20(_path[0]).safeTransfer(vault, _amountIn);
+                IWETH(weth).depositTo{value: msg.value}(vault);
                 _amountIn = _swap(_path, _minOut, address(this));
+            } else {
+                IWETH(weth).deposit{value: msg.value}();
             }
             bool isDeposit = _checkIfDeposit(msg.sender, _path[_path.length - 1], _amountIn, _indexToken, _isLong, _sizeDelta);
             uint256 afterFeeAmount = _getAfterFeeAmount(_amountIn, isDeposit);
