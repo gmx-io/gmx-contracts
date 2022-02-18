@@ -20,7 +20,7 @@ async function runForArbitrum() {
     maxTokenSupply
   ])
 
-  // TODO: set collateralDepositor if updating vault gov
+  // TODO: set positionManager if updating vault gov
 }
 
 async function runForAvax() {

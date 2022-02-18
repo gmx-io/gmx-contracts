@@ -54,11 +54,10 @@ contract VaultUtils is IVaultUtils, Governable {
     function validateIncreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong) external override view {
         Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
 
-        IVault _vault = vault;
         uint256 prevBalance = vault.tokenBalances(_collateralToken);
-        uint256 nextBalance = IERC20(_collateralToken).balanceOf(address(_vault));
+        uint256 nextBalance = IERC20(_collateralToken).balanceOf(address(vault));
         uint256 collateralDelta = nextBalance.sub(prevBalance);
-        uint256 collateralDeltaUsd = _vault.tokenToUsdMin(_collateralToken, collateralDelta);
+        uint256 collateralDeltaUsd = vault.tokenToUsdMin(_collateralToken, collateralDelta);
 
         uint256 nextSize = position.size.add(_sizeDelta);
         uint256 nextCollateral = position.collateral.add(collateralDeltaUsd);
