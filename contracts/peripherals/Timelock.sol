@@ -255,7 +255,7 @@ contract Timelock is ITimelock {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
     }
 
-    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external onlyAdminOrHandler {
+    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 
