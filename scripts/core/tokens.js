@@ -335,7 +335,7 @@ module.exports = {
       tokenWeight: 46000,
       minProfitBps: 120,
       maxUsdgAmount: 70 * 1000 * 1000,
-      bufferAmount: 40 * 1000 * 1000,
+      bufferAmount: 30 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },
