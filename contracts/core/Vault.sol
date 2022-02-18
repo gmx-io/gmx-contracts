@@ -585,7 +585,6 @@ contract Vault is ReentrancyGuard, IVault {
         uint256 fee = _collectMarginFees(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, position.size, position.entryFundingRate);
         uint256 collateralDelta = _transferIn(_collateralToken);
         uint256 collateralDeltaUsd = tokenToUsdMin(_collateralToken, collateralDelta);
-        console.log("Vault collateral: %s %s %s", _collateralToken, collateralDelta, collateralDeltaUsd);
 
         position.collateral = position.collateral.add(collateralDeltaUsd);
         _validate(position.collateral >= fee, 29);

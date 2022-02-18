@@ -8,6 +8,8 @@ const { initVault, getBnbConfig, getBtcConfig, getDaiConfig, validateVaultBalanc
 
 use(solidity)
 
+const USD_PRECISION = expandDecimals(1, 30)
+
 describe("PositionManager", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
@@ -125,7 +127,7 @@ describe("PositionManager", function () {
     await router.connect(user0).approvePlugin(positionManager.address)
     await btc.connect(user0).approve(router.address, expandDecimals(1, 8))
 
-    await btc.mint(user0.address, expandDecimals(1, 8))
+    await btc.mint(user0.address, expandDecimals(3, 8))
 
     await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
       .to.be.revertedWith("Timelock: forbidden")
@@ -167,6 +169,22 @@ describe("PositionManager", function () {
     expect(position[4]).eq("3333333") // reserveAmount
     expect(position[5]).eq(0) // realisedPnl
     expect(position[6]).eq(true) // hasProfit
+
+    await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, toUsd(300), true, toUsd(100000))
+
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2300))
+    expect(position[1]).eq("794099800000000000000000000000000")
+
+    const ratio = position[0].mul(USD_PRECISION).div(position[1])
+    const sizeDelta = toUsd(100)
+    const collateralDelta = sizeDelta.mul(USD_PRECISION).div(ratio)
+    const collateralDeltaToken = collateralDelta.div(60000).div(expandDecimals(1, 22))
+    await positionManager.connect(user0).increasePosition([btc.address], btc.address, collateralDeltaToken, 0, sizeDelta, true, toUsd(100000))
+
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2400))
+    expect(position[1]).eq("828525600000000000000000000000000")
   })
 
   it("depositCollateralETH", async () => {
@@ -206,6 +224,7 @@ describe("PositionManager", function () {
 
     await dai.mint(user0.address, expandDecimals(200, 18))
     await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+    // open position
     await positionManager.connect(user0).increasePosition([dai.address, bnb.address], bnb.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(300))
 
     let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
@@ -220,6 +239,7 @@ describe("PositionManager", function () {
     await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(10, 18) }))
       .to.be.revertedWith("VaultUtils: leverage is too low")
 
+    // deposit (add collateral only). should charge extra fee
     await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) })
 
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
@@ -230,5 +250,23 @@ describe("PositionManager", function () {
     expect(position[4]).eq("6666666666666666666") // reserveAmount
     expect(position[5]).eq(0) // realisedPnl
     expect(position[6]).eq(true) // hasProfit
+
+    // increase both size and collateral. should be charged with extra fee because new leverage is lower
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(300), true, toUsd(100000), { value: expandDecimals(1, 18) })
+
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(2300))
+    expect(position[1]).eq("794099999999999999800000000000000")
+
+    // increase both size and collateral proportionally (keep leverage). no extra fee
+    const ratio = position[0].mul(USD_PRECISION).div(position[1])
+    const sizeDelta = toUsd(300)
+    const collateralDelta = sizeDelta.mul(USD_PRECISION).div(ratio)
+    const collateralDeltaToken = collateralDelta.div(300).div(expandDecimals(1, 12))
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, sizeDelta, true, toUsd(100000), { value: collateralDeltaToken })
+
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(2600))
+    expect(position[1]).eq("897378260869565217100000000000000")
   })
 })
