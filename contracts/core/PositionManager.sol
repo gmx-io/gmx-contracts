@@ -125,6 +125,30 @@ contract PositionManager is ReentrancyGuard, Governable {
         return amountOut;
     }
 
+    function _getAfterFeeAmount(
+        address _account,
+        address[] memory _path,
+        uint256 _amountIn,
+        address _indexToken,
+        bool _isLong,
+        uint256 _sizeDelta
+    ) internal view returns (uint256) {
+        bool shouldDeductFee = _shouldDeductFee(
+            _account,
+            _path,
+            _amountIn,
+            _indexToken,
+            _isLong,
+            _sizeDelta
+        );
+
+        if (shouldDeductFee) {
+            return _amountIn.mul(BASIS_POINTS_DIVISOR.sub(depositFee)).div(BASIS_POINTS_DIVISOR);
+        }
+
+        return _amountIn;
+    }
+
     function _shouldDeductFee(
         address _account,
         address[] memory _path,
@@ -158,29 +182,5 @@ contract PositionManager is ReentrancyGuard, Governable {
         uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
 
         return nextLeverage < prevLeverage;
-    }
-
-    function _getAfterFeeAmount(
-        address _account,
-        address[] memory _path,
-        uint256 _amountIn,
-        address _indexToken,
-        bool _isLong,
-        uint256 _sizeDelta
-    ) internal view returns (uint256) {
-        bool shouldDeductFee = _shouldDeductFee(
-            _account,
-            _path,
-            _amountIn,
-            _indexToken,
-            _isLong,
-            _sizeDelta
-        );
-
-        if (shouldDeductFee) {
-            return _amountIn.mul(BASIS_POINTS_DIVISOR.sub(depositFee)).div(BASIS_POINTS_DIVISOR);
-        }
-
-        return _amountIn;
     }
 }
