@@ -24,7 +24,7 @@ contract PositionManager is ReentrancyGuard, Governable {
     address public router;
     address public vault;
     address public weth;
-    uint256 public depositFee; // 0.5%
+    uint256 public depositFee;
 
     bool public isInitialized = false;
 
@@ -48,37 +48,6 @@ contract PositionManager is ReentrancyGuard, Governable {
         IERC20(_token).approve(_spender, _amount);
     }
 
-    function _getAfterFeeAmount(uint256 _amount, bool _isDeposit) internal view returns (uint256) {
-        if (!_isDeposit) {
-            return _amount;
-        }
-        return _amount.mul(BASIS_POINTS_DIVISOR.sub(depositFee)).div(BASIS_POINTS_DIVISOR);
-    }
-
-    function _checkIfDeposit(
-        address _account,
-        address _collateralToken,
-        uint256 _collateralDeltaToken,
-        address _indexToken,
-        bool _isLong,
-        uint256 _sizeDelta
-    ) internal view returns (bool) {
-        // _collateralDeltaToken is always > 0 inside this function
-        if (_sizeDelta == 0) return true;
-
-        IVault _vault = IVault(vault);
-        (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
-        if (size == 0) return false;
-
-        uint256 nextSize = size.add(_sizeDelta);
-        uint256 collateralDelta = _vault.tokenToUsdMin(_collateralToken, _collateralDeltaToken);
-        uint256 nextCollateral = collateral.add(collateralDelta);
-
-        uint256 leverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
-        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
-        return nextLeverage < leverage;
-    }
-
     function increasePosition(
         address[] memory _path,
         address _indexToken,
@@ -95,10 +64,11 @@ contract PositionManager is ReentrancyGuard, Governable {
             } else {
                 IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
             }
-            bool isDeposit = _checkIfDeposit(msg.sender, _path[_path.length - 1], _amountIn, _indexToken, _isLong, _sizeDelta);
-            uint256 afterFeeAmount = _getAfterFeeAmount(_amountIn, isDeposit);
+
+            uint256 afterFeeAmount = _getAfterFeeAmount(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
             IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
         }
+
         _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
@@ -111,18 +81,21 @@ contract PositionManager is ReentrancyGuard, Governable {
         uint256 _price
     ) external payable nonReentrant {
         require(_path[0] == weth, "PositionManager: invalid _path");
+
         if (msg.value > 0) {
             uint256 _amountIn = msg.value;
             if (_path.length > 1) {
-                IWETH(weth).depositTo{value: msg.value}(vault);
+                IWETH(weth).deposit{value: msg.value}();
+                IERC20(weth).safeTransfer(vault, msg.value);
                 _amountIn = _swap(_path, _minOut, address(this));
             } else {
                 IWETH(weth).deposit{value: msg.value}();
             }
-            bool isDeposit = _checkIfDeposit(msg.sender, _path[_path.length - 1], _amountIn, _indexToken, _isLong, _sizeDelta);
-            uint256 afterFeeAmount = _getAfterFeeAmount(_amountIn, isDeposit);
+
+            uint256 afterFeeAmount = _getAfterFeeAmount(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
             IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
         }
+
         _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
@@ -150,5 +123,64 @@ contract PositionManager is ReentrancyGuard, Governable {
         uint256 amountOut = IVault(vault).swap(_tokenIn, _tokenOut, _receiver);
         require(amountOut >= _minOut, "PositionManager: insufficient amountOut");
         return amountOut;
+    }
+
+    function _shouldDeductFee(
+        address _account,
+        address[] memory _path,
+        uint256 _amountIn,
+        address _indexToken,
+        bool _isLong,
+        uint256 _sizeDelta
+    ) internal view returns (bool) {
+        // if the position is a short, do not charge a fee
+        if (!_isLong) { return false; }
+
+        // if a swap will be done, do not charge a fee
+        if (_path.length > 1) { return false; }
+
+        // if the position size is not increasing, this is a collateral deposit
+        if (_sizeDelta == 0) { return true; }
+
+        address collateralToken = _path[_path.length - 1];
+
+        IVault _vault = IVault(vault);
+        (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, collateralToken, _indexToken, _isLong);
+
+        // if there is no existing position, do not charge a fee
+        if (size == 0) { return false; }
+
+        uint256 nextSize = size.add(_sizeDelta);
+        uint256 collateralDelta = _vault.tokenToUsdMin(collateralToken, _amountIn);
+        uint256 nextCollateral = collateral.add(collateralDelta);
+
+        uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
+        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
+
+        return nextLeverage < prevLeverage;
+    }
+
+    function _getAfterFeeAmount(
+        address _account,
+        address[] memory _path,
+        uint256 _amountIn,
+        address _indexToken,
+        bool _isLong,
+        uint256 _sizeDelta
+    ) internal view returns (uint256) {
+        bool shouldDeductFee = _shouldDeductFee(
+            _account,
+            _path,
+            _amountIn,
+            _indexToken,
+            _isLong,
+            _sizeDelta
+        );
+
+        if (shouldDeductFee) {
+            return _amountIn.mul(BASIS_POINTS_DIVISOR.sub(depositFee)).div(BASIS_POINTS_DIVISOR);
+        }
+
+        return _amountIn;
     }
 }

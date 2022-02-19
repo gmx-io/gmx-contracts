@@ -170,21 +170,23 @@ describe("PositionManager", function () {
     expect(position[5]).eq(0) // realisedPnl
     expect(position[6]).eq(true) // hasProfit
 
+    expect(await btc.balanceOf(positionManager.address)).eq(2500) // 2500 / (10**8) * 60000 => 1.5
+    await positionManager.approve(btc.address, user1.address, 5000)
+    expect(await btc.balanceOf(user2.address)).eq(0)
+    await btc.connect(user1).transferFrom(positionManager.address, user2.address, 2500)
+    expect(await btc.balanceOf(user2.address)).eq(2500)
+
     await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, toUsd(300), true, toUsd(100000))
 
     position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    expect(position[0]).eq(toUsd(2300))
-    expect(position[1]).eq("794099800000000000000000000000000")
+    expect(position[0]).eq(toUsd(2300)) // size
+    expect(position[1]).eq("794099800000000000000000000000000") // collateral, 794.0998, 794.0998 - 495.8998 => 298.2, 1.5 for collateral fee, 0.3 for size delta fee
 
-    const ratio = position[0].mul(USD_PRECISION).div(position[1])
-    const sizeDelta = toUsd(100)
-    const collateralDelta = sizeDelta.mul(USD_PRECISION).div(ratio)
-    const collateralDeltaToken = collateralDelta.div(60000).div(expandDecimals(1, 22))
-    await positionManager.connect(user0).increasePosition([btc.address], btc.address, collateralDeltaToken, 0, sizeDelta, true, toUsd(100000))
+    await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, toUsd(1000), true, toUsd(100000))
 
     position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    expect(position[0]).eq(toUsd(2400))
-    expect(position[1]).eq("828525600000000000000000000000000")
+    expect(position[0]).eq(toUsd(3300)) // size
+    expect(position[1]).eq("1093099800000000000000000000000000") // collateral, 1093.0998, 1093.0998 - 794.0998 => 299, 1.0 for size delta fee
   })
 
   it("increasePositionETH", async () => {
@@ -297,13 +299,17 @@ describe("PositionManager", function () {
     await btc.connect(user1).approve(router.address, expandDecimals(1, 8))
     await router.connect(user1).swap([btc.address, usdg.address], expandDecimals(1, 8), expandDecimals(59000, 18), user1.address)
 
-    await dai.mint(user0.address, expandDecimals(200, 18))
-    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
     await positionManager.connect(user0).increasePositionETH([bnb.address, btc.address], btc.address, 0, toUsd(2000), true, toUsd(60000), { value: expandDecimals(1, 18) })
 
-    const position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    expect(position[0]).eq(toUsd(2000))
-    expect(position[1]).eq("297100000000000000000000000000000")
+    let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("297100000000000000000000000000000") // collateral, 297.1, 300 - 297.1 => 2.9, 0.9 fee for swap, 2.0 fee for size delta
+
+    await positionManager.connect(user0).increasePositionETH([bnb.address, btc.address], btc.address, 0, 0, true, toUsd(60000), { value: expandDecimals(1, 18) })
+
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("596200000000000000000000000000000") // collateral, 596.2, 299.1, 0.9 fee for swap
   });
 
   it("increasePosition and increasePositionETH to short", async () => {
@@ -348,5 +354,49 @@ describe("PositionManager", function () {
     position = await vault.getPosition(user0.address, dai.address, bnb.address, false)
     expect(position[0]).eq(toUsd(3000))
     expect(position[1]).eq("296100000000000000000000000000000")
+  })
+
+  it("deposit collateral for shorts", async () => {
+    const timelock = await deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      expandDecimals(1000, 18)
+    ])
+
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
+
+    await bnb.mint(user1.address, expandDecimals(100, 18))
+    await bnb.connect(user1).approve(router.address, expandDecimals(100, 18))
+    await router.connect(user1).swap([bnb.address, usdg.address], expandDecimals(100, 18), expandDecimals(29000, 18), user1.address)
+
+    await dai.mint(user1.address, expandDecimals(30000, 18))
+    await dai.connect(user1).approve(router.address, expandDecimals(30000, 18))
+    await router.connect(user1).swap([dai.address, usdg.address], expandDecimals(30000, 18), expandDecimals(29000, 18), user1.address)
+
+    await btc.mint(user1.address, expandDecimals(1, 8))
+    await btc.connect(user1).approve(router.address, expandDecimals(1, 8))
+    await router.connect(user1).swap([btc.address, usdg.address], expandDecimals(1, 8), expandDecimals(59000, 18), user1.address)
+
+    await dai.mint(user0.address, expandDecimals(200, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+    await positionManager.connect(user0).increasePositionETH([bnb.address, dai.address], btc.address, 0, toUsd(3000), false, 0, { value: expandDecimals(1, 18) })
+
+    let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("296100000000000000000000000000000") // 296.1
+
+    await dai.mint(user0.address, expandDecimals(200, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+    await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(200, 18), 0, 0, false, 0)
+
+    position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("496100000000000000000000000000000") // 496.1, zero fee for short collateral deposits
   })
 })
