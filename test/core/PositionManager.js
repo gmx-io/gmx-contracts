@@ -309,7 +309,7 @@ describe("PositionManager", function () {
 
     position = await vault.getPosition(user0.address, btc.address, btc.address, true)
     expect(position[0]).eq(toUsd(2000)) // size
-    expect(position[1]).eq("596200000000000000000000000000000") // collateral, 596.2, 299.1, 0.9 fee for swap
+    expect(position[1]).eq("594704200000000000000000000000000") // collateral, 594.7042, 594.7042 - 297.1 => 297.6042, 300 - 297.6042 => 2.3958, ~1.5 + 0.9 fee for swap
   });
 
   it("increasePosition and increasePositionETH to short", async () => {

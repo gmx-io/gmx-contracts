@@ -160,9 +160,6 @@ contract PositionManager is ReentrancyGuard, Governable {
         // if the position is a short, do not charge a fee
         if (!_isLong) { return false; }
 
-        // if a swap will be done, do not charge a fee
-        if (_path.length > 1) { return false; }
-
         // if the position size is not increasing, this is a collateral deposit
         if (_sizeDelta == 0) { return true; }
 
