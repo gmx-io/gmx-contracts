@@ -22,6 +22,10 @@ function validateOrderFields(order, fields) {
     }
 }
 
+function getTriggerRatio(tokenAUsd, tokenBUsd) {
+    return tokenBUsd.mul(PRICE_PRECISION).div(tokenAUsd);
+}
+
 async function getTxFees(provider, tx) {
     const receipt = await provider.getTransactionReceipt(tx.hash);
     // use receipt.effectiveGasPrice for newer versions of hardhat
@@ -132,9 +136,10 @@ module.exports = {
 	validateOrderFields,
 	getTxFees,
 	positionWrapper,
-    defaultCreateSwapOrderFactory,
-    defaultCreateIncreaseOrderFactory,
-    defaultCreateDecreaseOrderFactory,
-    getMinOut,
-    PRICE_PRECISION
+  defaultCreateSwapOrderFactory,
+  defaultCreateIncreaseOrderFactory,
+  defaultCreateDecreaseOrderFactory,
+  getMinOut,
+  PRICE_PRECISION,
+  getTriggerRatio
 };
