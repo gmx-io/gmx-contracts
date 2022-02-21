@@ -37,4 +37,8 @@ interface IOrderBook {
         bool triggerAboveThreshold,
         uint256 executionFee
     );
+
+    function executeSwapOrder(address, uint256, address payable) external;
+    function executeDecreaseOrder(address, uint256, address payable) external;
+    function executeIncreaseOrder(address, uint256, address payable) external;
 }

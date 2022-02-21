@@ -481,7 +481,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         );
     }
 
-    function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external nonReentrant {
+    function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) override external nonReentrant {
         SwapOrder memory order = swapOrders[_account][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 
@@ -732,7 +732,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         );
     }
 
-    function executeIncreaseOrder(address _address, uint256 _orderIndex, address payable _feeReceiver) external nonReentrant {
+    function executeIncreaseOrder(address _address, uint256 _orderIndex, address payable _feeReceiver) override external nonReentrant {
         IncreaseOrder memory order = increaseOrders[_address][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 
@@ -844,7 +844,7 @@ contract OrderBook is ReentrancyGuard, IOrderBook {
         );
     }
 
-    function executeDecreaseOrder(address _address, uint256 _orderIndex, address payable _feeReceiver) external nonReentrant {
+    function executeDecreaseOrder(address _address, uint256 _orderIndex, address payable _feeReceiver) override external nonReentrant {
         DecreaseOrder memory order = decreaseOrders[_address][_orderIndex];
         require(order.account != address(0), "OrderBook: non-existent order");
 

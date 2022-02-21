@@ -10,7 +10,8 @@ const {
     validateOrderFields,
     getTxFees,
     getMinOut,
-    defaultCreateSwapOrderFactory
+    defaultCreateSwapOrderFactory,
+    getTriggerRatio
 } = require('./helpers');
 
 use(solidity);
@@ -149,10 +150,6 @@ describe("OrderBook, swap orders", function () {
         };
         defaultCreateSwapOrder = defaultCreateSwapOrderFactory(orderBook, defaults, tokenDecimals)
     })
-
-    function getTriggerRatio(tokenAUsd, tokenBUsd) {
-        return tokenBUsd.mul(PRICE_PRECISION).div(tokenAUsd);
-    }
 
     async function getCreatedSwapOrder(address, orderIndex = 0) {
         const order = await orderBook.swapOrders(address, orderIndex);
