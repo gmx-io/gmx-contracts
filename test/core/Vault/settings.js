@@ -12,6 +12,7 @@ describe("Vault.settings", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
+  let vaultUtils
   let vaultPriceFeed
   let usdg
   let router
@@ -39,7 +40,8 @@ describe("Vault.settings", function () {
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
-    await initVault(vault, router, usdg, vaultPriceFeed)
+    const contracts = await initVault(vault, router, usdg, vaultPriceFeed)
+    vaultUtils = contracts.vaultUtils
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -68,6 +70,31 @@ describe("Vault.settings", function () {
     expect(await vault.liquidationFeeUsd()).eq(toUsd(5))
     expect(await vault.fundingRateFactor()).eq(600)
     expect(await vault.stableFundingRateFactor()).eq(600)
+  })
+
+  it("setVaultUtils", async () => {
+    await expect(vault.connect(user0).setVaultUtils(user1.address))
+      .to.be.revertedWith("Vault: forbidden")
+
+    await vault.setGov(user0.address)
+
+    expect(await vault.vaultUtils()).eq(vaultUtils.address)
+    await vault.connect(user0).setVaultUtils(user1.address)
+    expect(await vault.vaultUtils()).eq(user1.address)
+  })
+
+  it("setMaxGlobalShortSize", async () => {
+    await expect(vault.connect(user0).setMaxGlobalShortSize(bnb.address, 1000))
+      .to.be.revertedWith("Vault: forbidden")
+
+    await vault.setGov(user0.address)
+
+    expect(await vault.maxGlobalShortSizes(bnb.address)).eq(0)
+    expect(await vault.maxGlobalShortSizes(btc.address)).eq(0)
+    await vault.connect(user0).setMaxGlobalShortSize(bnb.address, 1000)
+    await vault.connect(user0).setMaxGlobalShortSize(btc.address, 7000)
+    expect(await vault.maxGlobalShortSizes(bnb.address)).eq(1000)
+    expect(await vault.maxGlobalShortSizes(btc.address)).eq(7000)
   })
 
   it("setInManagerMode", async () => {

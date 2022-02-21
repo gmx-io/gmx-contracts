@@ -1,4 +1,4 @@
-const { deployContract, contractAt , sendTxn, writeTmpAddresses, callWithRetries } = require("../shared/helpers")
+const { deployContract, contractAt , sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 const { toUsd } = require("../../test/shared/units")
 const { errors } = require("../../test/core/Vault/helpers")
@@ -7,22 +7,26 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 async function main() {
-  const {
-    nativeToken
-  } = tokens
+  const { nativeToken } = tokens
 
-  const usdg = await contractAt("USDG", "0x45096e7aA921f27590f8F19e457794EB09678141")
-  const glp = await contractAt("GLP", "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258")
-
-  // const vault = await deployContract("Vault", [])
-  const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  // const router = await deployContract("Router", [vault.address, usdg.address, nativeToken.address])
-  const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064")
-  const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x30333ce00ac3025276927672aaefd80f22e89e54")
+  const vault = await deployContract("Vault", [])
+  // const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
+  const usdg = await deployContract("USDG", [vault.address])
+  // const usdg = await contractAt("USDG", "0x45096e7aA921f27590f8F19e457794EB09678141")
+  const router = await deployContract("Router", [vault.address, usdg.address, nativeToken.address])
+  // const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064")
+  // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x30333ce00ac3025276927672aaefd80f22e89e54")
   // const secondaryPriceFeed = await deployContract("FastPriceFeed", [5 * 60])
 
-  // await sendTxn(usdg.addVault(vault.address), "usdg.addVault(vault)")
+  const vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
+  await sendTxn(vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(5, 28)), "vaultPriceFeed.setMaxStrictPriceDeviation") // 0.05 USD
+  await sendTxn(vaultPriceFeed.setPriceSampleSpace(1), "vaultPriceFeed.setPriceSampleSpace")
+  await sendTxn(vaultPriceFeed.setIsAmmEnabled(false), "vaultPriceFeed.setIsAmmEnabled")
+
+  const glp = await deployContract("GLP", [])
+  await sendTxn(glp.setInPrivateTransferMode(true), "glp.setInPrivateTransferMode")
+  // const glp = await contractAt("GLP", "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258")
   const glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 15 * 60])
   await sendTxn(glpManager.setInPrivateMode(true), "glpManager.setInPrivateMode")
 
@@ -43,11 +47,6 @@ async function main() {
   await sendTxn(vault.setInManagerMode(true), "vault.setInManagerMode")
   await sendTxn(vault.setManager(glpManager.address, true), "vault.setManager")
 
-  // await sendTxn(vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(5, 28)), "vaultPriceFeed.setMaxStrictPriceDeviation") // 0.05 USD
-  // await sendTxn(vaultPriceFeed.setPriceSampleSpace(1), "vaultPriceFeed.setPriceSampleSpace")
-  // await sendTxn(vaultPriceFeed.setSecondaryPriceFeed(secondaryPriceFeed.address), "vaultPriceFeed.setSecondaryPriceFeed")
-  // await sendTxn(vaultPriceFeed.setIsAmmEnabled(false), "vaultPriceFeed.setIsAmmEnabled")
-
   await sendTxn(vault.setFees(
     10, // _taxBasisPoints
     5, // _stableTaxBasisPoints
@@ -64,14 +63,8 @@ async function main() {
   await sendTxn(vault.setErrorController(vaultErrorController.address), "vault.setErrorController")
   await sendTxn(vaultErrorController.setErrors(vault.address, errors), "vaultErrorController.setErrors")
 
-  writeTmpAddresses({
-    vault: vault.address,
-    router: router.address,
-    vaultPriceFeed: vaultPriceFeed.address,
-    usdg: usdg.address,
-    glp: glp.address,
-    glpManager: glpManager.address
-  })
+  const vaultUtils = await deployContract("VaultUtils", [vault.address])
+  await sendTxn(vault.setVaultUtils(vaultUtils.address), "vault.setVaultUtils")
 }
 
 main()
