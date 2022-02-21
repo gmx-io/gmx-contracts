@@ -7,6 +7,7 @@ import "./interfaces/ITimelock.sol";
 import "./interfaces/IHandlerTarget.sol";
 import "../access/interfaces/IAdmin.sol";
 import "../core/interfaces/IVault.sol";
+import "../core/interfaces/IVaultUtils.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
 import "../core/interfaces/IRouter.sol";
 import "../tokens/interfaces/IYieldToken.sol";
@@ -166,7 +167,9 @@ contract Timelock is ITimelock {
         address _token,
         uint256 _tokenWeight,
         uint256 _minProfitBps,
-        uint256 _maxUsdgAmount
+        uint256 _maxUsdgAmount,
+        uint256 _bufferAmount,
+        uint256 _usdgAmount
     ) external onlyAdmin {
         require(_minProfitBps <= 500, "Timelock: invalid _minProfitBps");
 
@@ -186,14 +189,18 @@ contract Timelock is ITimelock {
             isStable,
             isShortable
         );
+
+        IVault(_vault).setBufferAmount(_token, _bufferAmount);
+
+        IVault(_vault).setUsdgAmount(_token, _usdgAmount);
+    }
+
+    function setMaxGlobalShortSize(address _vault, address _token, uint256 _amount) external onlyAdmin {
+        IVault(_vault).setMaxGlobalShortSize(_token, _amount);
     }
 
     function removeAdmin(address _token, address _account) external onlyAdmin {
         IYieldToken(_token).removeAdmin(_account);
-    }
-
-    function setBufferAmount(address _vault, address _token, uint256 _amount) external onlyAdmin {
-        IVault(_vault).setBufferAmount(_token, _amount);
     }
 
     function setIsAmmEnabled(address _priceFeed, bool _isEnabled) external onlyAdmin {
@@ -239,6 +246,10 @@ contract Timelock is ITimelock {
 
     function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external onlyAdmin {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
+    }
+
+    function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {
+        IVault(_vault).setVaultUtils(_vaultUtils);
     }
 
     function setMaxGasPrice(address _vault,uint256 _maxGasPrice) external onlyAdmin {

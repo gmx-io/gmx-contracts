@@ -1,9 +1,8 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { getFrameSigner, deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 async function main() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
+  const signer = await getFrameSigner()
 
   // const glpManager = await contractAt("GlpManager", "0x14fB4767dc9E10F96faaF37Ad24DE3E498cC344B")
   // await sendTxn(glpManager.setCooldownDuration(10 * 60), "glpManager.setCooldownDuration")
