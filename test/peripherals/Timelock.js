@@ -277,6 +277,15 @@ describe("Timelock", function () {
     expect(await vault.isSwapEnabled()).eq(false)
   })
 
+  it("setContractHandler", async() => {
+    await expect(timelock.connect(user0).setContractHandler(user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await timelock.isHandler(user1.address)).eq(false)
+    await timelock.connect(wallet).setContractHandler(user1.address, true)
+    expect(await timelock.isHandler(user1.address)).eq(true)
+  })
+
   it("setIsLeverageEnabled", async () => {
     await expect(timelock.connect(user0).setIsLeverageEnabled(vault.address, false))
       .to.be.revertedWith("Timelock: forbidden")
@@ -284,6 +293,18 @@ describe("Timelock", function () {
     expect(await vault.isLeverageEnabled()).eq(true)
     await timelock.connect(wallet).setIsLeverageEnabled(vault.address, false)
     expect(await vault.isLeverageEnabled()).eq(false)
+
+    await expect(timelock.connect(user1).setIsLeverageEnabled(vault.address, false))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).setContractHandler(user1.address, true)
+
+    expect(await vault.isLeverageEnabled()).eq(false)
+    await timelock.connect(user1).setIsLeverageEnabled(vault.address, true)
+    expect(await vault.isLeverageEnabled()).eq(true)
+
+    await expect(timelock.connect(user1).addExcludedToken(user2.address))
+      .to.be.revertedWith("Timelock: forbidden")
   })
 
   it("setMaxGlobalShortSize", async () => {

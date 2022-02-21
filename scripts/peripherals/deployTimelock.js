@@ -19,6 +19,8 @@ async function runForArbitrum() {
     mintReceiver.address,
     maxTokenSupply
   ])
+
+  // TODO: set positionManager if updating vault gov
 }
 
 async function runForAvax() {
