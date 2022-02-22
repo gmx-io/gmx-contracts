@@ -68,8 +68,8 @@ contract OrderExecutor {
 
         uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
         // add 100 to allow for a maximum of a 1% decrease since there might be some swap fees taken from the collateral
-        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 100).div(nextCollateral);
+        uint256 nextLeverageWithBuffer = nextSize.mul(BASIS_POINTS_DIVISOR + 100).div(nextCollateral);
 
-        require(nextLeverage >= prevLeverage, "OrderExecutor: long leverage decrease");
+        require(nextLeverageWithBuffer >= prevLeverage, "OrderExecutor: long leverage decrease");
     }
 }
