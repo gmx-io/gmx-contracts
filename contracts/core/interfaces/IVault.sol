@@ -2,11 +2,14 @@
 
 pragma solidity 0.6.12;
 
+import "./IVaultUtils.sol";
+
 interface IVault {
     function isInitialized() external view returns (bool);
     function isSwapEnabled() external view returns (bool);
     function isLeverageEnabled() external view returns (bool);
 
+    function setVaultUtils(IVaultUtils _vaultUtils) external;
     function setError(uint256 _errorCode, string calldata _error) external;
 
     function router() external view returns (address);
@@ -20,6 +23,7 @@ interface IVault {
     function hasDynamicFees() external view returns (bool);
     function fundingInterval() external view returns (uint256);
     function totalTokenWeights() external view returns (uint256);
+    function getTargetUsdgAmount(address _token) external view returns (uint256);
 
     function inManagerMode() external view returns (bool);
     function inPrivateLiquidationMode() external view returns (bool);
@@ -40,7 +44,9 @@ interface IVault {
     function setIsSwapEnabled(bool _isSwapEnabled) external;
     function setIsLeverageEnabled(bool _isLeverageEnabled) external;
     function setMaxGasPrice(uint256 _maxGasPrice) external;
+    function setUsdgAmount(address _token, uint256 _amount) external;
     function setBufferAmount(address _token, uint256 _amount) external;
+    function setMaxGlobalShortSize(address _token, uint256 _amount) external;
     function setInPrivateLiquidationMode(bool _inPrivateLiquidationMode) external;
     function setLiquidator(address _liquidator, bool _isActive) external;
 
@@ -102,6 +108,7 @@ interface IVault {
     function feeReserves(address _token) external view returns (uint256);
     function globalShortSizes(address _token) external view returns (uint256);
     function globalShortAveragePrices(address _token) external view returns (uint256);
+    function maxGlobalShortSizes(address _token) external view returns (uint256);
     function tokenDecimals(address _token) external view returns (uint256);
     function tokenWeights(address _token) external view returns (uint256);
     function guaranteedUsd(address _token) external view returns (uint256);

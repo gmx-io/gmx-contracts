@@ -1,6 +1,29 @@
 const fs = require('fs')
 const path = require('path')
 
+const network = (process.env.HARDHAT_NETWORK || 'mainnet');
+
+function getChainId(network) {
+  if (network === "arbitrum") {
+    return 42161
+  }
+
+  if (network === "avax") {
+    return 43114
+  }
+
+  throw new Error("Unsupported network")
+}
+
+async function getFrameSigner() {
+  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+  const signer = frame.getSigner()
+  if (getChainId(network) !== await signer.getChainId()) {
+    throw new Error("Incorrect frame network")
+  }
+  return signer
+}
+
 async function sendTxn(txnPromise, label) {
   const txn = await txnPromise
   console.info(`Sending ${label}...`)
@@ -66,6 +89,7 @@ function writeTmpAddresses(json) {
 }
 
 module.exports = {
+  getFrameSigner,
   sendTxn,
   deployContract,
   contractAt,

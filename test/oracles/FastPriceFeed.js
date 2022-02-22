@@ -30,6 +30,7 @@ describe("FastPriceFeed", function () {
     fastPriceEvents = await deployContract("FastPriceEvents", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [
       5 * 60, // _priceDuration
+      2, // _minBlockInterval
       250, // _maxDeviationBasisPoints
       fastPriceEvents.address, // _fastPriceEvents
       admin.address, // admin
@@ -121,8 +122,10 @@ describe("FastPriceFeed", function () {
       .to.be.revertedWith("FastPriceFeed: forbidden")
 
     expect(await fastPriceFeed.lastUpdatedAt()).eq(0)
+    expect(await fastPriceFeed.lastUpdatedBlock()).eq(0)
     await fastPriceFeed.connect(admin).setPrices([btc.address, eth.address, bnb.address], [expandDecimals(60000, 30), expandDecimals(5000, 30), expandDecimals(700, 30)])
-
+    const blockNumber0 = await provider.getBlockNumber()
+    expect(await fastPriceFeed.lastUpdatedBlock()).eq(blockNumber0)
     const blockTime = await getBlockTime(provider)
 
     expect(await fastPriceFeed.prices(btc.address)).eq(expandDecimals(60000, 30))
@@ -130,6 +133,15 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.prices(bnb.address)).eq(expandDecimals(700, 30))
 
     expect(await fastPriceFeed.lastUpdatedAt()).eq(blockTime)
+
+    await expect(fastPriceFeed.connect(admin).setPrices([btc.address, eth.address, bnb.address], [expandDecimals(60000, 30), expandDecimals(5000, 30), expandDecimals(700, 30)]))
+      .to.be.revertedWith("FastPriceFeed: minBlockInterval not yet passed")
+    const blockNumber1 = await provider.getBlockNumber()
+    expect(blockNumber1 - blockNumber0).eq(1)
+    await mineBlock(provider)
+
+    await fastPriceFeed.connect(admin).setPrices([btc.address, eth.address, bnb.address], [expandDecimals(60000, 30), expandDecimals(5000, 30), expandDecimals(700, 30)])
+    expect(await fastPriceFeed.lastUpdatedBlock()).eq(blockNumber0 + 3)
   })
 
   it("favorFastPrice", async () => {
@@ -175,13 +187,18 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [801])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(801)
+
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [900])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(820)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(800)
+
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [700])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(780)
 
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [900])
 
     await increaseTime(provider, 200)
@@ -194,20 +211,24 @@ describe("FastPriceFeed", function () {
 
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
 
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [810])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(810)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(810)
 
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [790])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(790)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(790)
 
     await fastPriceFeed.setVolBasisPoints(20)
 
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [810])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(810)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(808) // 810 * (100 - 0.2)%
 
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [790])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(791) // 790 * (100 + 0.2)%
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(790)
@@ -215,10 +236,12 @@ describe("FastPriceFeed", function () {
     await fastPriceFeed.connect(signer0).disableFastPrice()
     await fastPriceFeed.connect(signer1).disableFastPrice()
 
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [810])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(810)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(800)
 
+    await mineBlock(provider)
     await fastPriceFeed.connect(admin).setPrices([bnb.address], [790])
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(790)

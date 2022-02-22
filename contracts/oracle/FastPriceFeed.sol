@@ -29,7 +29,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     uint256 public constant MAX_PRICE_DURATION = 30 minutes;
 
     uint256 public lastUpdatedAt;
+    uint256 public lastUpdatedBlock;
+
     uint256 public priceDuration;
+    uint256 public minBlockInterval;
 
     // volatility basis points
     uint256 public volBasisPoints;
@@ -50,6 +53,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     // should be 10 ** 3
     uint256[] public tokenPrecisions;
 
+    event DisableFastPrice(address signer);
+
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
         _;
@@ -67,6 +72,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
 
     constructor(
       uint256 _priceDuration,
+      uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
       address _admin,
@@ -74,6 +80,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
+        minBlockInterval = _minBlockInterval;
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
         admin = _admin;
@@ -120,6 +127,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     }
 
     function setPrices(address[] memory _tokens, uint256[] memory _prices) external onlyAdmin {
+        setLastUpdatedAt();
+
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             prices[token] = _prices[i];
@@ -127,11 +136,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
               IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
             }
         }
-        lastUpdatedAt = block.timestamp;
     }
 
     function setCompactedPrices(uint256[] memory _priceBitArray) external onlyAdmin {
-        lastUpdatedAt = block.timestamp;
+        setLastUpdatedAt();
 
         for (uint256 i = 0; i < _priceBitArray.length; i++) {
             uint256 priceBits = _priceBitArray[i];
@@ -159,6 +167,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         require(!disableFastPriceVotes[msg.sender], "FastPriceFeed: already voted");
         disableFastPriceVotes[msg.sender] = true;
         disableFastPriceVoteCount = disableFastPriceVoteCount.add(1);
+
+        emit DisableFastPrice(msg.sender);
     }
 
     function enableFastPrice() external onlySigner {
@@ -208,5 +218,11 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
 
         if (_refPrice < fastPrice) { return _refPrice; }
         return fastPrice < minPrice ? minPrice : fastPrice;
+    }
+
+    function setLastUpdatedAt() private {
+        require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
+        lastUpdatedAt = block.timestamp;
+        lastUpdatedBlock = block.number;
     }
 }

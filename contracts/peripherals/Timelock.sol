@@ -7,6 +7,7 @@ import "./interfaces/ITimelock.sol";
 import "./interfaces/IHandlerTarget.sol";
 import "../access/interfaces/IAdmin.sol";
 import "../core/interfaces/IVault.sol";
+import "../core/interfaces/IVaultUtils.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
 import "../core/interfaces/IRouter.sol";
 import "../tokens/interfaces/IYieldToken.sol";
@@ -38,6 +39,8 @@ contract Timelock is ITimelock {
     mapping (bytes32 => uint256) public pendingActions;
     mapping (address => bool) public excludedTokens;
 
+    mapping (address => bool) public isHandler;
+
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
     event SignalWithdrawToken(address target, address token, address receiver, uint256 amount, bytes32 action);
@@ -68,6 +71,11 @@ contract Timelock is ITimelock {
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Timelock: forbidden");
+        _;
+    }
+
+    modifier onlyAdminOrHandler() {
+        require(msg.sender == admin || isHandler[msg.sender], "Timelock: forbidden");
         _;
     }
 
@@ -105,6 +113,10 @@ contract Timelock is ITimelock {
     function setExternalAdmin(address _target, address _admin) external onlyAdmin {
         require(_target != address(this), "Timelock: invalid _target");
         IAdmin(_target).setAdmin(_admin);
+    }
+
+    function setContractHandler(address _handler, bool _isActive) external onlyAdmin {
+        isHandler[_handler] = _isActive;
     }
 
     function setBuffer(uint256 _buffer) external onlyAdmin {
@@ -166,7 +178,9 @@ contract Timelock is ITimelock {
         address _token,
         uint256 _tokenWeight,
         uint256 _minProfitBps,
-        uint256 _maxUsdgAmount
+        uint256 _maxUsdgAmount,
+        uint256 _bufferAmount,
+        uint256 _usdgAmount
     ) external onlyAdmin {
         require(_minProfitBps <= 500, "Timelock: invalid _minProfitBps");
 
@@ -186,14 +200,18 @@ contract Timelock is ITimelock {
             isStable,
             isShortable
         );
+
+        IVault(_vault).setBufferAmount(_token, _bufferAmount);
+
+        IVault(_vault).setUsdgAmount(_token, _usdgAmount);
+    }
+
+    function setMaxGlobalShortSize(address _vault, address _token, uint256 _amount) external onlyAdmin {
+        IVault(_vault).setMaxGlobalShortSize(_token, _amount);
     }
 
     function removeAdmin(address _token, address _account) external onlyAdmin {
         IYieldToken(_token).removeAdmin(_account);
-    }
-
-    function setBufferAmount(address _vault, address _token, uint256 _amount) external onlyAdmin {
-        IVault(_vault).setBufferAmount(_token, _amount);
     }
 
     function setIsAmmEnabled(address _priceFeed, bool _isEnabled) external onlyAdmin {
@@ -237,8 +255,12 @@ contract Timelock is ITimelock {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
     }
 
-    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external onlyAdmin {
+    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
+    }
+
+    function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {
+        IVault(_vault).setVaultUtils(_vaultUtils);
     }
 
     function setMaxGasPrice(address _vault,uint256 _maxGasPrice) external onlyAdmin {

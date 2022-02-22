@@ -778,7 +778,7 @@ describe("RewardRouterV2", function () {
     expect(await gmxVester.transferredAverageStakedAmounts(user4.address)).gt(expandDecimals(200, 18))
     expect(await gmxVester.transferredAverageStakedAmounts(user4.address)).lt(expandDecimals(201, 18))
     expect(await gmxVester.transferredCumulativeRewards(user4.address)).gt(expandDecimals(892, 18))
-    expect(await gmxVester.transferredCumulativeRewards(user4.address)).lt(expandDecimals(893, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user4.address)).lt(expandDecimals(894, 18))
     expect(await gmxVester.bonusRewards(user3.address)).eq(0)
     expect(await gmxVester.bonusRewards(user4.address)).eq(expandDecimals(100, 18))
     expect(await stakedGmxTracker.averageStakedAmounts(user3.address)).gt(expandDecimals(1092, 18))

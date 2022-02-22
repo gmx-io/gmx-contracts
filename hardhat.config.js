@@ -3,12 +3,12 @@ require("@nomiclabs/hardhat-etherscan")
 require("hardhat-contract-sizer")
 require('@typechain/hardhat')
 
-
 const {
   BSC_URL,
   BSC_DEPLOY_KEY,
   BSCSCAN_API_KEY,
   POLYGONSCAN_API_KEY,
+  SNOWTRACE_API_KEY,
   ETHERSCAN_API_KEY,
   BSC_TESTNET_URL,
   BSC_TESTNET_DEPLOY_KEY,
@@ -16,6 +16,8 @@ const {
   ARBITRUM_TESTNET_URL,
   ARBITRUM_DEPLOY_KEY,
   ARBITRUM_URL,
+  AVAX_DEPLOY_KEY,
+  AVAX_URL,
   POLYGON_DEPLOY_KEY,
   POLYGON_URL,
   MAINNET_URL,
@@ -67,6 +69,12 @@ module.exports = {
       chainId: 42161,
       accounts: [ARBITRUM_DEPLOY_KEY]
     },
+    avax: {
+      url: AVAX_URL,
+      gasPrice: 100000000000,
+      chainId: 43114,
+      accounts: [AVAX_DEPLOY_KEY]
+    },
     polygon: {
       url: POLYGON_URL,
       gasPrice: 100000000000,
@@ -80,7 +88,7 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: BSCSCAN_API_KEY
+    apiKey: SNOWTRACE_API_KEY
   },
   solidity: {
     version: "0.6.12",

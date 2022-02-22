@@ -14,6 +14,7 @@ describe("Timelock", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3, rewardManager, tokenManager, mintReceiver] = provider.getWallets()
   let vault
+  let vaultUtils
   let vaultPriceFeed
   let usdg
   let router
@@ -42,7 +43,8 @@ describe("Timelock", function () {
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
-    await initVault(vault, router, usdg, vaultPriceFeed)
+    const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
+    vaultUtils = initVaultResult.vaultUtils
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -112,7 +114,9 @@ describe("Timelock", function () {
       bnb.address,
       100,
       200,
-      1000
+      1000,
+      0,
+      0
     )).to.be.revertedWith("Timelock: forbidden")
 
     await expect(timelock.connect(wallet).setTokenConfig(
@@ -120,7 +124,9 @@ describe("Timelock", function () {
       bnb.address,
       100,
       200,
-      1000
+      1000,
+      0,
+      0
     )).to.be.revertedWith("Timelock: token not yet whitelisted")
 
     await timelock.connect(wallet).signalVaultSetTokenConfig(
@@ -163,7 +169,9 @@ describe("Timelock", function () {
       bnb.address,
       100, // _tokenWeight
       200, // _minProfitBps
-      1000 // _maxUsdgAmount
+      1000, // _maxUsdgAmount
+      300, // _bufferAmount
+      500 // _usdgAmount
     )
 
     expect(await vault.whitelistedTokenCount()).eq(1)
@@ -175,6 +183,8 @@ describe("Timelock", function () {
     expect(await vault.maxUsdgAmounts(bnb.address)).eq(1000)
     expect(await vault.stableTokens(bnb.address)).eq(false)
     expect(await vault.shortableTokens(bnb.address)).eq(true)
+    expect(await vault.bufferAmounts(bnb.address)).eq(300)
+    expect(await vault.usdgAmounts(bnb.address)).eq(500)
   })
 
   it("setBuffer", async () => {
@@ -249,6 +259,15 @@ describe("Timelock", function () {
     expect(await vaultPriceFeed.priceSampleSpace()).eq(1)
   })
 
+  it("setVaultUtils", async () => {
+    await expect(timelock.connect(user0).setVaultUtils(vault.address, user1.address))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vault.vaultUtils()).eq(vaultUtils.address)
+    await timelock.connect(wallet).setVaultUtils(vault.address, user1.address)
+    expect(await vault.vaultUtils()).eq(user1.address)
+  })
+
   it("setIsSwapEnabled", async () => {
     await expect(timelock.connect(user0).setIsSwapEnabled(vault.address, false))
       .to.be.revertedWith("Timelock: forbidden")
@@ -258,6 +277,15 @@ describe("Timelock", function () {
     expect(await vault.isSwapEnabled()).eq(false)
   })
 
+  it("setContractHandler", async() => {
+    await expect(timelock.connect(user0).setContractHandler(user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await timelock.isHandler(user1.address)).eq(false)
+    await timelock.connect(wallet).setContractHandler(user1.address, true)
+    expect(await timelock.isHandler(user1.address)).eq(true)
+  })
+
   it("setIsLeverageEnabled", async () => {
     await expect(timelock.connect(user0).setIsLeverageEnabled(vault.address, false))
       .to.be.revertedWith("Timelock: forbidden")
@@ -265,15 +293,27 @@ describe("Timelock", function () {
     expect(await vault.isLeverageEnabled()).eq(true)
     await timelock.connect(wallet).setIsLeverageEnabled(vault.address, false)
     expect(await vault.isLeverageEnabled()).eq(false)
-  })
 
-  it("setBufferAmount", async () => {
-    await expect(timelock.connect(user0).setBufferAmount(vault.address, bnb.address, 100))
+    await expect(timelock.connect(user1).setIsLeverageEnabled(vault.address, false))
       .to.be.revertedWith("Timelock: forbidden")
 
-    expect(await vault.bufferAmounts(bnb.address)).eq(0)
-    await timelock.connect(wallet).setBufferAmount(vault.address, bnb.address, 100)
-    expect(await vault.bufferAmounts(bnb.address)).eq(100)
+    await timelock.connect(wallet).setContractHandler(user1.address, true)
+
+    expect(await vault.isLeverageEnabled()).eq(false)
+    await timelock.connect(user1).setIsLeverageEnabled(vault.address, true)
+    expect(await vault.isLeverageEnabled()).eq(true)
+
+    await expect(timelock.connect(user1).addExcludedToken(user2.address))
+      .to.be.revertedWith("Timelock: forbidden")
+  })
+
+  it("setMaxGlobalShortSize", async () => {
+    await expect(timelock.connect(user0).setMaxGlobalShortSize(vault.address, bnb.address, 100))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vault.maxGlobalShortSizes(bnb.address)).eq(0)
+    await timelock.connect(wallet).setMaxGlobalShortSize(vault.address, bnb.address, 100)
+    expect(await vault.maxGlobalShortSizes(bnb.address)).eq(100)
   })
 
   it("setMaxGasPrice", async () => {

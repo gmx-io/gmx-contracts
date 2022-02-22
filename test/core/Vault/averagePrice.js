@@ -12,6 +12,7 @@ describe("Vault.averagePrice", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
+  let vaultUtils
   let vaultPriceFeed
   let usdg
   let router
@@ -42,7 +43,8 @@ describe("Vault.averagePrice", function () {
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
-    await initVault(vault, router, usdg, vaultPriceFeed)
+    const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
+    vaultUtils = initVaultResult.vaultUtils
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -69,6 +71,8 @@ describe("Vault.averagePrice", function () {
       60 * 60, // _minProfitTime
       false // _hasDynamicFees
     )
+
+    await vaultUtils.setMinLeverage(1000)
   })
 
   it("position.averagePrice, buyPrice != markPrice", async () => {
