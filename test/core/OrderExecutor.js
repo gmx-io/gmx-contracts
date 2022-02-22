@@ -200,7 +200,7 @@ describe("OrderExecutor", function () {
         expect(balanceAfter).to.be.gte(balanceBefore.add(minOut));
     })
 
-    it("OrderExecutor.executeIncreaseOrder", async () => {
+    it("OrderExecutor.executeIncreaseOrder longs", async () => {
         const timelock = await deployContract("Timelock", [
           wallet.address,
           5 * 24 * 60 * 60,
@@ -221,6 +221,76 @@ describe("OrderExecutor", function () {
         const orderAfter = await orderBook.increaseOrders(user0.address, 0)
         expect(orderAfter.sizeDelta).to.be.eq(0)
         expect(await vault.isLeverageEnabled()).to.be.false
+
+        // should block pure deposits
+        await defaultCreateIncreaseOrder({ sizeDelta: 0, amountIn: expandDecimals(5000, 8).div(BTC_PRICE) })
+        const orderIndex1 = await orderBook.increaseOrdersIndex(user0.address) - 1
+        await expect(orderExecutor.executeIncreaseOrder(user0.address, orderIndex1, user1.address)).to.be.revertedWith("OrderExecutor: long deposit")
+
+        // should block leverage decrease
+        const [size, collateral] = await vault.getPosition(user0.address, btc.address, btc.address, true)
+        await defaultCreateIncreaseOrder({ sizeDelta: size, amountIn: expandDecimals(62000, 8).div(BTC_PRICE) })
+        const orderIndex2 = await orderBook.increaseOrdersIndex(user0.address) - 1
+        await expect(orderExecutor.executeIncreaseOrder(user0.address, orderIndex2, user1.address)).to.be.revertedWith("OrderExecutor: long leverage decrease")
+
+        // should be okay wite same size/collateral ratio
+        await defaultCreateIncreaseOrder({ sizeDelta: size, amountIn: expandDecimals(1, 8) })
+        const orderIndex3 = await orderBook.increaseOrdersIndex(user0.address) - 1
+        await orderExecutor.executeIncreaseOrder(user0.address, orderIndex3, user1.address)
+    })
+
+    it("OrderExecutor.executeIncreaseOrder shorts", async () => {
+        const timelock = await deployContract("Timelock", [
+          wallet.address,
+          5 * 24 * 60 * 60,
+          ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
+          expandDecimals(1000, 18)
+        ])
+        await vault.setIsLeverageEnabled(false)
+        expect(await vault.isLeverageEnabled()).to.be.false
+        await vault.setGov(timelock.address)
+        await timelock.setContractHandler(orderExecutor.address, true)
+
+        const collateralHuman = 10000
+        await defaultCreateIncreaseOrder({
+          path: [dai.address],
+          isLong: false,
+          collateralToken: dai.address,
+          amountIn: expandDecimals(collateralHuman, 18)
+        });
+        const orderBefore = await orderBook.increaseOrders(user0.address, 0)
+        expect(orderBefore.sizeDelta).to.be.eq(toUsd(100000))
+        await orderExecutor.executeIncreaseOrder(user0.address, 0, user1.address);
+        const orderAfter = await orderBook.increaseOrders(user0.address, 0)
+        expect(orderAfter.sizeDelta).to.be.eq(0)
+        expect(await vault.isLeverageEnabled()).to.be.false
+
+        // should allow deposits for shorts
+        await defaultCreateIncreaseOrder({
+          path: [dai.address],
+          isLong: false,
+          sizeDelta: 0,
+          collateralToken: dai.address,
+          amountIn: expandDecimals(collateralHuman, 18)
+        })
+        const orderIndex1 = await orderBook.increaseOrdersIndex(user0.address) - 1
+        await orderExecutor.executeIncreaseOrder(user0.address, orderIndex1, user1.address)
+        expect((await orderBook.increaseOrders(user0.address, orderIndex1)).sizeDelta).to.be.eq(0)
+
+        // should allow leverage decrease for shorts
+        const [size, collateral] = await vault.getPosition(user0.address, btc.address, btc.address, true)
+        await defaultCreateIncreaseOrder({
+          path: [dai.address],
+          isLong: false,
+          sizeDelta: size,
+          collateralToken: dai.address,
+          amountIn: expandDecimals(collateralHuman * 2, 18)
+        })
+        const orderIndex2 = await orderBook.increaseOrdersIndex(user0.address) - 1
+        await orderExecutor.executeIncreaseOrder(user0.address, orderIndex2, user1.address)
+        expect((await orderBook.increaseOrders(user0.address, orderIndex2)).sizeDelta).to.be.eq(0)
     })
 
     it("OrderExecutor.executeDecreaseOrder", async () => {
