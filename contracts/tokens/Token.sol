@@ -69,10 +69,6 @@ contract Token is IERC20 {
         _mint(msg.sender, msg.value);
     }
 
-    function depositTo(address recepient) public payable {
-        _mint(recepient, msg.value);
-    }
-
     function withdraw(uint256 amount) public {
         require(_balances[msg.sender] >= amount, "Token: insufficient balance");
         _burn(msg.sender, amount);
