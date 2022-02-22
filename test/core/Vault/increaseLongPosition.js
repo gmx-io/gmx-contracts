@@ -12,6 +12,7 @@ describe("Vault.increaseLongPosition", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
+  let vaultUtils
   let vaultPriceFeed
   let usdg
   let router
@@ -42,7 +43,8 @@ describe("Vault.increaseLongPosition", function () {
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
-    await initVault(vault, router, usdg, vaultPriceFeed)
+    const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
+    vaultUtils = initVaultResult.vaultUtils
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -124,6 +126,11 @@ describe("Vault.increaseLongPosition", function () {
       .to.be.revertedWith("Vault: maxLeverage exceeded")
 
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(8), true))
+      .to.be.revertedWith("VaultUtils: leverage is too low")
+
+    await vaultUtils.setMinLeverage(1000)
+
+    await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(8), true))
       .to.be.revertedWith("Vault: _size must be more than _collateral")
 
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(47), true))
@@ -145,7 +152,7 @@ describe("Vault.increaseLongPosition", function () {
 
     await btc.connect(user0).transfer(vault.address, 117500 - 1) // 0.001174 BTC => 47
 
-    await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(47), true))
+    await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(118), true))
       .to.be.revertedWith("Vault: reserve exceeds pool")
 
     expect(await vault.feeReserves(btc.address)).eq(0)
@@ -164,7 +171,7 @@ describe("Vault.increaseLongPosition", function () {
     expect(await vault.poolAmounts(btc.address)).eq(117500 - 1 - 353)
 
     await btc.connect(user0).transfer(vault.address, 117500 - 1)
-    await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(100), true))
+    await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(200), true))
       .to.be.revertedWith("Vault: reserve exceeds pool")
 
     await vault.buyUSDG(btc.address, user1.address)
@@ -228,6 +235,8 @@ describe("Vault.increaseLongPosition", function () {
   })
 
   it("increasePosition long aum", async () => {
+    await vaultUtils.setMinLeverage(10000)
+
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(100000))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(100000))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(100000))

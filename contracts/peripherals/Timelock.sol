@@ -39,6 +39,8 @@ contract Timelock is ITimelock {
     mapping (bytes32 => uint256) public pendingActions;
     mapping (address => bool) public excludedTokens;
 
+    mapping (address => bool) public isHandler;
+
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
     event SignalWithdrawToken(address target, address token, address receiver, uint256 amount, bytes32 action);
@@ -69,6 +71,11 @@ contract Timelock is ITimelock {
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "Timelock: forbidden");
+        _;
+    }
+
+    modifier onlyAdminOrHandler() {
+        require(msg.sender == admin || isHandler[msg.sender], "Timelock: forbidden");
         _;
     }
 
@@ -106,6 +113,10 @@ contract Timelock is ITimelock {
     function setExternalAdmin(address _target, address _admin) external onlyAdmin {
         require(_target != address(this), "Timelock: invalid _target");
         IAdmin(_target).setAdmin(_admin);
+    }
+
+    function setContractHandler(address _handler, bool _isActive) external onlyAdmin {
+        isHandler[_handler] = _isActive;
     }
 
     function setBuffer(uint256 _buffer) external onlyAdmin {
@@ -244,7 +255,7 @@ contract Timelock is ITimelock {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
     }
 
-    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external onlyAdmin {
+    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 

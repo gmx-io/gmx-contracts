@@ -12,7 +12,6 @@ import "../libraries/utils/ReentrancyGuard.sol";
 import "./interfaces/IRouter.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IOrderBook.sol";
-import "../tokens/interfaces/IWETH.sol";
 
 contract OrderBook is ReentrancyGuard, IOrderBook {
     using SafeMath for uint256;
