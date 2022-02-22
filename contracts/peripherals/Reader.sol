@@ -52,6 +52,10 @@ contract Reader is Governable {
         uint256 maxUsdgAmount = _vault.maxUsdgAmounts(_tokenIn);
 
         if (maxUsdgAmount != 0) {
+            if (maxUsdgAmount < _vault.usdgAmounts(_tokenIn)) {
+                return 0;
+            }
+
             uint256 maxAmountIn = maxUsdgAmount.sub(_vault.usdgAmounts(_tokenIn));
             maxAmountIn = maxAmountIn.mul(10 ** tokenInDecimals).div(10 ** USDG_DECIMALS);
             maxAmountIn = maxAmountIn.mul(PRICE_PRECISION).div(priceIn);
