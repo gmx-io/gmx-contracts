@@ -1256,7 +1256,7 @@ describe("GmxTimelock", function () {
       true // isShortable
     )
 
-    await increaseTime(provider, 5 * 24 * 60 *60)
+    await increaseTime(provider, 7 * 24 * 60 * 60 + 10)
     await mineBlock(provider)
 
     await timelock.connect(wallet).vaultSetTokenConfig(
@@ -1275,7 +1275,7 @@ describe("GmxTimelock", function () {
 
     await timelock.signalSetGov(vault.address, user1.address)
 
-    await increaseTime(provider, 5 * 24 * 60 *60)
+    await increaseTime(provider, 7 * 24 * 60 * 60 + 10)
     await mineBlock(provider)
 
     await timelock.setGov(vault.address, user1.address)
