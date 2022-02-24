@@ -79,7 +79,7 @@ const distribute = async () => {
 
   const holdersList = []
   for (const [account, balance] of Object.entries(holders)) {
-    if (balance <= 10) {
+    if (balance <= 1) {
       continue
     }
 
