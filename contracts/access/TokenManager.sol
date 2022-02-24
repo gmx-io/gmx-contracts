@@ -28,6 +28,7 @@ contract TokenManager is ReentrancyGuard {
     event SignalApproveNFT(address token, address spender, uint256 tokenId, bytes32 action, uint256 nonce);
     event SignalApproveNFTs(address token, address spender, uint256[] tokenIds, bytes32 action, uint256 nonce);
     event SignalSetAdmin(address target, address admin, bytes32 action, uint256 nonce);
+    event SignalSetGov(address timelock, address target, address gov, bytes32 action, uint256 nonce);
     event SignalPendingAction(bytes32 action, uint256 nonce);
     event SignAction(bytes32 action, uint256 nonce);
     event ClearAction(bytes32 action, uint256 nonce);
@@ -162,6 +163,32 @@ contract TokenManager is ReentrancyGuard {
         _validateAuthorization(action);
 
         ITimelock(_target).setAdmin(_admin);
+        _clearAction(action, _nonce);
+    }
+
+    function signalSetGov(address _timelock, address _target, address _gov) external nonReentrant onlyAdmin {
+        actionsNonce++;
+        uint256 nonce = actionsNonce;
+        bytes32 action = keccak256(abi.encodePacked("signalSetGov", _timelock, _target, _gov, nonce));
+        _setPendingAction(action, nonce);
+        signedActions[msg.sender][action] = true;
+        emit SignalSetGov(_timelock, _target, _gov, action, nonce);
+    }
+
+    function signSetGov(address _timelock, address _target, address _gov, uint256 _nonce) external nonReentrant onlySigner {
+        bytes32 action = keccak256(abi.encodePacked("signalSetGov", _timelock, _target, _gov, _nonce));
+        _validateAction(action);
+        require(!signedActions[msg.sender][action], "TokenManager: already signed");
+        signedActions[msg.sender][action] = true;
+        emit SignAction(action, _nonce);
+    }
+
+    function setGov(address _timelock, address _target, address _gov, uint256 _nonce) external nonReentrant onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("signalSetGov", _timelock, _target, _gov, _nonce));
+        _validateAction(action);
+        _validateAuthorization(action);
+
+        ITimelock(_timelock).signalSetGov(_target, _gov);
         _clearAction(action, _nonce);
     }
 

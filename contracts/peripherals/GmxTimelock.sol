@@ -363,7 +363,7 @@ contract GmxTimelock is ITimelock {
         _mint(_token, _receiver, _amount);
     }
 
-    function signalSetGov(address _target, address _gov) external onlyAdmin {
+    function signalSetGov(address _target, address _gov) external override onlyTokenManager {
         bytes32 action = keccak256(abi.encodePacked("setGov", _target, _gov));
         _setLongPendingAction(action);
         emit SignalSetGov(_target, _gov, action);

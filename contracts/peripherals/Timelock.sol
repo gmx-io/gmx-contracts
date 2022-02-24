@@ -359,7 +359,7 @@ contract Timelock is ITimelock {
         _mint(_token, _receiver, _amount);
     }
 
-    function signalSetGov(address _target, address _gov) external onlyAdmin {
+    function signalSetGov(address _target, address _gov) external override onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setGov", _target, _gov));
         _setPendingAction(action);
         emit SignalSetGov(_target, _gov, action);

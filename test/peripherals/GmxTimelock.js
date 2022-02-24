@@ -608,7 +608,10 @@ describe("GmxTimelock", function () {
     await expect(timelock.connect(user0).signalSetGov(vault.address, user1.address))
       .to.be.revertedWith("GmxTimelock: forbidden")
 
-    await timelock.connect(wallet).signalSetGov(vault.address, user1.address)
+    await expect(timelock.connect(wallet).signalSetGov(vault.address, user1.address))
+      .to.be.revertedWith("GmxTimelock: forbidden")
+
+    await timelock.connect(tokenManager).signalSetGov(vault.address, user1.address)
 
     await expect(timelock.connect(wallet).setGov(vault.address, user1.address))
       .to.be.revertedWith("GmxTimelock: action time not yet passed")
@@ -638,7 +641,7 @@ describe("GmxTimelock", function () {
     await timelock.connect(wallet).setGov(vault.address, user1.address)
     expect(await vault.gov()).eq(user1.address)
 
-    await timelock.connect(wallet).signalSetGov(vault.address, user2.address)
+    await timelock.connect(tokenManager).signalSetGov(vault.address, user2.address)
 
     await expect(timelock.connect(wallet).setGov(vault.address, user2.address))
       .to.be.revertedWith("GmxTimelock: action time not yet passed")
@@ -1273,7 +1276,7 @@ describe("GmxTimelock", function () {
     await bnb.mint(vault.address, expandDecimals(3, 18))
     await vault.buyUSDG(bnb.address, user3.address)
 
-    await timelock.signalSetGov(vault.address, user1.address)
+    await timelock.connect(tokenManager).signalSetGov(vault.address, user1.address)
 
     await increaseTime(provider, 7 * 24 * 60 * 60 + 10)
     await mineBlock(provider)
