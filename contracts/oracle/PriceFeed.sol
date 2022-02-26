@@ -36,7 +36,7 @@ contract PriceFeed is IPriceFeed {
     }
 
     function setLatestAnswer(int256 _answer) public {
-        require(isAdmin[gov], "PriceFeed: forbidden");
+        require(isAdmin[msg.sender], "PriceFeed: forbidden");
         roundId = roundId + 1;
         answer = _answer;
         answers[roundId] = _answer;
