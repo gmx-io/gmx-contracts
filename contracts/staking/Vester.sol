@@ -26,7 +26,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     address public pairToken;
     address public claimableToken;
 
-    address public rewardTracker;
+    address public override rewardTracker;
 
     uint256 public override totalSupply;
     uint256 public pairSupply;

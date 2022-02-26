@@ -6,6 +6,7 @@ import "../libraries/token/IERC20.sol";
 import "../libraries/math/SafeMath.sol";
 
 import "../staking/interfaces/IVester.sol";
+import "../staking/interfaces/IRewardTracker.sol";
 
 contract EsGmxBatchSender {
     using SafeMath for uint256;
@@ -25,29 +26,38 @@ contract EsGmxBatchSender {
 
     function send(
         IVester _vester,
+        uint256 _minRatio,
         address[] memory _accounts,
-        uint256[] memory _amounts,
-        uint256[] memory _stakeAmounts
+        uint256[] memory _amounts
     ) external onlyAdmin {
         IERC20 token  = IERC20(esGmx);
+        IRewardTracker rewardTracker = IRewardTracker(_vester.rewardTracker());
 
         for (uint256 i = 0; i < _accounts.length; i++) {
             address account = _accounts[i];
             uint256 amount = _amounts[i];
-            uint256 stakeAmount = _stakeAmounts[i];
 
             token.transferFrom(msg.sender, account, amount);
 
-            uint256 transferredCumulativeRewards = _vester.transferredCumulativeRewards(account);
-            uint256 totalTransferredCumulativeRewards = transferredCumulativeRewards.add(amount);
+            uint256 transferredCumulativeReward = _vester.transferredCumulativeRewards(account);
+            uint256 nextTransferrredCumulativeReward = transferredCumulativeReward.add(amount);
+            _vester.setTransferredCumulativeRewards(account, nextTransferrredCumulativeReward);
 
-            uint256 transferredAverageStakedAmount = _vester.transferredAverageStakedAmounts(account);
-            uint256 nextTransferredAverageStakedAmount = transferredAverageStakedAmount.mul(transferredCumulativeRewards).div(totalTransferredCumulativeRewards);
-            nextTransferredAverageStakedAmount = nextTransferredAverageStakedAmount.add(
-                stakeAmount.mul(amount).div(totalTransferredCumulativeRewards)
+            uint256 cumulativeReward = rewardTracker.cumulativeRewards(account);
+            uint256 totalCumulativeReward = cumulativeReward.add(nextTransferrredCumulativeReward);
+
+            uint256 combinedAverageStakedAmount = _vester.getCombinedAverageStakedAmount(account);
+
+            if (combinedAverageStakedAmount > totalCumulativeReward.mul(_minRatio)) {
+                continue;
+            }
+
+            uint256 nextTransferredAverageStakedAmount = _minRatio.mul(totalCumulativeReward);
+            nextTransferredAverageStakedAmount = nextTransferredAverageStakedAmount.sub(
+                rewardTracker.averageStakedAmounts(account).mul(cumulativeReward).div(totalCumulativeReward)
             );
 
-            _vester.setTransferredCumulativeRewards(account, totalTransferredCumulativeRewards);
+            nextTransferredAverageStakedAmount = nextTransferredAverageStakedAmount.mul(totalCumulativeReward).div(nextTransferrredCumulativeReward);
 
             _vester.setTransferredAverageStakedAmounts(account, nextTransferredAverageStakedAmount);
         }
