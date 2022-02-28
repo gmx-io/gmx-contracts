@@ -6,7 +6,6 @@ const fs = require('fs')
 const parse = require('csv-parse')
 
 const inputDir = path.resolve(__dirname, "../..") + "/data/nft/input/"
-const outputFile = path.resolve(__dirname, "../..") + "/data/nft/output/2021-12-27.json"
 
 function bigNumberify(n) {
   return ethers.BigNumber.from(n)
@@ -52,8 +51,6 @@ const distribute = async () => {
     nftHolders[from].count--
   }
 
-  console.log("nftHolders", nftHolders["0x11C0496B14aE98B5B155eBEEA4CaF1309715e24C".toLowerCase()])
-
   const stakedGmxBalances = await processFile(inputDir + "staked-gmx-balances.csv")
   const vestedBalances = await processFile(inputDir + "vested-balances.csv")
 
@@ -92,7 +89,7 @@ const distribute = async () => {
   console.log("holdersList", holdersList.length)
 
   const tokenHolders = holdersList
-  const earliestTxn = 1640649600 // Tuesday, 28 December 2021 00:00:00
+  const earliestTxn = 1643673600 // Tuesday, 1 February 2022 00:00:00
 
   const balanceList = []
   let totalBalance = 0
