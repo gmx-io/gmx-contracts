@@ -3,7 +3,7 @@
 pragma solidity 0.6.12;
 
 import "./interfaces/ITimelockTarget.sol";
-import "./interfaces/ITimelock.sol";
+import "./interfaces/IGmxTimelock.sol";
 import "./interfaces/IHandlerTarget.sol";
 import "../access/interfaces/IAdmin.sol";
 import "../core/interfaces/IVault.sol";
@@ -19,7 +19,7 @@ import "../staking/interfaces/IVester.sol";
 import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
 
-contract GmxTimelock is ITimelock {
+contract GmxTimelock is IGmxTimelock {
     using SafeMath for uint256;
 
     uint256 public constant PRICE_PRECISION = 10 ** 30;
@@ -47,7 +47,6 @@ contract GmxTimelock is ITimelock {
     event SignalWithdrawToken(address target, address token, address receiver, uint256 amount, bytes32 action);
     event SignalMint(address token, address receiver, uint256 amount, bytes32 action);
     event SignalSetGov(address target, address gov, bytes32 action);
-    event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
     event SignalAddPlugin(address router, address plugin, bytes32 action);
     event SignalRedeemUsdg(address vault, address token, uint256 amount);
@@ -297,28 +296,6 @@ contract GmxTimelock is ITimelock {
         IBaseToken(_token).setInPrivateTransferMode(_inPrivateTransferMode);
     }
 
-    function managedSetHandler(address _target, address _handler, bool _isActive) external override onlyRewardManager {
-        IHandlerTarget(_target).setHandler(_handler, _isActive);
-    }
-
-    function managedSetMinter(address _target, address _minter, bool _isActive) external override onlyRewardManager {
-        IMintable(_target).setMinter(_minter, _isActive);
-    }
-
-    function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyAdmin {
-        require(_accounts.length == _amounts.length, "GmxTimelock: invalid lengths");
-
-        if (!IHandlerTarget(_vester).isHandler(address(this))) {
-            IHandlerTarget(_vester).setHandler(address(this), true);
-        }
-
-        for (uint256 i = 0; i < _accounts.length; i++) {
-            address account = _accounts[i];
-            uint256 amount = _amounts[i];
-            IVester(_vester).setBonusRewards(account, amount);
-        }
-    }
-
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {
         IERC20(_token).transferFrom(_sender, address(this), _amount);
     }
@@ -374,19 +351,6 @@ contract GmxTimelock is ITimelock {
         _validateAction(action);
         _clearAction(action);
         ITimelockTarget(_target).setGov(_gov);
-    }
-
-    function signalSetHandler(address _target, address _handler, bool _isActive) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("setHandler", _target, _handler, _isActive));
-        _setPendingAction(action);
-        emit SignalSetHandler(_target, _handler, _isActive, action);
-    }
-
-    function setHandler(address _target, address _handler, bool _isActive) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("setHandler", _target, _handler, _isActive));
-        _validateAction(action);
-        _clearAction(action);
-        IHandlerTarget(_target).setHandler(_handler, _isActive);
     }
 
     function signalSetPriceFeed(address _vault, address _priceFeed) external onlyAdmin {

@@ -112,7 +112,7 @@ const distribute = async () => {
 
   let accounts = []
   let amounts = []
-  const totalEsGmx = 5000
+  const totalEsGmx = 4000
   let totalEsGmxAmount = bigNumberify(0)
 
   const batchSender = await contractAt("BatchSender", "0x401Ab96410BcdCA81b79c68D0D664D478906C184")
