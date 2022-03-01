@@ -183,7 +183,8 @@ module.exports = {
       maxUsdgAmount: 5 * 1000 * 1000,
       bufferAmount: 100000,
       isStable: false,
-      isShortable: false
+      isShortable: false,
+      spreadBasisPoints: 7
     },
     uni: {
       name: "uni",
@@ -198,7 +199,8 @@ module.exports = {
       maxUsdgAmount: 2.5 * 1000 * 1000,
       bufferAmount: 20000,
       isStable: false,
-      isShortable: false
+      isShortable: false,
+      spreadBasisPoints: 7
     },
     usdt: {
       name: "usdt",
@@ -277,7 +279,8 @@ module.exports = {
       bufferAmount: 50000,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 4 * 1000 * 1000
+      maxGlobalShortSize: 4 * 1000 * 1000,
+      spreadBasisPoints: 7
     },
     eth: {
       name: "eth",
