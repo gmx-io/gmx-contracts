@@ -24,10 +24,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     address public tokenManager;
 
-    address public positionManager;
-
-    bool public usePositionManagerPrice = false;
-
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
     uint256 public constant MAX_PRICE_DURATION = 30 minutes;
@@ -77,18 +73,12 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         _;
     }
 
-    modifier onlyPositionManager() {
-        require(msg.sender == positionManager, "FastPriceFeed: forbidden");
-        _;
-    }
-
     constructor(
       uint256 _priceDuration,
       uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
-      address _tokenManager,
-      address _positionManager
+      address _tokenManager
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
@@ -96,7 +86,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
         tokenManager = _tokenManager;
-        positionManager = _positionManager;
     }
 
     function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _admins) public onlyGov {
@@ -114,10 +103,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             address admin = _admins[i];
             isAdmin[admin] = true;
         }
-    }
-
-    function setUsePositionManagerPrice(bool _usePositionManagerPrice) external onlyPositionManager {
-        usePositionManagerPrice = _usePositionManagerPrice;
     }
 
     function setAdmin(address _account, bool _isActive) external onlyTokenManager {
@@ -239,10 +224,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
-        bool _usePositionManagerPrice = usePositionManagerPrice;
-
-        // only fallback to the Chainlink price if _usePositionManagerPrice is false
-        if (!_usePositionManagerPrice && block.timestamp > lastUpdatedAt.add(priceDuration)) { return _refPrice; }
+        if (block.timestamp > lastUpdatedAt.add(priceDuration)) { return _refPrice; }
 
         uint256 fastPrice = prices[_token];
         if (fastPrice == 0) { return _refPrice; }
@@ -250,9 +232,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         uint256 maxPrice = _refPrice.mul(BASIS_POINTS_DIVISOR.add(maxDeviationBasisPoints)).div(BASIS_POINTS_DIVISOR);
         uint256 minPrice = _refPrice.mul(BASIS_POINTS_DIVISOR.sub(maxDeviationBasisPoints)).div(BASIS_POINTS_DIVISOR);
 
-        // use the fast price value if _usePositionManagerPrice is true, since the position manager should have
-        // already updated the token price
-        if (_usePositionManagerPrice || favorFastPrice()) {
+        if (favorFastPrice()) {
             if (fastPrice >= minPrice && fastPrice <= maxPrice) {
                 if (_maximise) {
                     if (_refPrice > fastPrice) {
