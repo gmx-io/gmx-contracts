@@ -11,7 +11,9 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IRouter.sol";
 import "./interfaces/IVault.sol";
+import "./interfaces/IOrderBook.sol";
 import "./interfaces/IPositionManager.sol";
+
 import "../access/Governable.sol";
 import "../peripherals/interfaces/ITimelock.sol";
 
@@ -22,23 +24,46 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
-    address public router;
     address public vault;
+    address public router;
+    address public orderBook;
     address public weth;
     uint256 public depositFee;
 
-    bool public isInitialized = false;
+    address public admin;
+
+    mapping (address => bool) public isOrderKeeper;
+
+    modifier onlyAdmin() {
+        require(admin == msg.sender, "PositionManager: forbidden");
+        _;
+    }
+
+    modifier onlyOrderKeeper() {
+        require(isOrderKeeper[msg.sender], "PositionManager: forbidden");
+        _;
+    }
 
     constructor(
-        address _router,
         address _vault,
+        address _router,
+        address _orderBook,
         address _weth,
         uint256 _depositFee
     ) public {
-        router = _router;
         vault = _vault;
+        router = _router;
+        orderBook = _orderBook;
         weth = _weth;
         depositFee = _depositFee;
+    }
+
+    function setAdmin(address _admin) external onlyGov {
+        admin = _admin;
+    }
+
+    function setOrderKeeper(address _account, bool _isActive) external onlyGov {
+        isOrderKeeper[_account] = _isActive;
     }
 
     function setDepositFee(uint256 _depositFee) external onlyGov {
@@ -98,6 +123,66 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         }
 
         _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
+    }
+
+    function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
+        IOrderBook(orderBook).executeSwapOrder(_account, _orderIndex, _feeReceiver);
+    }
+
+    function executeIncreaseOrder(address _address, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
+        _validateIncreaseOrder(_address, _orderIndex);
+
+        address _vault = vault;
+        address timelock = IVault(_vault).gov();
+
+        ITimelock(timelock).enableLeverage(_vault);
+        IOrderBook(orderBook).executeIncreaseOrder(_address, _orderIndex, _feeReceiver);
+        ITimelock(timelock).disableLeverage(_vault);
+    }
+
+    function executeDecreaseOrder(address _address, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
+        address _vault = vault;
+        address timelock = IVault(_vault).gov();
+
+        ITimelock(timelock).enableLeverage(_vault);
+        IOrderBook(orderBook).executeDecreaseOrder(_address, _orderIndex, _feeReceiver);
+        ITimelock(timelock).disableLeverage(_vault);
+    }
+
+    function _validateIncreaseOrder(address _account, uint256 _orderIndex) internal view {
+        (
+            address _purchaseToken,
+            uint256 _purchaseTokenAmount,
+            address _collateralToken,
+            address _indexToken,
+            uint256 _sizeDelta,
+            bool _isLong,
+            , // triggerPrice
+            , // triggerAboveThreshold
+            // executionFee
+        ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
+
+        // shorts are okay
+        if (!_isLong) { return; }
+
+        // if the position size is not increasing, this is a collateral deposit
+        require(_sizeDelta > 0, "OrderExecutor: long deposit");
+
+        IVault _vault = IVault(vault);
+        (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
+
+        // if there is no existing position, do not charge a fee
+        if (size == 0) { return; }
+
+        uint256 nextSize = size.add(_sizeDelta);
+        uint256 collateralDelta = _vault.tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
+        uint256 nextCollateral = collateral.add(collateralDelta);
+
+        uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
+        // add 100 to allow for a maximum of a 1% decrease since there might be some swap fees taken from the collateral
+        uint256 nextLeverageWithBuffer = nextSize.mul(BASIS_POINTS_DIVISOR + 100).div(nextCollateral);
+
+        require(nextLeverageWithBuffer >= prevLeverage, "OrderExecutor: long leverage decrease");
     }
 
     function _increasePosition(address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong, uint256 _price) private {
