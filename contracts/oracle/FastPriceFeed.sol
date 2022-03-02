@@ -120,8 +120,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         usePositionManagerPrice = _usePositionManagerPrice;
     }
 
-    function setAdmin(address _account, bool _isAdmin) external onlyTokenManager {
-        isAdmin[_account] = _isAdmin;
+    function setAdmin(address _account, bool _isActive) external onlyTokenManager {
+        isAdmin[_account] = _isActive;
     }
 
     function setFastPriceEvents(address _fastPriceEvents) external onlyGov {
