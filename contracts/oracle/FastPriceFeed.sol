@@ -29,7 +29,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public constant MAX_PRICE_DURATION = 30 minutes;
 
     uint256 public override lastUpdatedAt;
-    uint256 public lastUpdatedBlock;
+    uint256 public override lastUpdatedBlock;
 
     uint256 public priceDuration;
     uint256 public minBlockInterval;

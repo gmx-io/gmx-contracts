@@ -31,11 +31,14 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 minOut;
         uint256 sizeDelta;
         bool isLong;
-        uint256 price;
+        uint256 acceptablePrice;
         uint256 executionFee;
+        uint256 blockNumber;
     }
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
+
+    address public admin;
 
     address public vault;
     address public router;
@@ -44,7 +47,17 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     uint256 public depositFee;
     uint256 public minExecutionFee;
 
+    uint256 public minBlockDelayKeeper;
+    uint256 public minBlockDelayPublic;
+
+    uint256 public lastCreationBlock;
+
+    // max deviation from primary price
+    uint256 public maxDeviationBasisPoints;
+
     bool public inLegacyMode;
+
+    mapping (address => uint256) public feeReserves;
 
     mapping (address => bool) public isPositionKeeper;
     mapping (address => bool) public isOrderKeeper;
@@ -62,9 +75,10 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 minOut,
         uint256 sizeDelta,
         bool isLong,
-        uint256 price,
+        uint256 acceptablePrice,
         uint256 executionFee,
-        uint256 index
+        uint256 index,
+        uint256 blockNumber
     );
 
     modifier onlyPositionKeeper() {
@@ -79,6 +93,11 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     modifier onlyPartners() {
         require(inLegacyMode || isPartner[msg.sender], "PositionManager: forbidden");
+        _;
+    }
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "PositionManager: forbidden");
         _;
     }
 
@@ -98,32 +117,49 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         minExecutionFee = _minExecutionFee;
     }
 
-    function setPositionKeeper(address _account, bool _isActive) external onlyGov {
+    function setPositionKeeper(address _account, bool _isActive) external onlyAdmin {
         isPositionKeeper[_account] = _isActive;
     }
 
-    function setOrderKeeper(address _account, bool _isActive) external onlyGov {
+    function setOrderKeeper(address _account, bool _isActive) external onlyAdmin {
         isOrderKeeper[_account] = _isActive;
     }
 
-    function setDepositFee(uint256 _depositFee) external onlyGov {
+    function setDepositFee(uint256 _depositFee) external onlyAdmin {
         depositFee = _depositFee;
     }
 
-    function setMinExecutionFee(uint256 _minExecutionFee) external onlyGov {
+    function setMinExecutionFee(uint256 _minExecutionFee) external onlyAdmin {
         minExecutionFee = _minExecutionFee;
     }
 
-    function setInLegacyMode(bool _inLegacyMode) external onlyGov {
+    function setInLegacyMode(bool _inLegacyMode) external onlyAdmin {
         inLegacyMode = _inLegacyMode;
     }
 
-    function setPartner(address _account, bool _isActive) external onlyGov {
+    function setPartner(address _account, bool _isActive) external onlyAdmin {
         isPartner[_account] = _isActive;
+    }
+
+    function setMinBlockDelay(uint256 _minBlockDelayKeeper, uint256 _minBlockDelayPublic) external onlyAdmin {
+        minBlockDelayKeeper = _minBlockDelayKeeper;
+        minBlockDelayPublic = _minBlockDelayPublic;
+    }
+
+    function setAdmin(address _admin) external onlyGov {
+        admin = _admin;
     }
 
     function approve(address _token, address _spender, uint256 _amount) external onlyGov {
         IERC20(_token).approve(_spender, _amount);
+    }
+
+    function withdrawFees(address _token, address _receiver) external onlyGov {
+        uint256 amount = feeReserves[_token];
+        if(amount == 0) { return; }
+
+        feeReserves[_token] = 0;
+        IERC20(_token).safeTransfer(_receiver, amount);
     }
 
     function createIncreasePosition(
@@ -134,7 +170,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 _minOut,
         uint256 _sizeDelta,
         bool _isLong,
-        uint256 _price,
+        uint256 _acceptablePrice,
         uint256 _executionFee
     ) external payable nonReentrant {
         require(_executionFee >= minExecutionFee, "PositionManager: invalid executionFee");
@@ -153,7 +189,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _minOut,
             _sizeDelta,
             _isLong,
-            _price,
+            _acceptablePrice,
             _executionFee
         );
     }
@@ -164,7 +200,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 _minOut,
         uint256 _sizeDelta,
         bool _isLong,
-        uint256 _price,
+        uint256 _acceptablePrice,
         uint256 _executionFee
     ) external payable nonReentrant {
         require(_executionFee >= minExecutionFee, "PositionManager: invalid executionFee");
@@ -181,9 +217,44 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _minOut,
             _sizeDelta,
             _isLong,
-            _price,
+            _acceptablePrice,
             _executionFee
         );
+    }
+
+    function executeIncreasePosition(address _account, uint256 _index) external nonReentrant onlyPositionKeeper {
+        IncreasePosition memory position = increasePositions[_account][_index];
+        require(position.account != address(0), "PositionManager: position does not exist");
+        _validatePositionExecution(position.blockNumber);
+
+        address _vault = vault;
+
+        bool shouldRefundCollateral = false;
+
+        if (position.isLong) {
+            shouldRefundCollateral = IVault(_vault).getMaxPrice(position.indexToken) > position.acceptablePrice;
+        } else {
+            shouldRefundCollateral = IVault(_vault).getMinPrice(position.indexToken) < position.acceptablePrice;
+        }
+
+       /* if (position.amountIn > 0) {
+           if (position.purchaseToken != position.collateralToken) {
+               IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
+               _amountIn = _swap(_path, _minOut, address(this));
+           } else {
+               IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
+           }
+
+           uint256 afterFeeAmount = _getAfterFeeAmount(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
+           IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
+       }
+
+       _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price); */
+
+    }
+
+    function executeIncreasePositionETH() external nonReentrant onlyPositionKeeper {
+
     }
 
     function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
@@ -286,6 +357,11 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         _transferOutETH(amountOut, _receiver);
     }
 
+    function _validatePositionExecution(uint256 positionBlockNumber) internal view {
+        uint256 minBlockDelay = isPositionKeeper[msg.sender] ? minBlockDelayKeeper : minBlockDelayPublic;
+        require(positionBlockNumber.add(minBlockDelay) <= block.number, "PositionManager: min blocks not yet passed");
+    }
+
     function _createIncreasePosition(
         address _account,
         address _purchaseToken,
@@ -295,7 +371,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 _minOut,
         uint256 _sizeDelta,
         bool _isLong,
-        uint256 _price,
+        uint256 _acceptablePrice,
         uint256 _executionFee
     ) internal {
         uint256 index = increasePositionsIndex[_account].add(1);
@@ -310,11 +386,14 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _minOut,
             _sizeDelta,
             _isLong,
-            _price,
-            _executionFee
+            _acceptablePrice,
+            _executionFee,
+            block.number
         );
 
         increasePositions[_account][index] = position;
+
+        lastCreationBlock = block.number;
 
         emit CreateIncreasePosition(
             _account,
@@ -325,9 +404,10 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _minOut,
             _sizeDelta,
             _isLong,
-            _price,
+            _acceptablePrice,
             _executionFee,
-            index
+            index,
+            block.number
         );
     }
 
