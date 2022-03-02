@@ -11,10 +11,11 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IRouter.sol";
 import "./interfaces/IVault.sol";
+import "./interfaces/IPositionManager.sol";
 import "../access/Governable.sol";
 import "../peripherals/interfaces/ITimelock.sol";
 
-contract PositionManager is ReentrancyGuard, Governable {
+contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Address for address payable;
