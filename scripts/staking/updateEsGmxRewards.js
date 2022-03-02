@@ -34,12 +34,12 @@ async function main() {
 
   const stakedAmounts = {
     arbitrum: {
-      gmx: toInt("6,075,522"),
-      esGmx: toInt("814,802")
+      gmx: toInt("6,133,730"),
+      esGmx: toInt("849,355")
     },
     avax: {
-      gmx: toInt("327,225"),
-      esGmx: toInt("57,245")
+      gmx: toInt("343,774"),
+      esGmx: toInt("65,726")
     }
   }
 
@@ -49,7 +49,7 @@ async function main() {
     totalStaked += stakedAmounts[net].total
   }
 
-  const totalEsGmxRewards = expandDecimals(120000, tokenDecimals)
+  const totalEsGmxRewards = expandDecimals(100000, tokenDecimals)
   const secondsPerMonth = 28 * 24 * 60 * 60
 
   const rewardDistributorAddress = await rewardTracker.distributor()
