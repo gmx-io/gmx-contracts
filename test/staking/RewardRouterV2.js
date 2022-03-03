@@ -1107,6 +1107,106 @@ describe("RewardRouterV2", function () {
 
     expect(await esGmx.balanceOf(user1.address)).gt(expandDecimals(2360 - 365, 18))
     expect(await esGmx.balanceOf(user1.address)).lt(expandDecimals(2362 - 365, 18))
+
+    expect(await gmxVester.transferredAverageStakedAmounts(user2.address)).eq(0)
+    expect(await gmxVester.transferredAverageStakedAmounts(user3.address)).eq(expandDecimals(200, 18))
+    expect(await stakedGmxTracker.cumulativeRewards(user2.address)).gt(expandDecimals(892, 18))
+    expect(await stakedGmxTracker.cumulativeRewards(user2.address)).lt(expandDecimals(893, 18))
+    expect(await stakedGmxTracker.cumulativeRewards(user3.address)).gt(expandDecimals(892, 18))
+    expect(await stakedGmxTracker.cumulativeRewards(user3.address)).lt(expandDecimals(893, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).gt(expandDecimals(892, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).lt(expandDecimals(893, 18))
+    expect(await gmxVester.bonusRewards(user2.address)).eq(0)
+    expect(await gmxVester.bonusRewards(user3.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.getCombinedAverageStakedAmount(user2.address)).eq(expandDecimals(200, 18))
+    expect(await gmxVester.getCombinedAverageStakedAmount(user3.address)).gt(expandDecimals(1092, 18))
+    expect(await gmxVester.getCombinedAverageStakedAmount(user3.address)).lt(expandDecimals(1093, 18))
+    expect(await gmxVester.getMaxVestableAmount(user2.address)).eq(0)
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).gt(expandDecimals(1884, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).lt(expandDecimals(1886, 18))
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(992, 18))).eq(0)
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(992, 18))).gt(expandDecimals(574, 18))
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(992, 18))).lt(expandDecimals(575, 18))
+    expect(await gmxVester.getPairAmount(user1.address, expandDecimals(892, 18))).gt(expandDecimals(545, 18))
+    expect(await gmxVester.getPairAmount(user1.address, expandDecimals(892, 18))).lt(expandDecimals(546, 18))
+
+    const esGmxBatchSender = await deployContract("EsGmxBatchSender", [esGmx.address])
+
+    await timelock.signalSetHandler(esGmx.address, esGmxBatchSender.address, true)
+    await timelock.signalSetHandler(gmxVester.address, esGmxBatchSender.address, true)
+    await timelock.signalSetHandler(glpVester.address, esGmxBatchSender.address, true)
+    await timelock.signalMint(esGmx.address, wallet.address, expandDecimals(1000, 18))
+
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+
+    await timelock.setHandler(esGmx.address, esGmxBatchSender.address, true)
+    await timelock.setHandler(gmxVester.address, esGmxBatchSender.address, true)
+    await timelock.setHandler(glpVester.address, esGmxBatchSender.address, true)
+    await timelock.processMint(esGmx.address, wallet.address, expandDecimals(1000, 18))
+
+    await esGmxBatchSender.connect(wallet).send(
+      gmxVester.address,
+      4,
+      [user2.address, user3.address],
+      [expandDecimals(100, 18), expandDecimals(200, 18)]
+    )
+
+    expect(await gmxVester.transferredAverageStakedAmounts(user2.address)).gt(expandDecimals(37648, 18))
+    expect(await gmxVester.transferredAverageStakedAmounts(user2.address)).lt(expandDecimals(37649, 18))
+    expect(await gmxVester.transferredAverageStakedAmounts(user3.address)).gt(expandDecimals(12810, 18))
+    expect(await gmxVester.transferredAverageStakedAmounts(user3.address)).lt(expandDecimals(12811, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user2.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).gt(expandDecimals(892 + 200, 18))
+    expect(await gmxVester.transferredCumulativeRewards(user3.address)).lt(expandDecimals(893 + 200, 18))
+    expect(await gmxVester.bonusRewards(user2.address)).eq(0)
+    expect(await gmxVester.bonusRewards(user3.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.getCombinedAverageStakedAmount(user2.address)).gt(expandDecimals(3971, 18))
+    expect(await gmxVester.getCombinedAverageStakedAmount(user2.address)).lt(expandDecimals(3972, 18))
+    expect(await gmxVester.getCombinedAverageStakedAmount(user3.address)).gt(expandDecimals(7943, 18))
+    expect(await gmxVester.getCombinedAverageStakedAmount(user3.address)).lt(expandDecimals(7944, 18))
+    expect(await gmxVester.getMaxVestableAmount(user2.address)).eq(expandDecimals(100, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).gt(expandDecimals(1884 + 200, 18))
+    expect(await gmxVester.getMaxVestableAmount(user3.address)).lt(expandDecimals(1886 + 200, 18))
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(100, 18))).gt(expandDecimals(3971, 18))
+    expect(await gmxVester.getPairAmount(user2.address, expandDecimals(100, 18))).lt(expandDecimals(3972, 18))
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(1884 + 200, 18))).gt(expandDecimals(7936, 18))
+    expect(await gmxVester.getPairAmount(user3.address, expandDecimals(1884 + 200, 18))).lt(expandDecimals(7937, 18))
+
+    expect(await glpVester.transferredAverageStakedAmounts(user4.address)).eq(0)
+    expect(await glpVester.transferredCumulativeRewards(user4.address)).eq(0)
+    expect(await glpVester.bonusRewards(user4.address)).eq(0)
+    expect(await glpVester.getCombinedAverageStakedAmount(user4.address)).eq(0)
+    expect(await glpVester.getMaxVestableAmount(user4.address)).eq(0)
+    expect(await glpVester.getPairAmount(user4.address, expandDecimals(10, 18))).eq(0)
+
+    await esGmxBatchSender.connect(wallet).send(
+      glpVester.address,
+      320,
+      [user4.address],
+      [expandDecimals(10, 18)]
+    )
+
+    expect(await glpVester.transferredAverageStakedAmounts(user4.address)).eq(expandDecimals(3200, 18))
+    expect(await glpVester.transferredCumulativeRewards(user4.address)).eq(expandDecimals(10, 18))
+    expect(await glpVester.bonusRewards(user4.address)).eq(0)
+    expect(await glpVester.getCombinedAverageStakedAmount(user4.address)).eq(expandDecimals(3200, 18))
+    expect(await glpVester.getMaxVestableAmount(user4.address)).eq(expandDecimals(10, 18))
+    expect(await glpVester.getPairAmount(user4.address, expandDecimals(10, 18))).eq(expandDecimals(3200, 18))
+
+    await esGmxBatchSender.connect(wallet).send(
+      glpVester.address,
+      320,
+      [user4.address],
+      [expandDecimals(10, 18)]
+    )
+
+    expect(await glpVester.transferredAverageStakedAmounts(user4.address)).eq(expandDecimals(6400, 18))
+    expect(await glpVester.transferredCumulativeRewards(user4.address)).eq(expandDecimals(20, 18))
+    expect(await glpVester.bonusRewards(user4.address)).eq(0)
+    expect(await glpVester.getCombinedAverageStakedAmount(user4.address)).eq(expandDecimals(6400, 18))
+    expect(await glpVester.getMaxVestableAmount(user4.address)).eq(expandDecimals(20, 18))
+    expect(await glpVester.getPairAmount(user4.address, expandDecimals(10, 18))).eq(expandDecimals(3200, 18))
   })
 
   it("handleRewards", async () => {
