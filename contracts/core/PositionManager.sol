@@ -22,7 +22,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     using SafeERC20 for IERC20;
     using Address for address payable;
 
-    struct IncreasePosition {
+    struct IncreasePositionRequest {
         address account;
         address purchaseToken;
         address collateralToken;
@@ -50,6 +50,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     uint256 public minBlockDelayKeeper;
     uint256 public minBlockDelayPublic;
 
+    // this is checked by the price feed submitter to schedule an update
     uint256 public lastCreationBlock;
 
     // max deviation from primary price
@@ -64,7 +65,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     mapping (address => bool) public isPartner;
 
     mapping (address => uint256) public increasePositionsIndex;
-    mapping (address => mapping(uint256 => IncreasePosition)) public increasePositions;
+    mapping (address => mapping(uint256 => IncreasePositionRequest)) public increasePositionRequests;
 
     event CreateIncreasePosition(
         address indexed account,
@@ -81,6 +82,15 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 blockNumber
     );
 
+    event SetPositionKeeper(address indexed account, bool isActive);
+    event SetOrderKeeper(address indexed account, bool isActive);
+    event SetDepositFee(uint256 depositFee);
+    event SetMinExecutionFee(uint256 minExecutionFee);
+    event SetInLegacyMode(bool inLegacyMode);
+    event SetPartner(address account, bool isActive);
+    event SetMinBlockDelay(uint256 minBlockDelayKeeper, uint256 minBlockDelayPublic);
+    event SetAdmin(address admin);
+
     modifier onlyPositionKeeper() {
         require(isPositionKeeper[msg.sender], "PositionManager: forbidden");
         _;
@@ -91,8 +101,8 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         _;
     }
 
-    modifier onlyPartners() {
-        require(inLegacyMode || isPartner[msg.sender], "PositionManager: forbidden");
+    modifier onlyPartnersOrLegacyMode() {
+        require(isPartner[msg.sender] || inLegacyMode, "PositionManager: forbidden");
         _;
     }
 
@@ -119,35 +129,43 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     function setPositionKeeper(address _account, bool _isActive) external onlyAdmin {
         isPositionKeeper[_account] = _isActive;
+        emit SetPositionKeeper(_account, _isActive);
     }
 
     function setOrderKeeper(address _account, bool _isActive) external onlyAdmin {
         isOrderKeeper[_account] = _isActive;
+        emit SetOrderKeeper(_account, _isActive);
     }
 
     function setDepositFee(uint256 _depositFee) external onlyAdmin {
         depositFee = _depositFee;
+        emit SetDepositFee(_depositFee);
     }
 
     function setMinExecutionFee(uint256 _minExecutionFee) external onlyAdmin {
         minExecutionFee = _minExecutionFee;
+        emit SetMinExecutionFee(_minExecutionFee);
     }
 
     function setInLegacyMode(bool _inLegacyMode) external onlyAdmin {
         inLegacyMode = _inLegacyMode;
+        emit SetInLegacyMode(_inLegacyMode);
     }
 
     function setPartner(address _account, bool _isActive) external onlyAdmin {
         isPartner[_account] = _isActive;
+        emit SetPartner(_account, _isActive);
     }
 
     function setMinBlockDelay(uint256 _minBlockDelayKeeper, uint256 _minBlockDelayPublic) external onlyAdmin {
         minBlockDelayKeeper = _minBlockDelayKeeper;
         minBlockDelayPublic = _minBlockDelayPublic;
+        emit SetMinBlockDelay(minBlockDelayKeeper, minBlockDelayPublic);
     }
 
     function setAdmin(address _admin) external onlyGov {
         admin = _admin;
+        emit SetPartner(_admin);
     }
 
     function approve(address _token, address _spender, uint256 _amount) external onlyGov {
@@ -156,7 +174,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     function withdrawFees(address _token, address _receiver) external onlyGov {
         uint256 amount = feeReserves[_token];
-        if(amount == 0) { return; }
+        if (amount == 0) { return; }
 
         feeReserves[_token] = 0;
         IERC20(_token).safeTransfer(_receiver, amount);
@@ -223,22 +241,22 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     }
 
     function executeIncreasePosition(address _account, uint256 _index) external nonReentrant onlyPositionKeeper {
-        IncreasePosition memory position = increasePositions[_account][_index];
-        require(position.account != address(0), "PositionManager: position does not exist");
-        _validatePositionExecution(position.blockNumber);
+        IncreasePositionRequest memory request = increasePositionRequests[_account][_index];
+        require(request.account != address(0), "PositionManager: request does not exist");
+        _validatePositionExecution(request.blockNumber);
 
         address _vault = vault;
 
-        bool shouldRefundCollateral = false;
+        bool shouldOpenPosition = false;
 
-        if (position.isLong) {
-            shouldRefundCollateral = IVault(_vault).getMaxPrice(position.indexToken) > position.acceptablePrice;
+        if (request.isLong) {
+            shouldOpenPosition = IVault(_vault).getMaxPrice(request.indexToken) > request.acceptablePrice;
         } else {
-            shouldRefundCollateral = IVault(_vault).getMinPrice(position.indexToken) < position.acceptablePrice;
+            shouldOpenPosition = IVault(_vault).getMinPrice(request.indexToken) < request.acceptablePrice;
         }
 
-       /* if (position.amountIn > 0) {
-           if (position.purchaseToken != position.collateralToken) {
+       /* if (request.amountIn > 0) {
+           if (request.purchaseToken != request.collateralToken) {
                IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
                _amountIn = _swap(_path, _minOut, address(this));
            } else {
@@ -289,7 +307,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
        uint256 _sizeDelta,
        bool _isLong,
        uint256 _price
-   ) external nonReentrant onlyPartners {
+   ) external nonReentrant onlyPartnersOrLegacyMode {
        if (_amountIn > 0) {
            if (_path.length > 1) {
                IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
@@ -312,7 +330,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 _sizeDelta,
         bool _isLong,
         uint256 _price
-    ) external payable nonReentrant onlyPartners {
+    ) external payable nonReentrant onlyPartnersOrLegacyMode {
         require(_path[0] == weth, "PositionManager: invalid _path");
 
         if (msg.value > 0) {
@@ -340,7 +358,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         bool _isLong,
         address _receiver,
         uint256 _price
-    ) external nonReentrant onlyPartners {
+    ) external nonReentrant onlyPartnersOrLegacyMode {
         _decreasePosition(_collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver, _price);
     }
 
@@ -352,7 +370,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         bool _isLong,
         address payable _receiver,
         uint256 _price
-    ) external nonReentrant onlyPartners {
+    ) external nonReentrant onlyPartnersOrLegacyMode {
         uint256 amountOut = _decreasePosition(_collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         _transferOutETH(amountOut, _receiver);
     }
@@ -377,7 +395,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 index = increasePositionsIndex[_account].add(1);
         increasePositionsIndex[_account] = index;
 
-        IncreasePosition memory position = IncreasePosition(
+        IncreasePositionRequest memory request = IncreasePositionRequest(
             _account,
             _purchaseToken,
             _collateralToken,
@@ -391,7 +409,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             block.number
         );
 
-        increasePositions[_account][index] = position;
+        increasePositionRequests[_account][index] = request;
 
         lastCreationBlock = block.number;
 

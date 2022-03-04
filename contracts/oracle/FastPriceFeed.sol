@@ -42,7 +42,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public minAuthorizations;
     uint256 public disableFastPriceVoteCount = 0;
 
-    mapping (address => bool) public isAdmin;
+    mapping (address => bool) public isUpdater;
 
     mapping (address => uint256) public prices;
 
@@ -63,8 +63,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         _;
     }
 
-    modifier onlyAdmin() {
-        require(isAdmin[msg.sender], "FastPriceFeed: forbidden");
+    modifier onlyUpdater() {
+        require(isUpdater[msg.sender], "FastPriceFeed: forbidden");
         _;
     }
 
@@ -88,7 +88,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         tokenManager = _tokenManager;
     }
 
-    function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _admins) public onlyGov {
+    function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _updaters) public onlyGov {
         require(!isInitialized, "FastPriceFeed: already initialized");
         isInitialized = true;
 
@@ -99,14 +99,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             isSigner[signer] = true;
         }
 
-        for (uint256 i = 0; i < _admins.length; i++) {
-            address admin = _admins[i];
-            isAdmin[admin] = true;
+        for (uint256 i = 0; i < _updaters.length; i++) {
+            address updater = _updaters[i];
+            isUpdater[updater] = true;
         }
     }
 
     function setAdmin(address _account, bool _isActive) external onlyTokenManager {
-        isAdmin[_account] = _isActive;
+        isUpdater[_account] = _isActive;
     }
 
     function setFastPriceEvents(address _fastPriceEvents) external onlyGov {
@@ -132,14 +132,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         tokenPrecisions = _tokenPrecisions;
     }
 
-    // do not call setLastUpdatedAt, if the fast price submitter is not updating then
-    // the Chainlink price should be used instead since this function does not update all token prices
-    function setPrice(address _token, uint256 _price) external override onlyAdmin {
-        prices[_token] = _price;
-        IFastPriceEvents(fastPriceEvents).emitPriceEvent(_token, _price);
-    }
-
-    function setPrices(address[] memory _tokens, uint256[] memory _prices) external onlyAdmin {
+    function setPrices(address[] memory _tokens, uint256[] memory _prices) external onlyUpdater {
         setLastUpdatedAt();
 
         for (uint256 i = 0; i < _tokens.length; i++) {
@@ -151,7 +144,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
     }
 
-    function setPricesWithBits(uint256 _priceBits) external onlyAdmin {
+    function setPricesWithBits(uint256 _priceBits) external onlyUpdater {
         setLastUpdatedAt();
 
         for (uint256 j = 0; j < 8; j++) {
@@ -172,7 +165,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
     }
 
-    function setCompactedPrices(uint256[] memory _priceBitArray) external onlyAdmin {
+    function setCompactedPrices(uint256[] memory _priceBitArray) external onlyUpdater {
         setLastUpdatedAt();
 
         for (uint256 i = 0; i < _priceBitArray.length; i++) {
