@@ -51,7 +51,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     uint256 public minBlockDelayPublic;
 
     // this is checked by the price feed submitter to schedule an update
-    uint256 public lastCreationBlock;
+    uint256 public lastRequestBlock;
 
     // max deviation from primary price
     uint256 public maxDeviationBasisPoints;
@@ -411,7 +411,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
         increasePositionRequests[_account][index] = request;
 
-        lastCreationBlock = block.number;
+        lastRequestBlock = block.number;
 
         emit CreateIncreasePosition(
             _account,
