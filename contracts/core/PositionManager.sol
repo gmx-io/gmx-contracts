@@ -24,8 +24,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     struct IncreasePositionRequest {
         address account;
-        address purchaseToken;
-        address collateralToken;
+        address[] path;
         address indexToken;
         uint256 amountIn;
         uint256 minOut;
@@ -69,8 +68,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     event CreateIncreasePosition(
         address indexed account,
-        address purchaseToken,
-        address collateralToken,
+        address[] path,
         address indexToken,
         uint256 amountIn,
         uint256 minOut,
@@ -165,7 +163,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     function setAdmin(address _admin) external onlyGov {
         admin = _admin;
-        emit SetPartner(_admin);
+        emit SetAdmin(_admin);
     }
 
     function approve(address _token, address _spender, uint256 _amount) external onlyGov {
@@ -181,8 +179,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     }
 
     function createIncreasePosition(
-        address _purchaseToken,
-        address _collateralToken,
+        address[] memory _path,
         address _indexToken,
         uint256 _amountIn,
         uint256 _minOut,
@@ -195,13 +192,12 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         require(msg.value == _executionFee, "PositionManager: invalid msg.value");
 
         if (_amountIn > 0) {
-            IRouter(router).pluginTransfer(_purchaseToken, msg.sender, address(this), _amountIn);
+            IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
         }
 
         _createIncreasePosition(
             msg.sender,
-            _purchaseToken,
-            _collateralToken,
+            _path,
             _indexToken,
             _amountIn,
             _minOut,
@@ -213,7 +209,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     }
 
     function createIncreasePositionETH(
-        address _collateralToken,
+        address[] memory _path,
         address _indexToken,
         uint256 _minOut,
         uint256 _sizeDelta,
@@ -223,13 +219,14 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     ) external payable nonReentrant {
         require(_executionFee >= minExecutionFee, "PositionManager: invalid executionFee");
         require(msg.value >= _executionFee, "PositionManager: invalid msg.value");
+        require(_path[0] == weth, "Router: invalid _path");
 
         uint256 amountIn = msg.value.sub(_executionFee);
+        IWETH(weth).deposit{ value: amountIn }();
 
         _createIncreasePosition(
             msg.sender,
-            weth,
-            _collateralToken,
+            _path,
             _indexToken,
             amountIn,
             _minOut,
@@ -245,30 +242,21 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         require(request.account != address(0), "PositionManager: request does not exist");
         _validatePositionExecution(request.blockNumber);
 
-        address _vault = vault;
+       if (request.amountIn > 0) {
+           uint256 amountIn = request.amountIn;
 
-        bool shouldOpenPosition = false;
-
-        if (request.isLong) {
-            shouldOpenPosition = IVault(_vault).getMaxPrice(request.indexToken) > request.acceptablePrice;
-        } else {
-            shouldOpenPosition = IVault(_vault).getMinPrice(request.indexToken) < request.acceptablePrice;
-        }
-
-       /* if (request.amountIn > 0) {
-           if (request.purchaseToken != request.collateralToken) {
-               IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
-               _amountIn = _swap(_path, _minOut, address(this));
-           } else {
-               IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
+           if (request.path.length == 2) {
+               IERC20(request.path[0]).safeTransfer(vault, request.amountIn);
+               amountIn = _swap(request.path, request.minOut, address(this));
            }
 
-           uint256 afterFeeAmount = _getAfterFeeAmount(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
-           IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
+           uint256 afterFeeAmount = _getAfterFeeAmount(msg.sender, request.path, amountIn, request.indexToken, request.isLong, request.sizeDelta);
+           IERC20(request.path[request.path.length - 1]).safeTransfer(vault, afterFeeAmount);
        }
 
-       _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price); */
+       _increasePosition(request.path[request.path.length - 1], request.indexToken, request.sizeDelta, request.isLong, request.acceptablePrice);
 
+        msg.sender.sendValue(request.executionFee);
     }
 
     function executeIncreasePositionETH() external nonReentrant onlyPositionKeeper {
@@ -382,8 +370,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     function _createIncreasePosition(
         address _account,
-        address _purchaseToken,
-        address _collateralToken,
+        address[] memory _path,
         address _indexToken,
         uint256 _amountIn,
         uint256 _minOut,
@@ -392,13 +379,14 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 _acceptablePrice,
         uint256 _executionFee
     ) internal {
+        require(_path.length == 1 || _path.length == 2, "PositionManager: invalid _path");
+
         uint256 index = increasePositionsIndex[_account].add(1);
         increasePositionsIndex[_account] = index;
 
         IncreasePositionRequest memory request = IncreasePositionRequest(
             _account,
-            _purchaseToken,
-            _collateralToken,
+            _path,
             _indexToken,
             _amountIn,
             _minOut,
@@ -415,8 +403,7 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
         emit CreateIncreasePosition(
             _account,
-            _purchaseToken,
-            _collateralToken,
+            _path,
             _indexToken,
             _amountIn,
             _minOut,
