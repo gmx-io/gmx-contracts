@@ -1,7 +1,22 @@
 const fs = require('fs')
 const path = require('path')
+const parse = require('csv-parse')
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
+
+const readCsv = async (file) => {
+  records = []
+  const parser = fs
+  .createReadStream(file)
+  .pipe(parse({ columns: true, delimiter: ',' }))
+  parser.on('error', function(err){
+    console.error(err.message)
+  })
+  for await (const record of parser) {
+    records.push(record)
+  }
+  return records
+}
 
 function getChainId(network) {
   if (network === "arbitrum") {
@@ -89,6 +104,7 @@ function writeTmpAddresses(json) {
 }
 
 module.exports = {
+  readCsv,
   getFrameSigner,
   sendTxn,
   deployContract,
