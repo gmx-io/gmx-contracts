@@ -37,6 +37,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     uint256 public priceDuration;
     uint256 public minBlockInterval;
+    uint256 public maxTimeDeviation;
 
     // volatility basis points
     uint256 public volBasisPoints;
@@ -132,6 +133,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         executePositionCount = _executePositionCount;
     }
 
+    function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
+        maxTimeDeviation = _maxTimeDeviation;
+    }
+
+    function setLastUpdatedAt(uint256 _lastUpdatedAt) external onlyGov {
+        lastUpdatedAt = _lastUpdatedAt;
+    }
+
     function setVolBasisPoints(uint256 _volBasisPoints) external onlyGov {
         volBasisPoints = _volBasisPoints;
     }
@@ -142,63 +151,68 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         tokenPrecisions = _tokenPrecisions;
     }
 
-    function setPrices(address[] memory _tokens, uint256[] memory _prices) external onlyUpdater {
-        setLastUpdatedAt();
+    function setPrices(address[] memory _tokens, uint256[] memory _prices, uint256 _timestamp) external onlyUpdater {
+        bool wasUpdated = setLastUpdatedValues(_timestamp);
 
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            address token = _tokens[i];
-            prices[token] = _prices[i];
-            if (fastPriceEvents != address(0)) {
-              IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
+        if (wasUpdated) {
+            for (uint256 i = 0; i < _tokens.length; i++) {
+                address token = _tokens[i];
+                prices[token] = _prices[i];
+                if (fastPriceEvents != address(0)) {
+                  IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
+                }
             }
         }
 
         executePositions();
     }
 
-    function setPricesWithBits(uint256 _priceBits) external onlyUpdater {
-        setLastUpdatedAt();
+    function setPricesWithBits(uint256 _priceBits, uint256 _timestamp) external onlyUpdater {
+        bool wasUpdated = setLastUpdatedValues(_timestamp);
 
-        for (uint256 j = 0; j < 8; j++) {
-            uint256 index = j;
-            if (index >= tokens.length) { return; }
-
-            uint256 startBit = 32 * j;
-            uint256 price = (_priceBits >> startBit) & PRICE_BITMASK;
-
-            address token = tokens[j];
-            uint256 tokenPrecision = tokenPrecisions[j];
-            uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
-            prices[token] = adjustedPrice;
-
-            if (fastPriceEvents != address(0)) {
-              IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
-            }
-        }
-
-        executePositions();
-    }
-
-    function setCompactedPrices(uint256[] memory _priceBitArray) external onlyUpdater {
-        setLastUpdatedAt();
-
-        for (uint256 i = 0; i < _priceBitArray.length; i++) {
-            uint256 priceBits = _priceBitArray[i];
-
+        if (wasUpdated) {
             for (uint256 j = 0; j < 8; j++) {
-                uint256 index = i * 8 + j;
+                uint256 index = j;
                 if (index >= tokens.length) { return; }
 
                 uint256 startBit = 32 * j;
-                uint256 price = (priceBits >> startBit) & PRICE_BITMASK;
+                uint256 price = (_priceBits >> startBit) & PRICE_BITMASK;
 
-                address token = tokens[i * 8 + j];
-                uint256 tokenPrecision = tokenPrecisions[i * 8 + j];
+                address token = tokens[j];
+                uint256 tokenPrecision = tokenPrecisions[j];
                 uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
                 prices[token] = adjustedPrice;
 
                 if (fastPriceEvents != address(0)) {
                   IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
+                }
+            }
+        }
+
+        executePositions();
+    }
+
+    function setCompactedPrices(uint256[] memory _priceBitArray, uint256 _timestamp) external onlyUpdater {
+        bool wasUpdated = setLastUpdatedValues(_timestamp);
+        if (wasUpdated) {
+            for (uint256 i = 0; i < _priceBitArray.length; i++) {
+                uint256 priceBits = _priceBitArray[i];
+
+                for (uint256 j = 0; j < 8; j++) {
+                    uint256 index = i * 8 + j;
+                    if (index >= tokens.length) { return; }
+
+                    uint256 startBit = 32 * j;
+                    uint256 price = (priceBits >> startBit) & PRICE_BITMASK;
+
+                    address token = tokens[i * 8 + j];
+                    uint256 tokenPrecision = tokenPrecisions[i * 8 + j];
+                    uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
+                    prices[token] = adjustedPrice;
+
+                    if (fastPriceEvents != address(0)) {
+                      IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
+                    }
                 }
             }
         }
@@ -271,10 +285,21 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         return fastPrice < minPrice ? minPrice : fastPrice;
     }
 
-    function setLastUpdatedAt() private {
+    function setLastUpdatedValues(uint256 _timestamp) private returns (bool) {
         require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
+
+        require(_timestamp > block.timestamp.sub(maxTimeDeviation), "FastPriceFeed: _timestamp below allowed range");
+        require(_timestamp < block.timestamp.add(maxTimeDeviation), "FastPriceFeed: _timestamp exceeds allowed range");
+
+        // do not update prices if _timestamp is before the current lastUpdatedAt value
+        if (_timestamp < lastUpdatedAt) {
+            return false;
+        }
+
         lastUpdatedAt = block.timestamp;
         lastUpdatedBlock = block.number;
+
+        return true;
     }
 
     function executePositions() private {
