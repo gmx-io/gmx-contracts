@@ -5,6 +5,7 @@ import "../libraries/math/SafeMath.sol";
 import "./interfaces/ISecondaryPriceFeed.sol";
 import "./interfaces/IFastPriceFeed.sol";
 import "./interfaces/IFastPriceEvents.sol";
+import "../core/interfaces/IPositionManager.sol";
 import "../access/Governable.sol";
 
 pragma solidity 0.6.12;
@@ -20,9 +21,12 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     bool public isInitialized;
     bool public isSpreadEnabled = false;
+    uint256 public executePositionCount = 0;
     address public fastPriceEvents;
 
     address public tokenManager;
+
+    address public positionManager;
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
@@ -78,7 +82,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
-      address _tokenManager
+      address _tokenManager,
+      address _positionManager
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
@@ -86,6 +91,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
         tokenManager = _tokenManager;
+        positionManager = _positionManager;
     }
 
     function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _updaters) public onlyGov {
@@ -105,7 +111,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
     }
 
-    function setAdmin(address _account, bool _isActive) external onlyTokenManager {
+    function setUpdater(address _account, bool _isActive) external onlyTokenManager {
         isUpdater[_account] = _isActive;
     }
 
@@ -120,6 +126,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     function setIsSpreadEnabled(bool _isSpreadEnabled) external onlyGov {
         isSpreadEnabled = _isSpreadEnabled;
+    }
+
+    function setExecutePositionCount(uint256 _executePositionCount) external onlyGov {
+        executePositionCount = _executePositionCount;
     }
 
     function setVolBasisPoints(uint256 _volBasisPoints) external onlyGov {
@@ -142,6 +152,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
               IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
             }
         }
+
+        executePositions();
     }
 
     function setPricesWithBits(uint256 _priceBits) external onlyUpdater {
@@ -163,6 +175,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
               IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
             }
         }
+
+        executePositions();
     }
 
     function setCompactedPrices(uint256[] memory _priceBitArray) external onlyUpdater {
@@ -188,6 +202,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                 }
             }
         }
+
+        executePositions();
     }
 
     function disableFastPrice() external onlySigner {
@@ -259,5 +275,16 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
         lastUpdatedAt = block.timestamp;
         lastUpdatedBlock = block.number;
+    }
+
+    function executePositions() private {
+        uint256 _executePositionCount = executePositionCount;
+
+        if (_executePositionCount == 0) { return; }
+
+        IPositionManager manager = IPositionManager(positionManager);
+
+        manager.executeIncreasePositions(_executePositionCount);
+        manager.executeDecreasePositions(_executePositionCount);
     }
 }

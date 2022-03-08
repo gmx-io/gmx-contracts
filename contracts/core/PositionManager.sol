@@ -77,10 +77,13 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     mapping (address => bool) public isPartner;
 
     mapping (address => uint256) public increasePositionsIndex;
-    mapping (address => mapping(uint256 => IncreasePositionRequest)) public increasePositionRequests;
+    mapping (bytes32 => IncreasePositionRequest) public increasePositionRequests;
 
     mapping (address => uint256) public decreasePositionsIndex;
-    mapping (address => mapping(uint256 => DecreasePositionRequest)) public decreasePositionRequests;
+    mapping (bytes32 => DecreasePositionRequest) public decreasePositionRequests;
+
+    bytes32[] pendingIncreasePositionRequests;
+    bytes32[] pendingDecreasePositionRequests;
 
     event CreateIncreasePosition(
         address indexed account,
@@ -209,6 +212,40 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         IERC20(_token).safeTransfer(_receiver, amount);
     }
 
+    function executeIncreasePositions(uint256 _count) external override {
+        for (uint256 i = 0; i < _count; i++) {
+            if (pendingIncreasePositionRequests.length == 0) {
+                break;
+            }
+
+            uint256 index = pendingIncreasePositionRequests.length - i - 1;
+            bytes32 key = pendingIncreasePositionRequests[index];
+            pendingDecreasePositionRequests.pop();
+
+            try this.executeIncreasePosition(key) {
+            } catch {
+                this.cancelIncreasePosition(key);
+            }
+        }
+    }
+
+    function executeDecreasePositions(uint256 _count) external override {
+        for (uint256 i = 0; i < _count; i++) {
+            if (pendingDecreasePositionRequests.length == 0) {
+                break;
+            }
+
+            uint256 index = pendingDecreasePositionRequests.length - i - 1;
+            bytes32 key = pendingDecreasePositionRequests[index];
+            pendingDecreasePositionRequests.pop();
+
+            try this.executeDecreasePosition(key) {
+            } catch {
+                this.cancelDecreasePosition(key);
+            }
+        }
+    }
+
     function createIncreasePosition(
         address[] memory _path,
         address _indexToken,
@@ -270,12 +307,40 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         );
     }
 
-    function executeIncreasePosition(address _account, uint256 _index) external nonReentrant {
-        IncreasePositionRequest memory request = increasePositionRequests[_account][_index];
+    function createDecreasePosition(
+        address _collateralToken,
+        address _indexToken,
+        uint256 _collateralDelta,
+        uint256 _sizeDelta,
+        bool _isLong,
+        address _receiver,
+        uint256 _acceptablePrice,
+        uint256 _executionFee,
+        bool _withdrawETH
+    ) external payable nonReentrant {
+        require(_executionFee >= minExecutionFee, "PositionManager: invalid executionFee");
+        require(msg.value == _executionFee, "PositionManager: invalid msg.value");
+
+        _createDecreasePosition(
+            msg.sender,
+            _collateralToken,
+            _indexToken,
+            _collateralDelta,
+            _sizeDelta,
+            _isLong,
+            _receiver,
+            _acceptablePrice,
+            _executionFee,
+            _withdrawETH
+        );
+    }
+
+    function executeIncreasePosition(bytes32 _key) public nonReentrant {
+        IncreasePositionRequest memory request = increasePositionRequests[_key];
         require(request.account != address(0), "PositionManager: request does not exist");
         _validateExecution(request.blockNumber);
 
-        delete increasePositionRequests[_account][_index];
+        delete increasePositionRequests[_key];
 
        if (request.amountIn > 0) {
            uint256 amountIn = request.amountIn;
@@ -294,12 +359,12 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         msg.sender.sendValue(request.executionFee);
     }
 
-    function cancelIncreasePosition(address _account, uint256 _index) external nonReentrant {
-        IncreasePositionRequest memory request = increasePositionRequests[_account][_index];
+    function cancelIncreasePosition(bytes32 _key) public nonReentrant {
+        IncreasePositionRequest memory request = increasePositionRequests[_key];
         require(request.account != address(0), "PositionManager: request does not exist");
         _validateCancellation(request.blockNumber);
 
-        delete increasePositionRequests[_account][_index];
+        delete increasePositionRequests[_key];
 
         if (request.hasCollateralInETH) {
             _transferOutETH(request.amountIn, payable(request.account));
@@ -310,40 +375,12 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         msg.sender.sendValue(request.executionFee);
     }
 
-    function createDecreasePosition(
-        address _collateralToken,
-        address _indexToken,
-        uint256 _collateralDelta,
-        uint256 _sizeDelta,
-        bool _isLong,
-        address _receiver,
-        uint256 _acceptablePrice,
-        uint256 _executionFee,
-        bool _withdrawETH
-    ) external nonReentrant payable {
-        require(_executionFee >= minExecutionFee, "PositionManager: invalid executionFee");
-        require(msg.value == _executionFee, "PositionManager: invalid msg.value");
-
-        _createDecreasePosition(
-            msg.sender,
-            _collateralToken,
-            _indexToken,
-            _collateralDelta,
-            _sizeDelta,
-            _isLong,
-            _receiver,
-            _acceptablePrice,
-            _executionFee,
-            _withdrawETH
-        );
-    }
-
-    function executeDecreasePosition(address _account, uint256 _index) external {
-        DecreasePositionRequest memory request = decreasePositionRequests[_account][_index];
+    function executeDecreasePosition(bytes32 _key) public nonReentrant {
+        DecreasePositionRequest memory request = decreasePositionRequests[_key];
         require(request.account != address(0), "PositionManager: request does not exist");
         _validateExecution(request.blockNumber);
 
-        delete decreasePositionRequests[_account][_index];
+        delete decreasePositionRequests[_key];
 
         if (request.withdrawETH) {
            uint256 amountOut = _decreasePosition(request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, address(this), request.acceptablePrice);
@@ -355,12 +392,12 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         msg.sender.sendValue(request.executionFee);
     }
 
-    function cancelDecreasePosition(address _account, uint256 _index) external nonReentrant {
-        DecreasePositionRequest memory request = decreasePositionRequests[_account][_index];
+    function cancelDecreasePosition(bytes32 _key) public nonReentrant {
+        DecreasePositionRequest memory request = decreasePositionRequests[_key];
         require(request.account != address(0), "PositionManager: request does not exist");
         _validateCancellation(request.blockNumber);
 
-        delete decreasePositionRequests[_account][_index];
+        delete decreasePositionRequests[_key];
         msg.sender.sendValue(request.executionFee);
     }
 
@@ -464,19 +501,23 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         _transferOutETH(amountOut, _receiver);
     }
 
+    function getRequestKey(address _account, uint256 _index) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_account, _index));
+    }
+
     function _validateExecution(uint256 positionBlockNumber) internal view {
-        if (!isLeverageEnabled && !isPositionKeeper[msg.sender]) {
+        if (!isLeverageEnabled && msg.sender != address(this)) {
             revert("PositionManager: forbidden");
         }
-        uint256 minBlockDelay = isPositionKeeper[msg.sender] ? minBlockDelayKeeper : minBlockDelayPublic;
+        uint256 minBlockDelay = msg.sender == address(this) ? minBlockDelayKeeper : minBlockDelayPublic;
         require(positionBlockNumber.add(minBlockDelay) <= block.number, "PositionManager: min blocks not yet passed");
     }
 
     function _validateCancellation(uint256 positionBlockNumber) internal view {
-        if (!isLeverageEnabled && !isPositionKeeper[msg.sender]) {
+        if (!isLeverageEnabled && msg.sender != address(this)) {
             revert("PositionManager: forbidden");
         }
-        uint256 minBlockDelay = isPositionKeeper[msg.sender] ? minBlockDelayKeeper : minBlockDelayPublic;
+        uint256 minBlockDelay = msg.sender == address(this) ? minBlockDelayKeeper : minBlockDelayPublic;
         require(positionBlockNumber.add(minBlockDelay) <= block.number, "PositionManager: min blocks not yet passed");
     }
 
@@ -511,7 +552,8 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _hasCollateralInETH
         );
 
-        increasePositionRequests[_account][index] = request;
+        bytes32 key = getRequestKey(_account, index);
+        increasePositionRequests[key] = request;
 
         emit CreateIncreasePosition(
             _account,
@@ -557,7 +599,8 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _withdrawETH
         );
 
-        decreasePositionRequests[_account][index] = request;
+        bytes32 key = getRequestKey(_account, index);
+        decreasePositionRequests[key] = request;
 
         emit CreateDecreasePosition(
             _account,
