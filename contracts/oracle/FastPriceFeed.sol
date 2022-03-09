@@ -5,7 +5,7 @@ import "../libraries/math/SafeMath.sol";
 import "./interfaces/ISecondaryPriceFeed.sol";
 import "./interfaces/IFastPriceFeed.sol";
 import "./interfaces/IFastPriceEvents.sol";
-import "../core/interfaces/IPositionManager.sol";
+import "../core/interfaces/IRouterV2.sol";
 import "../access/Governable.sol";
 
 pragma solidity 0.6.12;
@@ -26,7 +26,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     address public tokenManager;
 
-    address public positionManager;
+    address public router;
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
@@ -84,7 +84,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
       address _tokenManager,
-      address _positionManager
+      address _router
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
@@ -92,7 +92,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
         tokenManager = _tokenManager;
-        positionManager = _positionManager;
+        router = _router;
     }
 
     function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _updaters) public onlyGov {
@@ -307,9 +307,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         if (_executePositionCount == 0) { return; }
 
-        IPositionManager manager = IPositionManager(positionManager);
+        IRouterV2 r = IRouterV2(router);
 
-        manager.executeIncreasePositions(_executePositionCount, payable(msg.sender));
-        manager.executeDecreasePositions(_executePositionCount, payable(msg.sender));
+        r.executeIncreasePositions(_executePositionCount, payable(msg.sender));
+        r.executeDecreasePositions(_executePositionCount, payable(msg.sender));
     }
 }
