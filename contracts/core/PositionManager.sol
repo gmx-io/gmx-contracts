@@ -41,12 +41,21 @@ contract PositionManager is ReentrancyGuard, Governable {
     mapping (address => bool) public isPartner;
     mapping (address => bool) public isLiquidator;
 
+    mapping (address => uint256) public maxGlobalLongSizes;
+    mapping (address => uint256) public maxGlobalShortSizes;
+
     event SetOrderKeeper(address indexed account, bool isActive);
     event SetLiquidator(address indexed account, bool isActive);
     event SetDepositFee(uint256 depositFee);
     event SetInLegacyMode(bool inLegacyMode);
     event SetPartner(address account, bool isActive);
     event SetAdmin(address admin);
+
+    event SetMaxGlobalSizes(
+        address[] tokens,
+        uint256[] longSizes,
+        uint256[] shortSizes
+    );
 
     modifier onlyOrderKeeper() {
         require(isOrderKeeper[msg.sender], "PositionManager: forbidden");
@@ -107,6 +116,28 @@ contract PositionManager is ReentrancyGuard, Governable {
         emit SetPartner(_account, _isActive);
     }
 
+    function setMaxGlobalSizes(
+        address[] memory _tokens,
+        uint256[] memory _longSizes,
+        uint256[] memory _shortSizes
+    ) external onlyAdmin {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            address token = _tokens[i];
+            maxGlobalLongSizes[token] = _longSizes[i];
+            maxGlobalShortSizes[token] = _shortSizes[i];
+        }
+
+        emit SetMaxGlobalSizes(_tokens, _longSizes, _shortSizes);
+    }
+
+    function withdrawFees(address _token, address _receiver) external onlyAdmin {
+        uint256 amount = feeReserves[_token];
+        if (amount == 0) { return; }
+
+        feeReserves[_token] = 0;
+        IERC20(_token).safeTransfer(_receiver, amount);
+    }
+
     function setAdmin(address _admin) external onlyGov {
         admin = _admin;
         emit SetAdmin(_admin);
@@ -116,12 +147,8 @@ contract PositionManager is ReentrancyGuard, Governable {
         IERC20(_token).approve(_spender, _amount);
     }
 
-    function withdrawFees(address _token, address _receiver) external onlyAdmin {
-        uint256 amount = feeReserves[_token];
-        if (amount == 0) { return; }
-
-        feeReserves[_token] = 0;
-        IERC20(_token).safeTransfer(_receiver, amount);
+    function sendValue(address payable _receiver, uint256 _amount) external onlyGov {
+        _receiver.sendValue(_amount);
     }
 
     function increasePosition(
@@ -314,6 +341,18 @@ contract PositionManager is ReentrancyGuard, Governable {
             require(IVault(_vault).getMaxPrice(_indexToken) <= _price, "PositionManager: mark price higher than limit");
         } else {
             require(IVault(_vault).getMinPrice(_indexToken) >= _price, "PositionManager: mark price lower than limit");
+        }
+
+        if (_isLong) {
+            uint256 maxGlobalLongSize = maxGlobalLongSizes[_indexToken];
+            if (maxGlobalLongSize > 0 && IVault(_vault).guaranteedUsd(_indexToken).add(_sizeDelta) > maxGlobalLongSize) {
+                revert("PositionManager: max global longs exceeded");
+            }
+        } else {
+            uint256 maxGlobalShortSize = maxGlobalShortSizes[_indexToken];
+            if (maxGlobalShortSize > 0 && IVault(_vault).globalShortSizes(_indexToken).add(_sizeDelta) >= maxGlobalShortSize) {
+                revert("PositionManager: max global shorts exceeded");
+            }
         }
 
         address timelock = IVault(_vault).gov();
