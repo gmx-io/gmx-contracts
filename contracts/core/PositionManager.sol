@@ -99,7 +99,35 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 acceptablePrice,
         uint256 executionFee,
         uint256 index,
-        uint256 blockNumber
+        uint256 blockNumber,
+        uint256 blockTime,
+        uint256 gasPrice
+    );
+
+    event ExecuteIncreasePosition(
+        address indexed account,
+        address[] path,
+        address indexToken,
+        uint256 amountIn,
+        uint256 minOut,
+        uint256 sizeDelta,
+        bool isLong,
+        uint256 acceptablePrice,
+        uint256 blockGap,
+        uint256 timeGap
+    );
+
+    event CancelIncreasePosition(
+        address indexed account,
+        address[] path,
+        address indexToken,
+        uint256 amountIn,
+        uint256 minOut,
+        uint256 sizeDelta,
+        bool isLong,
+        uint256 acceptablePrice,
+        uint256 blockGap,
+        uint256 timeGap
     );
 
     event CreateDecreasePosition(
@@ -113,7 +141,34 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         uint256 acceptablePrice,
         uint256 executionFee,
         uint256 index,
-        uint256 blockNumber
+        uint256 blockNumber,
+        uint256 blockTime
+    );
+
+    event ExecuteDecreasePosition(
+        address indexed account,
+        address collateralToken,
+        address indexToken,
+        uint256 collateralDelta,
+        uint256 sizeDelta,
+        bool isLong,
+        address receiver,
+        uint256 acceptablePrice,
+        uint256 blockGap,
+        uint256 timeGap
+    );
+
+    event CancelDecreasePosition(
+        address indexed account,
+        address collateralToken,
+        address indexToken,
+        uint256 collateralDelta,
+        uint256 sizeDelta,
+        bool isLong,
+        address receiver,
+        uint256 acceptablePrice,
+        uint256 blockGap,
+        uint256 timeGap
     );
 
     event SetPositionKeeper(address indexed account, bool isActive);
@@ -368,6 +423,19 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
        _increasePosition(request.path[request.path.length - 1], request.indexToken, request.sizeDelta, request.isLong, request.acceptablePrice);
 
         _executionFeeReceiver.sendValue(request.executionFee);
+
+        emit ExecuteIncreasePosition(
+            request.account,
+            request.path,
+            request.indexToken,
+            request.amountIn,
+            request.minOut,
+            request.sizeDelta,
+            request.isLong,
+            request.acceptablePrice,
+            block.number.sub(request.blockNumber),
+            block.timestamp.sub(request.blockTime)
+        );
     }
 
     function cancelIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
@@ -386,6 +454,19 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         }
 
         _executionFeeReceiver.sendValue(request.executionFee);
+
+        emit CancelIncreasePosition(
+            request.account,
+            request.path,
+            request.indexToken,
+            request.amountIn,
+            request.minOut,
+            request.sizeDelta,
+            request.isLong,
+            request.acceptablePrice,
+            block.number.sub(request.blockNumber),
+            block.timestamp.sub(request.blockTime)
+        );
     }
 
     function executeDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
@@ -405,6 +486,19 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
         }
 
         _executionFeeReceiver.sendValue(request.executionFee);
+
+        emit ExecuteDecreasePosition(
+            request.account,
+            request.collateralToken,
+            request.indexToken,
+            request.collateralDelta,
+            request.sizeDelta,
+            request.isLong,
+            request.receiver,
+            request.acceptablePrice,
+            block.number.sub(request.blockNumber),
+            block.timestamp.sub(request.blockTime)
+        );
     }
 
     function cancelDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
@@ -416,6 +510,19 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
         delete decreasePositionRequests[_key];
         _executionFeeReceiver.sendValue(request.executionFee);
+
+        emit CancelDecreasePosition(
+            request.account,
+            request.collateralToken,
+            request.indexToken,
+            request.collateralDelta,
+            request.sizeDelta,
+            request.isLong,
+            request.receiver,
+            request.acceptablePrice,
+            block.number.sub(request.blockNumber),
+            block.timestamp.sub(request.blockTime)
+        );
     }
 
     function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
@@ -600,7 +707,9 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _acceptablePrice,
             _executionFee,
             index,
-            block.number
+            block.number,
+            block.timestamp,
+            tx.gasprice
         );
     }
 
@@ -648,7 +757,8 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
             _acceptablePrice,
             _executionFee,
             index,
-            block.number
+            block.number,
+            block.timestamp
         );
     }
 
