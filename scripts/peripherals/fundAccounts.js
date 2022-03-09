@@ -22,15 +22,16 @@ function getAvaxTransfers() {
   return [
     {
       address: "0xB6A92Ae811B6A3530b4C01a78651ad295D9570d4", // price sender
-      amount: "50"
+      amount: "59"
     },
     {
       address: "0x06f34388A7CFDcC68aC9167C5f1C23DD39783179", // order keeper
-      amount: "13"
+      amount: "6"
     },
     {
       address: "0x7858A4C42C619a68df6E95DF7235a9Ec6F0308b9", // liquidator
-      amount: "13"
+      amount: "6"
+
     }
   ]
 }
