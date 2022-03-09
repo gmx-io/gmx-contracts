@@ -9,6 +9,9 @@ const inputDir = path.resolve(__dirname, "../..") + "/data/bonds/"
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
+const inputFile = inputDir + "2022-03-09_transfers.csv"
+const shouldSendTxns = false
+
 async function getArbValues() {
   const esGmx = await contractAt("EsGMX", "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA")
   const esGmxBatchSender = await contractAt("EsGmxBatchSender", "0xc3828fa579996090Dc7767E051341338e60207eF")
@@ -40,7 +43,7 @@ async function main() {
   const values = network === "arbitrum" ? await getArbValues() : await getAvaxValues()
   const { esGmx, esGmxBatchSender, vestWithGmxOption, vestWithGlpOption, gmxVester, glpVester } = values
 
-  const txns = await readCsv(inputDir + "2022-03-04_transfers.csv")
+  const txns = await readCsv(inputFile)
   console.log("processing list", txns.length)
 
   const vestWithGmxAccounts = []
@@ -74,10 +77,16 @@ async function main() {
 
   console.log("vestWithGmxAccounts", vestWithGmxAccounts.length)
   console.log("vestWithGlpAccounts", vestWithGlpAccounts.length)
-  console.log("totalEsGmx", totalEsGmx.toString())
+  console.log("totalEsGmx", totalEsGmx.toString(), ethers.utils.formatUnits(totalEsGmx, 18))
 
-  await sendTxn(esGmxBatchSender.send(gmxVester.address, 4, vestWithGmxAccounts, vestWithGmxAmounts, { gasLimit: 30000000 }), "esGmxBatchSender.send(gmxVester)")
-  await sendTxn(esGmxBatchSender.send(glpVester.address, 320, vestWithGlpAccounts, vestWithGlpAmounts, { gasLimit: 30000000 }), "esGmxBatchSender.send(glpVester)")
+  if (shouldSendTxns) {
+    if (vestWithGmxAccounts.length > 0) {
+      await sendTxn(esGmxBatchSender.send(gmxVester.address, 4, vestWithGmxAccounts, vestWithGmxAmounts, { gasLimit: 30000000 }), "esGmxBatchSender.send(gmxVester)")
+    }
+    if (vestWithGlpAccounts.length > 0) {
+      await sendTxn(esGmxBatchSender.send(glpVester.address, 320, vestWithGlpAccounts, vestWithGlpAmounts, { gasLimit: 30000000 }), "esGmxBatchSender.send(glpVester)")
+    }
+  }
 }
 
 main()
