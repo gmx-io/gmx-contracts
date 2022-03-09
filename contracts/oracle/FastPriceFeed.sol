@@ -309,7 +309,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         IPositionManager manager = IPositionManager(positionManager);
 
-        manager.executeIncreasePositions(_executePositionCount);
-        manager.executeDecreasePositions(_executePositionCount);
+        manager.executeIncreasePositions(_executePositionCount, payable(msg.sender));
+        manager.executeDecreasePositions(_executePositionCount, payable(msg.sender));
     }
 }

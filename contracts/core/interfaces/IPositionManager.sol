@@ -3,6 +3,6 @@
 pragma solidity 0.6.12;
 
 interface IPositionManager {
-    function executeIncreasePositions(uint256 _count) external;
-    function executeDecreasePositions(uint256 _count) external;
+    function executeIncreasePositions(uint256 _count, address payable _executionFeeReceiver) external;
+    function executeDecreasePositions(uint256 _count, address payable _executionFeeReceiver) external;
 }
