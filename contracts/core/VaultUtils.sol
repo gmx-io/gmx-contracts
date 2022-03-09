@@ -40,7 +40,7 @@ contract VaultUtils is IVaultUtils, Governable {
     }
 
     function validateDecreasePosition(address /* _account */, address /* _collateralToken */, address /* _indexToken */ , uint256 /* _collateralDelta */, uint256 /* _sizeDelta */, bool /* _isLong */, address /* _receiver */) external override view {
-        require(vault.isLeverageEnabled(), "VaultUtils: leverage not enabled");
+        // no additional validations
     }
 
     function getPosition(address _account, address _collateralToken, address _indexToken, bool _isLong) internal view returns (Position memory) {

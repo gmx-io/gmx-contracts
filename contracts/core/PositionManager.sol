@@ -82,8 +82,9 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
     mapping (address => uint256) public decreasePositionsIndex;
     mapping (bytes32 => DecreasePositionRequest) public decreasePositionRequests;
 
-    bytes32[] pendingIncreasePositionRequests;
-    bytes32[] pendingDecreasePositionRequests;
+    bytes32[] increasePositionRequestKeys;
+    bytes32[] decreasePositionRequestKeys;
+
 
     event CreateIncreasePosition(
         address indexed account,
@@ -214,13 +215,13 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     function executeIncreasePositions(uint256 _count) external override {
         for (uint256 i = 0; i < _count; i++) {
-            if (pendingIncreasePositionRequests.length == 0) {
+            if (increasePositionRequestKeys.length == 0) {
                 break;
             }
 
-            uint256 index = pendingIncreasePositionRequests.length - i - 1;
-            bytes32 key = pendingIncreasePositionRequests[index];
-            pendingDecreasePositionRequests.pop();
+            uint256 index = increasePositionRequestKeys.length - i - 1;
+            bytes32 key = increasePositionRequestKeys[index];
+            decreasePositionRequestKeys.pop();
 
             try this.executeIncreasePosition(key) {
             } catch {
@@ -231,13 +232,13 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     function executeDecreasePositions(uint256 _count) external override {
         for (uint256 i = 0; i < _count; i++) {
-            if (pendingDecreasePositionRequests.length == 0) {
+            if (decreasePositionRequestKeys.length == 0) {
                 break;
             }
 
-            uint256 index = pendingDecreasePositionRequests.length - i - 1;
-            bytes32 key = pendingDecreasePositionRequests[index];
-            pendingDecreasePositionRequests.pop();
+            uint256 index = decreasePositionRequestKeys.length - i - 1;
+            bytes32 key = decreasePositionRequestKeys[index];
+            decreasePositionRequestKeys.pop();
 
             try this.executeDecreasePosition(key) {
             } catch {
@@ -503,6 +504,10 @@ contract PositionManager is ReentrancyGuard, Governable, IPositionManager {
 
     function getRequestKey(address _account, uint256 _index) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_account, _index));
+    }
+
+    function getPendingRequestLenghts() public view returns (uint256, uint256) {
+        return (increasePositionRequestKeys.length, decreasePositionRequestKeys.length);
     }
 
     function _validateExecution(uint256 positionBlockNumber) internal view {
