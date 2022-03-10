@@ -22,6 +22,7 @@ contract ReferralStorage is Governable, IReferralStorage {
 
     event SetHandler(address handler, bool isActive);
     event SetIsCodeActive(bytes32 code, bool isActive);
+    event SetReferralCodeOwner(bytes32 code, address newAccount);
     event SetReferral(address account, bytes32 code);
     event Register(address account, bytes32 code);
     event UpdateAddress(address account, address newAccount, bytes32 code);
@@ -39,6 +40,11 @@ contract ReferralStorage is Governable, IReferralStorage {
     function setIsCodeActive(bytes32 _code, bool _isActive) external onlyGov {
         isCodeActive[_code] = _isActive;
         emit SetIsCodeActive(_code, _isActive);
+    }
+
+    function setReferralCodeOwner(bytes32 _code, address _newAccount) external onlyGov {
+        referralCodeOwners[_code] = _newAccount;
+        emit SetReferralCodeOwner(_code, _newAccount);
     }
 
     function setReferral(address _account, bytes32 _code) external override onlyHandler {
