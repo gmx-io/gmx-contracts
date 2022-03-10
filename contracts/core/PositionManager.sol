@@ -205,13 +205,7 @@ contract PositionManager is BasePositionManager {
         IOrderBook(orderBook).executeIncreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
 
-        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
-        emit IncreasePositionReferral(
-            _account,
-            sizeDelta,
-            referralCode,
-            referrer
-        );
+        _emitIncreasePositionReferral(_account, sizeDelta);
     }
 
     function executeDecreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
@@ -233,13 +227,7 @@ contract PositionManager is BasePositionManager {
             // executionFee
         ) = IOrderBook(orderBook).getDecreaseOrder(_account, _orderIndex);
 
-        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
-        emit IncreasePositionReferral(
-            _account,
-            _sizeDelta,
-            referralCode,
-            referrer
-        );
+        _emitDecreasePositionReferral(_account, _sizeDelta);
     }
 
     function _validateIncreaseOrder(address _account, uint256 _orderIndex) internal view returns (uint256) {

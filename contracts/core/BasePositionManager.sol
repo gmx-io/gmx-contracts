@@ -157,13 +157,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         IRouter(router).pluginIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
         ITimelock(timelock).setIsLeverageEnabled(_vault, false);
 
-        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
-        emit IncreasePositionReferral(
-            _account,
-            _sizeDelta,
-            referralCode,
-            referrer
-        );
+        _emitIncreasePositionReferral(_account, _sizeDelta);
     }
 
     function _decreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver, uint256 _price) internal returns (uint256) {
@@ -181,6 +175,32 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         uint256 amountOut = IVault(_vault).decreasePosition(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver);
         ITimelock(timelock).setIsLeverageEnabled(_vault, false);
 
+        _emitDecreasePositionReferral(_account, _sizeDelta);
+
+        return amountOut;
+    }
+
+    function _emitIncreasePositionReferral(address _account, uint256 _sizeDelta) internal {
+        address _referralStorage = referralStorage;
+        if (_referralStorage == address(0)) {
+            return;
+        }
+
+        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
+        emit IncreasePositionReferral(
+            _account,
+            _sizeDelta,
+            referralCode,
+            referrer
+        );
+    }
+
+    function _emitDecreasePositionReferral(address _account, uint256 _sizeDelta) internal {
+        address _referralStorage = referralStorage;
+        if (_referralStorage == address(0)) {
+            return;
+        }
+
         (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
         emit DecreasePositionReferral(
             _account,
@@ -188,8 +208,6 @@ contract BasePositionManager is ReentrancyGuard, Governable {
             referralCode,
             referrer
         );
-
-        return amountOut;
     }
 
     function _swap(address[] memory _path, uint256 _minOut, address _receiver) internal returns (uint256) {
