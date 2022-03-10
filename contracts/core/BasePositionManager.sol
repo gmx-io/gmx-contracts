@@ -146,7 +146,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
             }
         } else {
             uint256 maxGlobalShortSize = maxGlobalShortSizes[_indexToken];
-            if (maxGlobalShortSize > 0 && IVault(_vault).globalShortSizes(_indexToken).add(_sizeDelta) >= maxGlobalShortSize) {
+            if (maxGlobalShortSize > 0 && IVault(_vault).globalShortSizes(_indexToken).add(_sizeDelta) > maxGlobalShortSize) {
                 revert("BasePositionManager: max global shorts exceeded");
             }
         }
