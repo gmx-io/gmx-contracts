@@ -54,6 +54,8 @@ contract ReferralStorage is Governable, IReferralStorage {
 
     function register(bytes32 _code) external {
         require(!isRegistered[msg.sender], "ReferralStorage: already registered");
+        require(referralCodeOwners[_code] == address(0), "ReferralStorage: code already exists");
+
         referralCodeOwners[_code] = msg.sender;
         isRegistered[msg.sender] = true;
         emit Register(msg.sender, _code);
