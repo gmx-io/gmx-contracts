@@ -16,6 +16,8 @@ import "./interfaces/IOrderBook.sol";
 import "../access/Governable.sol";
 import "../peripherals/interfaces/ITimelock.sol";
 
+import "../referrals/interfaces/IReferralStorage.sol";
+
 contract BasePositionManager is ReentrancyGuard, Governable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -30,12 +32,15 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     address public weth;
     uint256 public depositFee;
 
+    address public referralStorage;
+
     mapping (address => uint256) public feeReserves;
 
     mapping (address => uint256) public maxGlobalLongSizes;
     mapping (address => uint256) public maxGlobalShortSizes;
 
     event SetDepositFee(uint256 depositFee);
+    event SetReferralStorage(address referralStorage);
     event SetAdmin(address admin);
     event WithdrawFees(address token, address receiver, uint256 amount);
 
@@ -43,6 +48,20 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         address[] tokens,
         uint256[] longSizes,
         uint256[] shortSizes
+    );
+
+    event IncreasePositionReferral(
+        address account,
+        uint256 sizeDelta,
+        bytes32 referralCode,
+        address referrer
+    );
+
+    event DecreasePositionReferral(
+        address account,
+        uint256 sizeDelta,
+        bytes32 referralCode,
+        address referrer
     );
 
     modifier onlyAdmin() {
@@ -67,6 +86,11 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     function setDepositFee(uint256 _depositFee) external onlyAdmin {
         depositFee = _depositFee;
         emit SetDepositFee(_depositFee);
+    }
+
+    function setReferralStorage(address _referralStorage) external onlyAdmin {
+        referralStorage = _referralStorage;
+        emit SetReferralStorage(_referralStorage);
     }
 
     function setMaxGlobalSizes(
@@ -106,7 +130,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         _receiver.sendValue(_amount);
     }
 
-    function _increasePosition(address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong, uint256 _price) internal {
+    function _increasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong, uint256 _price) internal {
         address _vault = vault;
 
         if (_isLong) {
@@ -130,11 +154,19 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         address timelock = IVault(_vault).gov();
 
         ITimelock(timelock).setIsLeverageEnabled(_vault, true);
-        IRouter(router).pluginIncreasePosition(msg.sender, _collateralToken, _indexToken, _sizeDelta, _isLong);
+        IRouter(router).pluginIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
         ITimelock(timelock).setIsLeverageEnabled(_vault, false);
+
+        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
+        emit IncreasePositionReferral(
+            _account,
+            _sizeDelta,
+            referralCode,
+            referrer
+        );
     }
 
-    function _decreasePosition(address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver, uint256 _price) internal returns (uint256) {
+    function _decreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver, uint256 _price) internal returns (uint256) {
         address _vault = vault;
 
         if (_isLong) {
@@ -146,8 +178,16 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         address timelock = IVault(_vault).gov();
 
         ITimelock(timelock).setIsLeverageEnabled(_vault, true);
-        uint256 amountOut = IVault(_vault).decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver);
+        uint256 amountOut = IVault(_vault).decreasePosition(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver);
         ITimelock(timelock).setIsLeverageEnabled(_vault, false);
+
+        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
+        emit DecreasePositionReferral(
+            _account,
+            _sizeDelta,
+            referralCode,
+            referrer
+        );
 
         return amountOut;
     }

@@ -263,10 +263,15 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         uint256 _sizeDelta,
         bool _isLong,
         uint256 _acceptablePrice,
-        uint256 _executionFee
+        uint256 _executionFee,
+        bytes32 _referralCode
     ) external payable nonReentrant {
         require(_executionFee >= minExecutionFee, "RouterV2: invalid executionFee");
         require(msg.value == _executionFee, "RouterV2: invalid msg.value");
+
+        if (_referralCode != bytes32(0) && referralStorage != address(0)) {
+            IReferralStorage(referralStorage).setReferral(msg.sender, _referralCode);
+        }
 
         if (_amountIn > 0) {
             IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
@@ -365,7 +370,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
            IERC20(request.path[request.path.length - 1]).safeTransfer(vault, afterFeeAmount);
        }
 
-       _increasePosition(request.path[request.path.length - 1], request.indexToken, request.sizeDelta, request.isLong, request.acceptablePrice);
+       _increasePosition(request.account, request.path[request.path.length - 1], request.indexToken, request.sizeDelta, request.isLong, request.acceptablePrice);
 
         _executionFeeReceiver.sendValue(request.executionFee);
 
@@ -426,10 +431,10 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         delete decreasePositionRequests[_key];
 
         if (request.withdrawETH) {
-           uint256 amountOut = _decreasePosition(request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, address(this), request.acceptablePrice);
+           uint256 amountOut = _decreasePosition(request.account, request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, address(this), request.acceptablePrice);
            _transferOutETH(amountOut, payable(request.receiver));
         } else {
-           _decreasePosition(request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, request.receiver, request.acceptablePrice);
+           _decreasePosition(request.account, request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, request.receiver, request.acceptablePrice);
         }
 
         _executionFeeReceiver.sendValue(request.executionFee);

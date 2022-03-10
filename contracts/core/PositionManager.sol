@@ -89,7 +89,7 @@ contract PositionManager is BasePositionManager {
            IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
        }
 
-       _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
+       _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
    }
 
     function increasePositionETH(
@@ -116,7 +116,7 @@ contract PositionManager is BasePositionManager {
             IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
         }
 
-        _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
+        _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
     function decreasePosition(
@@ -128,7 +128,7 @@ contract PositionManager is BasePositionManager {
         address _receiver,
         uint256 _price
     ) external nonReentrant onlyPartnersOrLegacyMode {
-        _decreasePosition(_collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver, _price);
+        _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver, _price);
     }
 
     function decreasePositionETH(
@@ -140,7 +140,7 @@ contract PositionManager is BasePositionManager {
         address payable _receiver,
         uint256 _price
     ) external nonReentrant onlyPartnersOrLegacyMode {
-        uint256 amountOut = _decreasePosition(_collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
+        uint256 amountOut = _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         _transferOutETH(amountOut, _receiver);
     }
 
@@ -154,7 +154,7 @@ contract PositionManager is BasePositionManager {
         uint256 _price,
         uint256 _minOut
     ) external nonReentrant onlyPartnersOrLegacyMode {
-        uint256 amount = _decreasePosition(_path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
+        uint256 amount = _decreasePosition(msg.sender, _path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         IERC20(_path[0]).safeTransfer(vault, amount);
         _swap(_path, _minOut, _receiver);
     }
@@ -170,7 +170,7 @@ contract PositionManager is BasePositionManager {
         uint256 _minOut
     ) external nonReentrant onlyPartnersOrLegacyMode {
         require(_path[_path.length - 1] == weth, "Router: invalid _path");
-        uint256 amount = _decreasePosition(_path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
+        uint256 amount = _decreasePosition(msg.sender, _path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         IERC20(_path[0]).safeTransfer(vault, amount);
         uint256 amountOut = _swap(_path, _minOut, address(this));
         _transferOutETH(amountOut, _receiver);
