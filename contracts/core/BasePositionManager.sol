@@ -37,6 +37,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
 
     event SetDepositFee(uint256 depositFee);
     event SetAdmin(address admin);
+    event WithdrawFees(address token, address receiver, uint256 amount);
 
     event SetMaxGlobalSizes(
         address[] tokens,
@@ -88,6 +89,8 @@ contract BasePositionManager is ReentrancyGuard, Governable {
 
         feeReserves[_token] = 0;
         IERC20(_token).safeTransfer(_receiver, amount);
+
+        emit WithdrawFees(_token, _receiver, amount);
     }
 
     function setAdmin(address _admin) external onlyGov {
