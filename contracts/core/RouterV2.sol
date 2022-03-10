@@ -212,6 +212,9 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
             try this.executeIncreasePosition(key, _executionFeeReceiver) returns (bool _wasExecuted) {
                 if (!_wasExecuted) { break; }
             } catch {
+                // if executeIncreasePosition raised an error it means that a sufficient number of blocks have passed
+                // but the increasePosition call failed, in this case cancelIncreasePosition should always be able to cancel
+                // the position without any error
                 this.cancelIncreasePosition(key, _executionFeeReceiver);
             }
 
@@ -245,6 +248,9 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
             try this.executeDecreasePosition(key, _executionFeeReceiver) returns (bool _wasExecuted) {
                 if (!_wasExecuted) { break; }
             } catch {
+                // if executeDecreasePosition raised an error it means that a sufficient number of blocks have passed
+                // but the decreasePosition call failed, in this case cancelIncreasePosition should always be able to cancel
+                // the position without any error
                 this.cancelDecreasePosition(key, _executionFeeReceiver);
             }
 
@@ -493,15 +499,17 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
     }
 
     function _validateExecution(uint256 _positionBlockNumber, uint256 _positionBlockTime) internal view returns (bool) {
-        if (!isLeverageEnabled && msg.sender != address(this)) {
-            revert("RouterV2: forbidden");
-        }
-
         if (_positionBlockTime.add(maxTimeDelay) <= block.timestamp) {
             revert("RouterV2: request has expired");
         }
 
-        if (msg.sender == address(this) || isPositionKeeper[msg.sender]) {
+        bool isKeeperCall = msg.sender == address(this) || isPositionKeeper[msg.sender];
+
+        if (!isLeverageEnabled && !isKeeperCall) {
+            revert("RouterV2: forbidden");
+        }
+
+        if (isKeeperCall) {
             return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
         }
 
@@ -509,11 +517,13 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
     }
 
     function _validateCancellation(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
-        if (!isLeverageEnabled && msg.sender != address(this)) {
+        bool isKeeperCall = msg.sender == address(this) || isPositionKeeper[msg.sender];
+
+        if (!isLeverageEnabled && !isKeeperCall) {
             revert("RouterV2: forbidden");
         }
 
-        if (msg.sender == address(this) || isPositionKeeper[msg.sender]) {
+        if (isKeeperCall) {
             return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
         }
 
