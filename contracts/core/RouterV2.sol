@@ -278,36 +278,53 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
     }
 
     function executeIncreasePositions(uint256 _count, address payable _executionFeeReceiver) external override onlyPositionKeeper {
+        uint256 index = increasePositionRequestKeys.length;
+
+        if (index == 0) { return ; }
+
         for (uint256 i = 0; i < _count; i++) {
-            if (increasePositionRequestKeys.length == 0) {
-                break;
-            }
+            index--;
 
-            uint256 index = increasePositionRequestKeys.length - i - 1;
             bytes32 key = increasePositionRequestKeys[index];
-            decreasePositionRequestKeys.pop();
 
-            try this.executeIncreasePosition(key, _executionFeeReceiver) {
+            try this.executeIncreasePosition(key, _executionFeeReceiver) returns (bool _wasExecuted) {
+                if (_wasExecuted) {
+                    increasePositionRequestKeys.pop();
+                }
             } catch {
                 this.cancelIncreasePosition(key, _executionFeeReceiver);
+                increasePositionRequestKeys.pop();
             }
+
+            if (index == 0) { break; }
         }
     }
 
     function executeDecreasePositions(uint256 _count, address payable _executionFeeReceiver) external override onlyPositionKeeper {
+        uint256 index = decreasePositionRequestKeys.length;
+
+        if (index == 0) { return; }
+
         for (uint256 i = 0; i < _count; i++) {
-            if (decreasePositionRequestKeys.length == 0) {
-                break;
-            }
+            index--;
 
-            uint256 index = decreasePositionRequestKeys.length - i - 1;
             bytes32 key = decreasePositionRequestKeys[index];
-            decreasePositionRequestKeys.pop();
 
-            try this.executeDecreasePosition(key, _executionFeeReceiver) {
+            // if the request was executed then remove the key from the array
+            // _wasExecuted can be false if the minimum number of blocks has not yet passed
+            // in that case, the key is not removed and the length of the array is not changed
+            // an error could be thrown if the request is too old or if the slippage is higher than what the user specified
+            // in case an error was thrown, cancel the request
+            try this.executeDecreasePosition(key, _executionFeeReceiver) returns (bool _wasExecuted) {
+                if (_wasExecuted) {
+                    decreasePositionRequestKeys.pop();
+                }
             } catch {
                 this.cancelDecreasePosition(key, _executionFeeReceiver);
+                decreasePositionRequestKeys.pop();
             }
+
+            if (index == 0) { break; }
         }
     }
 
@@ -400,12 +417,12 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
         );
     }
 
-    function executeIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
+    function executeIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
         bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime);
-        if (!shouldExecute) { return; }
+        if (!shouldExecute) { return false; }
 
         delete increasePositionRequests[_key];
 
@@ -437,13 +454,15 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
         );
+
+        return true;
     }
 
     function cancelIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
-        bool shouldExecute = _validateCancellation(request.blockNumber, request.blockTime);
+        bool shouldExecute = _validateCancellation(request.blockNumber, request.blockTime, request.account);
         if (!shouldExecute) { return; }
 
         delete increasePositionRequests[_key];
@@ -470,12 +489,12 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
         );
     }
 
-    function executeDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
+    function executeDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
         bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime);
-        if (!shouldExecute) { return; }
+        if (!shouldExecute) { return false; }
 
         delete decreasePositionRequests[_key];
 
@@ -500,13 +519,15 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
         );
+
+        return true;
     }
 
     function cancelDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
-        bool shouldExecute = _validateCancellation(request.blockNumber, request.blockTime);
+        bool shouldExecute = _validateCancellation(request.blockNumber, request.blockTime, request.account);
         if (!shouldExecute) { return; }
 
         delete decreasePositionRequests[_key];
@@ -543,21 +564,23 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
             revert("RouterV2: request has expired");
         }
 
-        if (msg.sender == address(this)) {
+        if (msg.sender == address(this) || isPositionKeeper[msg.sender]) {
             return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
         }
 
         return _positionBlockTime.add(minTimeDelayPublic) <= block.timestamp;
     }
 
-    function _validateCancellation(uint256 _positionBlockNumber, uint256 _positionBlockTime) internal view returns (bool) {
+    function _validateCancellation(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
         if (!isLeverageEnabled && msg.sender != address(this)) {
             revert("RouterV2: forbidden");
         }
 
-        if (msg.sender == address(this)) {
+        if (msg.sender == address(this) || isPositionKeeper[msg.sender]) {
             return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
         }
+
+        require(msg.sender == _account, "RouterV2: forbidden");
 
         return _positionBlockTime.add(minTimeDelayPublic) <= block.timestamp;
     }
