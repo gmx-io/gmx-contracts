@@ -43,17 +43,17 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
 
     uint256 public minExecutionFee;
 
-    uint256 public maxTimeDelay;
     uint256 public minBlockDelayKeeper;
     uint256 public minTimeDelayPublic;
+    uint256 public maxTimeDelay;
 
-    bool public isLeverageEnabled;
+    bool public isLeverageEnabled = true;
 
-    bytes32[] increasePositionRequestKeys;
-    bytes32[] decreasePositionRequestKeys;
+    bytes32[] public increasePositionRequestKeys;
+    bytes32[] public decreasePositionRequestKeys;
 
-    uint256 increasePositionRequestKeysStart;
-    uint256 decreasePositionRequestKeysStart;
+    uint256 public increasePositionRequestKeysStart;
+    uint256 public decreasePositionRequestKeysStart;
 
     mapping (address => bool) public isPositionKeeper;
 
@@ -149,7 +149,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
     event SetPositionKeeper(address indexed account, bool isActive);
     event SetMinExecutionFee(uint256 minExecutionFee);
     event SetIsLeverageEnabled(bool isLeverageEnabled);
-    event SetDelayValues(uint256 maxTimeDelay, uint256 minBlockDelayKeeper, uint256 minTimeDelayPublic);
+    event SetDelayValues(uint256 minBlockDelayKeeper, uint256 minTimeDelayPublic, uint256 maxTimeDelay);
 
     modifier onlyPositionKeeper() {
         require(isPositionKeeper[msg.sender], "RouterV2: forbidden");
@@ -181,11 +181,11 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         emit SetIsLeverageEnabled(_isLeverageEnabled);
     }
 
-    function setDelayValues(uint256 _maxTimeDelay, uint256 _minBlockDelayKeeper, uint256 _minTimeDelayPublic) external onlyAdmin {
-        maxTimeDelay = _maxTimeDelay;
+    function setDelayValues(uint256 _minBlockDelayKeeper, uint256 _minTimeDelayPublic, uint256 _maxTimeDelay) external onlyAdmin {
         minBlockDelayKeeper = _minBlockDelayKeeper;
         minTimeDelayPublic = _minTimeDelayPublic;
-        emit SetDelayValues(_maxTimeDelay, _minBlockDelayKeeper, _minTimeDelayPublic);
+        maxTimeDelay = _maxTimeDelay;
+        emit SetDelayValues(_minBlockDelayKeeper, _minTimeDelayPublic, _maxTimeDelay);
     }
 
     function executeIncreasePositions(uint256 _count, address payable _executionFeeReceiver) external override onlyPositionKeeper {

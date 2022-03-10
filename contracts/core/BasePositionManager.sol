@@ -65,7 +65,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     );
 
     modifier onlyAdmin() {
-        require(msg.sender == admin, "PositionManager: forbidden");
+        require(msg.sender == admin, "BasePositionManager: forbidden");
         _;
     }
 
@@ -81,6 +81,11 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         depositFee = _depositFee;
 
         admin = msg.sender;
+    }
+
+    function setAdmin(address _admin) external onlyGov {
+        admin = _admin;
+        emit SetAdmin(_admin);
     }
 
     function setDepositFee(uint256 _depositFee) external onlyAdmin {
@@ -117,11 +122,6 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         emit WithdrawFees(_token, _receiver, amount);
     }
 
-    function setAdmin(address _admin) external onlyGov {
-        admin = _admin;
-        emit SetAdmin(_admin);
-    }
-
     function approve(address _token, address _spender, uint256 _amount) external onlyGov {
         IERC20(_token).approve(_spender, _amount);
     }
@@ -134,20 +134,20 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         address _vault = vault;
 
         if (_isLong) {
-            require(IVault(_vault).getMaxPrice(_indexToken) <= _price, "PositionManager: mark price higher than limit");
+            require(IVault(_vault).getMaxPrice(_indexToken) <= _price, "BasePositionManager: mark price higher than limit");
         } else {
-            require(IVault(_vault).getMinPrice(_indexToken) >= _price, "PositionManager: mark price lower than limit");
+            require(IVault(_vault).getMinPrice(_indexToken) >= _price, "BasePositionManager: mark price lower than limit");
         }
 
         if (_isLong) {
             uint256 maxGlobalLongSize = maxGlobalLongSizes[_indexToken];
             if (maxGlobalLongSize > 0 && IVault(_vault).guaranteedUsd(_indexToken).add(_sizeDelta) > maxGlobalLongSize) {
-                revert("PositionManager: max global longs exceeded");
+                revert("BasePositionManager: max global longs exceeded");
             }
         } else {
             uint256 maxGlobalShortSize = maxGlobalShortSizes[_indexToken];
             if (maxGlobalShortSize > 0 && IVault(_vault).globalShortSizes(_indexToken).add(_sizeDelta) >= maxGlobalShortSize) {
-                revert("PositionManager: max global shorts exceeded");
+                revert("BasePositionManager: max global shorts exceeded");
             }
         }
 
@@ -214,12 +214,12 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         if (_path.length == 2) {
             return _vaultSwap(_path[0], _path[1], _minOut, _receiver);
         }
-        revert("PositionManager: invalid _path.length");
+        revert("BasePositionManager: invalid _path.length");
     }
 
     function _vaultSwap(address _tokenIn, address _tokenOut, uint256 _minOut, address _receiver) internal returns (uint256) {
         uint256 amountOut = IVault(vault).swap(_tokenIn, _tokenOut, _receiver);
-        require(amountOut >= _minOut, "PositionManager: insufficient amountOut");
+        require(amountOut >= _minOut, "BasePositionManager: insufficient amountOut");
         return amountOut;
     }
 
