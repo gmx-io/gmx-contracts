@@ -73,6 +73,9 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
     bytes32[] increasePositionRequestKeys;
     bytes32[] decreasePositionRequestKeys;
 
+    uint256 increasePositionRequestKeysStart;
+    uint256 decreasePositionRequestKeysStart;
+
     mapping (address => uint256) public feeReserves;
 
     mapping (address => bool) public isPositionKeeper;
@@ -278,54 +281,70 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
     }
 
     function executeIncreasePositions(uint256 _count, address payable _executionFeeReceiver) external override onlyPositionKeeper {
-        uint256 index = increasePositionRequestKeys.length;
+        uint256 index = increasePositionRequestKeysStart;
+        uint256 length = increasePositionRequestKeys.length;
 
-        if (index == 0) { return ; }
+        if (index >= length) { return; }
 
-        for (uint256 i = 0; i < _count; i++) {
-            index--;
+        uint256 endIndex = index + _count;
 
+        if (endIndex > length) {
+            endIndex = length;
+        }
+
+        while (index < endIndex) {
             bytes32 key = increasePositionRequestKeys[index];
 
+            // if the request was executed then delete the key from the array
+            // if the request was not executed then break from the loop, this can happen if the
+            // minimum number of blocks has not yet passed
+            // an error could be thrown if the request is too old or if the slippage is
+            // higher than what the user specified, or if there is insufficient liquidity for the position
+            // in case an error was thrown, cancel the request
             try this.executeIncreasePosition(key, _executionFeeReceiver) returns (bool _wasExecuted) {
-                if (_wasExecuted) {
-                    increasePositionRequestKeys.pop();
-                }
+                if (!_wasExecuted) { break; }
             } catch {
                 this.cancelIncreasePosition(key, _executionFeeReceiver);
-                increasePositionRequestKeys.pop();
             }
 
-            if (index == 0) { break; }
+            delete increasePositionRequestKeys[index];
+            index++;
         }
+
+        increasePositionRequestKeysStart = index;
     }
 
     function executeDecreasePositions(uint256 _count, address payable _executionFeeReceiver) external override onlyPositionKeeper {
-        uint256 index = decreasePositionRequestKeys.length;
+        uint256 index = decreasePositionRequestKeysStart;
+        uint256 length = decreasePositionRequestKeys.length;
 
-        if (index == 0) { return; }
+        if (index >= length) { return; }
 
-        for (uint256 i = 0; i < _count; i++) {
-            index--;
+        uint256 endIndex = index + _count;
 
+        if (endIndex > length) {
+            endIndex = length;
+        }
+
+        while (index < endIndex) {
             bytes32 key = decreasePositionRequestKeys[index];
 
-            // if the request was executed then remove the key from the array
-            // _wasExecuted can be false if the minimum number of blocks has not yet passed
-            // in that case, the key is not removed and the length of the array is not changed
-            // an error could be thrown if the request is too old or if the slippage is higher than what the user specified
+            // if the request was executed then delete the key from the array
+            // if the request was not executed then break from the loop, this can happen if the
+            // minimum number of blocks has not yet passed
+            // an error could be thrown if the request is too old
             // in case an error was thrown, cancel the request
             try this.executeDecreasePosition(key, _executionFeeReceiver) returns (bool _wasExecuted) {
-                if (_wasExecuted) {
-                    decreasePositionRequestKeys.pop();
-                }
+                if (!_wasExecuted) { break; }
             } catch {
                 this.cancelDecreasePosition(key, _executionFeeReceiver);
-                decreasePositionRequestKeys.pop();
             }
 
-            if (index == 0) { break; }
+            delete decreasePositionRequestKeys[index];
+            index++;
         }
+
+        decreasePositionRequestKeysStart = index;
     }
 
     function createIncreasePosition(
@@ -551,8 +570,13 @@ contract RouterV2 is ReentrancyGuard, Governable, IRouterV2 {
         return keccak256(abi.encodePacked(_account, _index));
     }
 
-    function getPendingRequestLenghts() public view returns (uint256, uint256) {
-        return (increasePositionRequestKeys.length, decreasePositionRequestKeys.length);
+    function getRequestQueueLengths() public view returns (uint256, uint256, uint256, uint256) {
+        return (
+            increasePositionRequestKeysStart,
+            increasePositionRequestKeys.length,
+            decreasePositionRequestKeysStart,
+            decreasePositionRequestKeys.length
+        );
     }
 
     function _validateExecution(uint256 _positionBlockNumber, uint256 _positionBlockTime) internal view returns (bool) {
