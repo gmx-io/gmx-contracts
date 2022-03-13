@@ -66,6 +66,7 @@ contract ReferralStorage is Governable, IReferralStorage {
         require(msg.sender == account, "ReferralStorage: forbidden");
 
         referralCodeOwners[_code] = _newAccount;
+        isRegistered[_newAccount] = true;
         emit UpdateAddress(msg.sender, _newAccount, _code);
     }
 
