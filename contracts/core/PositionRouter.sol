@@ -188,19 +188,17 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         emit SetDelayValues(_minBlockDelayKeeper, _minTimeDelayPublic, _maxTimeDelay);
     }
 
-    function executeIncreasePositions(uint256 _count, address payable _executionFeeReceiver) external override onlyPositionKeeper {
+    function executeIncreasePositions(uint256 _endIndex, address payable _executionFeeReceiver) external override onlyPositionKeeper {
         uint256 index = increasePositionRequestKeysStart;
         uint256 length = increasePositionRequestKeys.length;
 
         if (index >= length) { return; }
 
-        uint256 endIndex = index + _count;
-
-        if (endIndex > length) {
-            endIndex = length;
+        if (_endIndex > length) {
+            _endIndex = length;
         }
 
-        while (index < endIndex) {
+        while (index < _endIndex) {
             bytes32 key = increasePositionRequestKeys[index];
 
             // if the request was executed then delete the key from the array
@@ -225,19 +223,17 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         increasePositionRequestKeysStart = index;
     }
 
-    function executeDecreasePositions(uint256 _count, address payable _executionFeeReceiver) external override onlyPositionKeeper {
+    function executeDecreasePositions(uint256 _endIndex, address payable _executionFeeReceiver) external override onlyPositionKeeper {
         uint256 index = decreasePositionRequestKeysStart;
         uint256 length = decreasePositionRequestKeys.length;
 
         if (index >= length) { return; }
 
-        uint256 endIndex = index + _count;
-
-        if (endIndex > length) {
-            endIndex = length;
+        if (_endIndex > length) {
+            _endIndex = length;
         }
 
-        while (index < endIndex) {
+        while (index < _endIndex) {
             bytes32 key = decreasePositionRequestKeys[index];
 
             // if the request was executed then delete the key from the array
