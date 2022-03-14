@@ -5,7 +5,7 @@ import "../libraries/math/SafeMath.sol";
 import "./interfaces/ISecondaryPriceFeed.sol";
 import "./interfaces/IFastPriceFeed.sol";
 import "./interfaces/IFastPriceEvents.sol";
-import "../core/interfaces/IRouterV2.sol";
+import "../core/interfaces/IPositionRouter.sol";
 import "../access/Governable.sol";
 
 pragma solidity 0.6.12;
@@ -26,7 +26,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     address public tokenManager;
 
-    address public router;
+    address public positionRouter;
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
@@ -84,7 +84,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
       address _tokenManager,
-      address _router
+      address _positionRouter
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
@@ -92,7 +92,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
         tokenManager = _tokenManager;
-        router = _router;
+        positionRouter = _positionRouter;
     }
 
     function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _updaters) public onlyGov {
@@ -152,49 +152,25 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function setPrices(address[] memory _tokens, uint256[] memory _prices, uint256 _timestamp) external onlyUpdater {
-        bool wasUpdated = setLastUpdatedValues(_timestamp);
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
 
-        if (wasUpdated) {
+        if (shouldUpdate) {
+            address _fastPriceEvents = fastPriceEvents;
+
             for (uint256 i = 0; i < _tokens.length; i++) {
                 address token = _tokens[i];
                 prices[token] = _prices[i];
-                if (fastPriceEvents != address(0)) {
-                  IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
-                }
+                _emitPriceEvent(_fastPriceEvents, token,  _prices[i]);
             }
         }
-
-        executePositions();
-    }
-
-    function setPricesWithBits(uint256 _priceBits, uint256 _timestamp) external onlyUpdater {
-        bool wasUpdated = setLastUpdatedValues(_timestamp);
-
-        if (wasUpdated) {
-            for (uint256 j = 0; j < 8; j++) {
-                uint256 index = j;
-                if (index >= tokens.length) { return; }
-
-                uint256 startBit = 32 * j;
-                uint256 price = (_priceBits >> startBit) & PRICE_BITMASK;
-
-                address token = tokens[j];
-                uint256 tokenPrecision = tokenPrecisions[j];
-                uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
-                prices[token] = adjustedPrice;
-
-                if (fastPriceEvents != address(0)) {
-                  IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
-                }
-            }
-        }
-
-        executePositions();
     }
 
     function setCompactedPrices(uint256[] memory _priceBitArray, uint256 _timestamp) external onlyUpdater {
-        bool wasUpdated = setLastUpdatedValues(_timestamp);
-        if (wasUpdated) {
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
+
+        if (shouldUpdate) {
+            address _fastPriceEvents = fastPriceEvents;
+
             for (uint256 i = 0; i < _priceBitArray.length; i++) {
                 uint256 priceBits = _priceBitArray[i];
 
@@ -210,14 +186,22 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                     uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
                     prices[token] = adjustedPrice;
 
-                    if (fastPriceEvents != address(0)) {
-                      IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
-                    }
+                    _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
                 }
             }
         }
+    }
 
-        executePositions();
+    function setPricesWithBits(uint256 _priceBits, uint256 _timestamp) external onlyUpdater {
+        _setPricesWithBits(_priceBits, _timestamp);
+    }
+
+    function setPricesWithBitsAndExecute(uint256 _priceBits, uint256 _timestamp, uint256 _endIndexForIncreasePositions, uint256 _endIndexForDecreasePositions) external onlyUpdater {
+        _setPricesWithBits(_priceBits, _timestamp);
+
+        IPositionRouter _positionRouter = IPositionRouter(positionRouter);
+        _positionRouter.executeIncreasePositions(_endIndexForIncreasePositions, payable(msg.sender));
+        _positionRouter.executeDecreasePositions(_endIndexForDecreasePositions, payable(msg.sender));
     }
 
     function disableFastPrice() external onlySigner {
@@ -232,18 +216,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         require(disableFastPriceVotes[msg.sender], "FastPriceFeed: already enabled");
         disableFastPriceVotes[msg.sender] = false;
         disableFastPriceVoteCount = disableFastPriceVoteCount.sub(1);
-    }
-
-    function favorFastPrice() public view returns (bool) {
-        if (isSpreadEnabled) {
-            return false;
-        }
-
-        if (disableFastPriceVoteCount >= minAuthorizations) {
-            return false;
-        }
-
-        return true;
     }
 
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
@@ -285,7 +257,51 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         return fastPrice < minPrice ? minPrice : fastPrice;
     }
 
-    function setLastUpdatedValues(uint256 _timestamp) private returns (bool) {
+    function favorFastPrice() public view returns (bool) {
+        if (isSpreadEnabled) {
+            return false;
+        }
+
+        if (disableFastPriceVoteCount >= minAuthorizations) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function _setPricesWithBits(uint256 _priceBits, uint256 _timestamp) private {
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
+
+        if (shouldUpdate) {
+            address _fastPriceEvents = fastPriceEvents;
+
+            for (uint256 j = 0; j < 8; j++) {
+                uint256 index = j;
+                if (index >= tokens.length) { return; }
+
+                uint256 startBit = 32 * j;
+                uint256 price = (_priceBits >> startBit) & PRICE_BITMASK;
+
+                address token = tokens[j];
+                uint256 tokenPrecision = tokenPrecisions[j];
+                uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
+                prices[token] = adjustedPrice;
+
+                _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
+            }
+        }
+    }
+
+
+    function _emitPriceEvent(address _fastPriceEvents, address _token, uint256 _price) private {
+        if (_fastPriceEvents == address(0)) {
+            return;
+        }
+
+        IFastPriceEvents(_fastPriceEvents).emitPriceEvent(_token, _price);
+    }
+
+    function _setLastUpdatedValues(uint256 _timestamp) private returns (bool) {
         require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
 
         require(_timestamp > block.timestamp.sub(maxTimeDeviation), "FastPriceFeed: _timestamp below allowed range");
@@ -300,16 +316,5 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         lastUpdatedBlock = block.number;
 
         return true;
-    }
-
-    function executePositions() private {
-        uint256 _executePositionCount = executePositionCount;
-
-        if (_executePositionCount == 0) { return; }
-
-        IRouterV2 r = IRouterV2(router);
-
-        r.executeIncreasePositions(_executePositionCount, payable(msg.sender));
-        r.executeDecreasePositions(_executePositionCount, payable(msg.sender));
     }
 }
