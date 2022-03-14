@@ -4,12 +4,12 @@ pragma solidity ^0.6.0;
 
 import "./interfaces/IRouter.sol";
 import "./interfaces/IVault.sol";
-import "./interfaces/IRouterV2.sol";
+import "./interfaces/IPositionRouter.sol";
 
 import "../peripherals/interfaces/ITimelock.sol";
 import "./BasePositionManager.sol";
 
-contract RouterV2 is BasePositionManager, IRouterV2 {
+contract PositionRouter is BasePositionManager, IPositionRouter {
 
     struct IncreasePositionRequest {
         address account;
@@ -152,7 +152,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
     event SetDelayValues(uint256 minBlockDelayKeeper, uint256 minTimeDelayPublic, uint256 maxTimeDelay);
 
     modifier onlyPositionKeeper() {
-        require(isPositionKeeper[msg.sender], "RouterV2: forbidden");
+        require(isPositionKeeper[msg.sender], "PositionRouter: forbidden");
         _;
     }
 
@@ -272,8 +272,8 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         uint256 _executionFee,
         bytes32 _referralCode
     ) external payable nonReentrant {
-        require(_executionFee >= minExecutionFee, "RouterV2: invalid executionFee");
-        require(msg.value == _executionFee, "RouterV2: invalid msg.value");
+        require(_executionFee >= minExecutionFee, "PositionRouter: invalid executionFee");
+        require(msg.value == _executionFee, "PositionRouter: invalid msg.value");
 
         if (_referralCode != bytes32(0) && referralStorage != address(0)) {
             IReferralStorage(referralStorage).setTraderReferralCode(msg.sender, _referralCode);
@@ -306,8 +306,8 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         uint256 _acceptablePrice,
         uint256 _executionFee
     ) external payable nonReentrant {
-        require(_executionFee >= minExecutionFee, "RouterV2: invalid executionFee");
-        require(msg.value >= _executionFee, "RouterV2: invalid msg.value");
+        require(_executionFee >= minExecutionFee, "PositionRouter: invalid executionFee");
+        require(msg.value >= _executionFee, "PositionRouter: invalid msg.value");
         require(_path[0] == weth, "Router: invalid _path");
 
         uint256 amountIn = msg.value.sub(_executionFee);
@@ -338,8 +338,8 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         uint256 _executionFee,
         bool _withdrawETH
     ) external payable nonReentrant {
-        require(_executionFee >= minExecutionFee, "RouterV2: invalid executionFee");
-        require(msg.value == _executionFee, "RouterV2: invalid msg.value");
+        require(_executionFee >= minExecutionFee, "PositionRouter: invalid executionFee");
+        require(msg.value == _executionFee, "PositionRouter: invalid msg.value");
 
         _createDecreasePosition(
             msg.sender,
@@ -366,7 +366,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
 
     function executeIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
-        require(request.account != address(0), "RouterV2: request does not exist");
+        require(request.account != address(0), "PositionRouter: request does not exist");
 
         bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime, request.account);
         if (!shouldExecute) { return false; }
@@ -407,7 +407,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
 
     function cancelIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
-        require(request.account != address(0), "RouterV2: request does not exist");
+        require(request.account != address(0), "PositionRouter: request does not exist");
 
         bool shouldCancel = _validateCancellation(request.blockNumber, request.blockTime, request.account);
         if (!shouldCancel) { return; }
@@ -438,7 +438,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
 
     function executeDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
-        require(request.account != address(0), "RouterV2: request does not exist");
+        require(request.account != address(0), "PositionRouter: request does not exist");
 
         bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime, request.account);
         if (!shouldExecute) { return false; }
@@ -472,7 +472,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
 
     function cancelDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
-        require(request.account != address(0), "RouterV2: request does not exist");
+        require(request.account != address(0), "PositionRouter: request does not exist");
 
         bool shouldCancel = _validateCancellation(request.blockNumber, request.blockTime, request.account);
         if (!shouldCancel) { return; }
@@ -500,20 +500,20 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
 
     function _validateExecution(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
         if (_positionBlockTime.add(maxTimeDelay) <= block.timestamp) {
-            revert("RouterV2: request has expired");
+            revert("PositionRouter: request has expired");
         }
 
         bool isKeeperCall = msg.sender == address(this) || isPositionKeeper[msg.sender];
 
         if (!isLeverageEnabled && !isKeeperCall) {
-            revert("RouterV2: forbidden");
+            revert("PositionRouter: forbidden");
         }
 
         if (isKeeperCall) {
             return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
         }
 
-        require(msg.sender == _account, "RouterV2: forbidden");
+        require(msg.sender == _account, "PositionRouter: forbidden");
 
         return _positionBlockTime.add(minTimeDelayPublic) <= block.timestamp;
     }
@@ -522,14 +522,14 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         bool isKeeperCall = msg.sender == address(this) || isPositionKeeper[msg.sender];
 
         if (!isLeverageEnabled && !isKeeperCall) {
-            revert("RouterV2: forbidden");
+            revert("PositionRouter: forbidden");
         }
 
         if (isKeeperCall) {
             return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
         }
 
-        require(msg.sender == _account, "RouterV2: forbidden");
+        require(msg.sender == _account, "PositionRouter: forbidden");
 
         return _positionBlockTime.add(minTimeDelayPublic) <= block.timestamp;
     }
@@ -546,7 +546,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         uint256 _executionFee,
         bool _hasCollateralInETH
     ) internal {
-        require(_path.length == 1 || _path.length == 2, "RouterV2: invalid _path");
+        require(_path.length == 1 || _path.length == 2, "PositionRouter: invalid _path");
 
         uint256 index = increasePositionsIndex[_account].add(1);
         increasePositionsIndex[_account] = index;

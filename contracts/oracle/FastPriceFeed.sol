@@ -5,7 +5,7 @@ import "../libraries/math/SafeMath.sol";
 import "./interfaces/ISecondaryPriceFeed.sol";
 import "./interfaces/IFastPriceFeed.sol";
 import "./interfaces/IFastPriceEvents.sol";
-import "../core/interfaces/IRouterV2.sol";
+import "../core/interfaces/IPositionRouter.sol";
 import "../access/Governable.sol";
 
 pragma solidity 0.6.12;
@@ -26,7 +26,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     address public tokenManager;
 
-    address public router;
+    address public positionRouter;
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
@@ -84,7 +84,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
       address _tokenManager,
-      address _router
+      address _positionRouter
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
@@ -92,7 +92,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
         tokenManager = _tokenManager;
-        router = _router;
+        positionRouter = _positionRouter;
     }
 
     function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _updaters) public onlyGov {
@@ -307,9 +307,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         if (_executePositionCount == 0) { return; }
 
-        IRouterV2 r = IRouterV2(router);
+        IPositionRouter pr = IPositionRouter(positionRouter);
 
-        r.executeIncreasePositions(_executePositionCount, payable(msg.sender));
-        r.executeDecreasePositions(_executePositionCount, payable(msg.sender));
+        pr.executeIncreasePositions(_executePositionCount, payable(msg.sender));
+        pr.executeDecreasePositions(_executePositionCount, payable(msg.sender));
     }
 }
