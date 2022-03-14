@@ -88,6 +88,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         uint256 sizeDelta,
         bool isLong,
         uint256 acceptablePrice,
+        uint256 executionFee,
         uint256 blockGap,
         uint256 timeGap
     );
@@ -101,6 +102,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         uint256 sizeDelta,
         bool isLong,
         uint256 acceptablePrice,
+        uint256 executionFee,
         uint256 blockGap,
         uint256 timeGap
     );
@@ -129,6 +131,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         bool isLong,
         address receiver,
         uint256 acceptablePrice,
+        uint256 executionFee,
         uint256 blockGap,
         uint256 timeGap
     );
@@ -142,6 +145,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         bool isLong,
         address receiver,
         uint256 acceptablePrice,
+        uint256 executionFee,
         uint256 blockGap,
         uint256 timeGap
     );
@@ -396,6 +400,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             request.sizeDelta,
             request.isLong,
             request.acceptablePrice,
+            request.executionFee,
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
         );
@@ -429,6 +434,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             request.sizeDelta,
             request.isLong,
             request.acceptablePrice,
+            request.executionFee,
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
         );
@@ -461,6 +467,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             request.isLong,
             request.receiver,
             request.acceptablePrice,
+            request.executionFee,
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
         );
@@ -487,6 +494,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             request.isLong,
             request.receiver,
             request.acceptablePrice,
+            request.executionFee,
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
         );
