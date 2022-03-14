@@ -276,7 +276,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         require(msg.value == _executionFee, "RouterV2: invalid msg.value");
 
         if (_referralCode != bytes32(0) && referralStorage != address(0)) {
-            IReferralStorage(referralStorage).setReferral(msg.sender, _referralCode);
+            IReferralStorage(referralStorage).setTraderReferralCode(msg.sender, _referralCode);
         }
 
         if (_amountIn > 0) {
@@ -355,11 +355,20 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         );
     }
 
+    function getRequestQueueLengths() external view returns (uint256, uint256, uint256, uint256) {
+        return (
+            increasePositionRequestKeysStart,
+            increasePositionRequestKeys.length,
+            decreasePositionRequestKeysStart,
+            decreasePositionRequestKeys.length
+        );
+    }
+
     function executeIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
-        bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime);
+        bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime, request.account);
         if (!shouldExecute) { return false; }
 
         delete increasePositionRequests[_key];
@@ -400,8 +409,8 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
-        bool shouldExecute = _validateCancellation(request.blockNumber, request.blockTime, request.account);
-        if (!shouldExecute) { return; }
+        bool shouldCancel = _validateCancellation(request.blockNumber, request.blockTime, request.account);
+        if (!shouldCancel) { return; }
 
         delete increasePositionRequests[_key];
 
@@ -431,7 +440,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
-        bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime);
+        bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime, request.account);
         if (!shouldExecute) { return false; }
 
         delete decreasePositionRequests[_key];
@@ -465,8 +474,8 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
         require(request.account != address(0), "RouterV2: request does not exist");
 
-        bool shouldExecute = _validateCancellation(request.blockNumber, request.blockTime, request.account);
-        if (!shouldExecute) { return; }
+        bool shouldCancel = _validateCancellation(request.blockNumber, request.blockTime, request.account);
+        if (!shouldCancel) { return; }
 
         delete decreasePositionRequests[_key];
         _executionFeeReceiver.sendValue(request.executionFee);
@@ -489,16 +498,7 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         return keccak256(abi.encodePacked(_account, _index));
     }
 
-    function getRequestQueueLengths() public view returns (uint256, uint256, uint256, uint256) {
-        return (
-            increasePositionRequestKeysStart,
-            increasePositionRequestKeys.length,
-            decreasePositionRequestKeysStart,
-            decreasePositionRequestKeys.length
-        );
-    }
-
-    function _validateExecution(uint256 _positionBlockNumber, uint256 _positionBlockTime) internal view returns (bool) {
+    function _validateExecution(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
         if (_positionBlockTime.add(maxTimeDelay) <= block.timestamp) {
             revert("RouterV2: request has expired");
         }
@@ -512,6 +512,8 @@ contract RouterV2 is BasePositionManager, IRouterV2 {
         if (isKeeperCall) {
             return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
         }
+
+        require(msg.sender == _account, "RouterV2: forbidden");
 
         return _positionBlockTime.add(minTimeDelayPublic) <= block.timestamp;
     }

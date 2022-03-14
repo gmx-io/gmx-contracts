@@ -186,7 +186,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
             return;
         }
 
-        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
+        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getTraderReferralInfo(_account);
         emit IncreasePositionReferral(
             _account,
             _sizeDelta,
@@ -201,7 +201,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
             return;
         }
 
-        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getReferral(_account);
+        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getTraderReferralInfo(_account);
         emit DecreasePositionReferral(
             _account,
             _sizeDelta,
@@ -283,7 +283,8 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         uint256 nextCollateral = collateral.add(collateralDelta);
 
         uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
-        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
+        // add 100 to allow for a maximum of a 1% decrease since there might be some swap fees taken from the collateral
+        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 100).div(nextCollateral);
 
         return nextLeverage < prevLeverage;
     }
