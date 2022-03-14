@@ -152,7 +152,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function setPrices(address[] memory _tokens, uint256[] memory _prices, uint256 _timestamp) external onlyUpdater {
-        bool shouldUpdate = setLastUpdatedValues(_timestamp);
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
 
         if (shouldUpdate) {
             address _fastPriceEvents = fastPriceEvents;
@@ -160,13 +160,13 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             for (uint256 i = 0; i < _tokens.length; i++) {
                 address token = _tokens[i];
                 prices[token] = _prices[i];
-                emitPriceEvent(_fastPriceEvents, token,  _prices[i]);
+                _emitPriceEvent(_fastPriceEvents, token,  _prices[i]);
             }
         }
     }
 
     function setCompactedPrices(uint256[] memory _priceBitArray, uint256 _timestamp) external onlyUpdater {
-        bool shouldUpdate = setLastUpdatedValues(_timestamp);
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
 
         if (shouldUpdate) {
             address _fastPriceEvents = fastPriceEvents;
@@ -186,7 +186,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                     uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
                     prices[token] = adjustedPrice;
 
-                    emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
+                    _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
                 }
             }
         }
@@ -270,7 +270,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function _setPricesWithBits(uint256 _priceBits, uint256 _timestamp) private {
-        bool shouldUpdate = setLastUpdatedValues(_timestamp);
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
 
         if (shouldUpdate) {
             address _fastPriceEvents = fastPriceEvents;
@@ -287,13 +287,13 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                 uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
                 prices[token] = adjustedPrice;
 
-                emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
+                _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
             }
         }
     }
 
 
-    function emitPriceEvent(address _fastPriceEvents, address _token, uint256 _price) private {
+    function _emitPriceEvent(address _fastPriceEvents, address _token, uint256 _price) private {
         if (_fastPriceEvents == address(0)) {
             return;
         }
@@ -301,7 +301,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         IFastPriceEvents(_fastPriceEvents).emitPriceEvent(_token, _price);
     }
 
-    function setLastUpdatedValues(uint256 _timestamp) private returns (bool) {
+    function _setLastUpdatedValues(uint256 _timestamp) private returns (bool) {
         require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
 
         require(_timestamp > block.timestamp.sub(maxTimeDeviation), "FastPriceFeed: _timestamp below allowed range");

@@ -271,9 +271,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         require(_executionFee >= minExecutionFee, "PositionRouter: invalid executionFee");
         require(msg.value == _executionFee, "PositionRouter: invalid msg.value");
 
-        if (_referralCode != bytes32(0) && referralStorage != address(0)) {
-            IReferralStorage(referralStorage).setTraderReferralCode(msg.sender, _referralCode);
-        }
+        _setTraderReferralCode(_referralCode);
 
         if (_amountIn > 0) {
             IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
@@ -300,14 +298,18 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         uint256 _sizeDelta,
         bool _isLong,
         uint256 _acceptablePrice,
-        uint256 _executionFee
+        uint256 _executionFee,
+        bytes32 _referralCode
     ) external payable nonReentrant {
         require(_executionFee >= minExecutionFee, "PositionRouter: invalid executionFee");
         require(msg.value >= _executionFee, "PositionRouter: invalid msg.value");
         require(_path[0] == weth, "Router: invalid _path");
 
+        _setTraderReferralCode(_referralCode);
+
+        IWETH(weth).deposit{ value: msg.value }();
+
         uint256 amountIn = msg.value.sub(_executionFee);
-        IWETH(weth).deposit{ value: amountIn }();
 
         _createIncreasePosition(
             msg.sender,
@@ -492,6 +494,12 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     function getRequestKey(address _account, uint256 _index) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_account, _index));
+    }
+
+    function _setTraderReferralCode(bytes32 _referralCode) internal {
+        if (_referralCode != bytes32(0) && referralStorage != address(0)) {
+            IReferralStorage(referralStorage).setTraderReferralCode(msg.sender, _referralCode);
+        }
     }
 
     function _validateExecution(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {

@@ -322,53 +322,34 @@ describe("PositionRouter", function () {
     expect(request.hasCollateralInETH).eq(false)
   })
 
-  it("createIncreasePosition", async () => {
+  it("createIncreasePositionETH", async () => {
     const referralCode = "0x0000000000000000000000000000000000000000000000000000000000000123"
 
     const params = [
       [dai.address, bnb.address], // _path
       bnb.address, // _indexToken
-      expandDecimals(600, 18), // _amountIn
       expandDecimals(1, 18), // _minOut
       toUsd(6000), // _sizeDelta
-      true, // _isLong
+      false, // _isLong
       toUsd(300), // _acceptablePrice
     ]
 
-    await expect(positionRouter.connect(user0).createIncreasePosition(...params.concat([3000, referralCode])))
+    await expect(positionRouter.connect(user0).createIncreasePositionETH(...params.concat([3000, referralCode])))
       .to.be.revertedWith("PositionRouter: invalid executionFee")
 
-    await expect(positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode])))
+    await expect(positionRouter.connect(user0).createIncreasePositionETH(...params.concat([4000, referralCode])), { value: 3000 })
       .to.be.revertedWith("PositionRouter: invalid msg.value")
 
-    await expect(positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 3000 }))
-      .to.be.revertedWith("PositionRouter: invalid msg.value")
+    await expect(positionRouter.connect(user0).createIncreasePositionETH(...params.concat([4000, referralCode]), { value: 4000 }))
+      .to.be.revertedWith("Router: invalid _path")
 
-    await expect(positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 }))
-      .to.be.revertedWith("Router: invalid plugin")
-
-    await router.addPlugin(positionRouter.address)
-
-    await expect(positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 }))
-      .to.be.revertedWith("Router: plugin not approved")
-
-    await router.connect(user0).approvePlugin(positionRouter.address)
-
-    await expect(positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 }))
-      .to.be.revertedWith("ERC20: transfer amount exceeds balance")
-
-    await dai.mint(user0.address, expandDecimals(600, 18))
-
-    await expect(positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 }))
-      .to.be.revertedWith("ERC20: transfer amount exceeds allowance")
-
-    await dai.connect(user0).approve(router.address, expandDecimals(600, 18))
+    params[0] = [bnb.address, dai.address]
 
     const key = await positionRouter.getRequestKey(user0.address, 1)
     let request = await positionRouter.increasePositionRequests(key)
 
     expect(await referralStorage.traderReferralCodes(user0.address)).eq(HashZero)
-    expect(await dai.balanceOf(positionRouter.address)).eq(0)
+    expect(await bnb.balanceOf(positionRouter.address)).eq(0)
     expect(await positionRouter.increasePositionsIndex(user0.address)).eq(0)
 
     expect(request.account).eq(AddressZero)
@@ -384,8 +365,8 @@ describe("PositionRouter", function () {
     expect(request.blockTime).eq(0)
     expect(request.hasCollateralInETH).eq(false)
 
-    const tx = await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
-    await reportGasUsed(provider, tx, "createIncreasePosition gas used")
+    const tx = await positionRouter.connect(user0).createIncreasePositionETH(...params.concat([4000, referralCode]), { value: 5000 })
+    await reportGasUsed(provider, tx, "createIncreasePositionETH gas used")
 
     const blockNumber = await provider.getBlockNumber()
     const blockTime = await getBlockTime(provider)
@@ -393,20 +374,20 @@ describe("PositionRouter", function () {
     request = await positionRouter.increasePositionRequests(key)
 
     expect(await referralStorage.traderReferralCodes(user0.address)).eq(referralCode)
-    expect(await dai.balanceOf(positionRouter.address)).eq(expandDecimals(600, 18))
+    expect(await bnb.balanceOf(positionRouter.address)).eq(5000)
     expect(await positionRouter.increasePositionsIndex(user0.address)).eq(1)
 
     expect(request.account).eq(user0.address)
     expect(request.path).eq(undefined)
     expect(request.indexToken).eq(bnb.address)
-    expect(request.amountIn).eq(expandDecimals(600, 18))
+    expect(request.amountIn).eq(1000)
     expect(request.minOut).eq(expandDecimals(1, 18))
     expect(request.sizeDelta).eq(toUsd(6000))
-    expect(request.isLong).eq(true)
+    expect(request.isLong).eq(false)
     expect(request.acceptablePrice).eq(toUsd(300))
     expect(request.executionFee).eq(4000)
     expect(request.blockNumber).eq(blockNumber)
     expect(request.blockTime).eq(blockTime)
-    expect(request.hasCollateralInETH).eq(false)
+    expect(request.hasCollateralInETH).eq(true)
   })
 })
