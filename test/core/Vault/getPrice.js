@@ -113,10 +113,17 @@ describe("Vault.getPrice", function () {
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(89, 28))
 
     await vaultPriceFeed.setSpreadBasisPoints(usdc.address, 20)
-    expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq("888220000000000000000000000000")
+    expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(89, 28))
 
     await vaultPriceFeed.setUseV2Pricing(true)
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq("888220000000000000000000000000")
+
+    await vaultPriceFeed.setSpreadBasisPoints(btc.address, 0)
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
+    expect(await vaultPriceFeed.getPrice(btc.address, true, true, true)).eq(expandDecimals(40000, 30))
+
+    await vaultPriceFeed.setSpreadBasisPoints(btc.address, 20)
+    expect(await vaultPriceFeed.getPrice(btc.address, false, true, true)).eq(expandDecimals(39920, 30))
   })
 
   it("includes AMM price", async () => {

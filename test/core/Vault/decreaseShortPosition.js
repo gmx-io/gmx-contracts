@@ -125,9 +125,6 @@ describe("Vault.decreaseShortPosition", function () {
     await expect(vault.connect(user0).decreasePosition(user0.address, dai.address, btc.address, 0, toUsd(100), false, user2.address))
       .to.be.revertedWith("Vault: position size exceeded")
 
-    await expect(vault.connect(user0).decreasePosition(user0.address, dai.address, btc.address, toUsd(10), toUsd(50), false, user2.address))
-      .to.be.revertedWith("SafeMath: subtraction overflow")
-
     await expect(vault.connect(user0).decreasePosition(user0.address, dai.address, btc.address, toUsd(5), toUsd(50), false, user2.address))
       .to.be.revertedWith("Vault: liquidation fees exceed collateral")
 

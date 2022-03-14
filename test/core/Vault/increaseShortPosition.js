@@ -12,7 +12,6 @@ describe("Vault.increaseShortPosition", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
-  let vaultUtils
   let glpManager
   let vaultPriceFeed
   let glp
@@ -44,7 +43,6 @@ describe("Vault.increaseShortPosition", function () {
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
     const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
-    vaultUtils = initVaultResult.vaultUtils
     glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
 
     distributor0 = await deployContract("TimeDistributor", [])
@@ -124,11 +122,6 @@ describe("Vault.increaseShortPosition", function () {
     await dai.connect(user0).transfer(vault.address, expandDecimals(6, 18))
 
     await expect(vault.connect(user0).increasePosition(user0.address, dai.address, btc.address, toUsd(8), false))
-      .to.be.revertedWith("VaultUtils: leverage is too low")
-
-    await vaultUtils.setMinLeverage(7000)
-
-    await expect(vault.connect(user0).increasePosition(user0.address, dai.address, btc.address, toUsd(8), false))
       .to.be.revertedWith("Vault: _size must be more than _collateral")
 
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
@@ -178,11 +171,6 @@ describe("Vault.increaseShortPosition", function () {
 
     await dai.mint(user0.address, expandDecimals(1000, 18))
     await dai.connect(user0).transfer(vault.address, expandDecimals(500, 18))
-
-    await expect(vault.connect(user0).increasePosition(user0.address, dai.address, btc.address, toUsd(99), false))
-      .to.be.revertedWith("VaultUtils: leverage is too low")
-
-    await vaultUtils.setMinLeverage(1000)
 
     await expect(vault.connect(user0).increasePosition(user0.address, dai.address, btc.address, toUsd(99), false))
       .to.be.revertedWith("Vault: _size must be more than _collateral")

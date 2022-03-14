@@ -12,7 +12,6 @@ describe("Vault.increaseLongPosition", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
-  let vaultUtils
   let vaultPriceFeed
   let usdg
   let router
@@ -44,7 +43,6 @@ describe("Vault.increaseLongPosition", function () {
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
     const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
-    vaultUtils = initVaultResult.vaultUtils
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -124,11 +122,6 @@ describe("Vault.increaseLongPosition", function () {
 
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(500), true))
       .to.be.revertedWith("Vault: maxLeverage exceeded")
-
-    await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(8), true))
-      .to.be.revertedWith("VaultUtils: leverage is too low")
-
-    await vaultUtils.setMinLeverage(1000)
 
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(8), true))
       .to.be.revertedWith("Vault: _size must be more than _collateral")
@@ -235,8 +228,6 @@ describe("Vault.increaseLongPosition", function () {
   })
 
   it("increasePosition long aum", async () => {
-    await vaultUtils.setMinLeverage(10000)
-
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(100000))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(100000))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(100000))

@@ -53,7 +53,6 @@ describe("OrderBook, increase position orders", function () {
     const provider = waffle.provider
     const [wallet, user0, user1, user2, user3] = provider.getWallets()
 
-    let vaultUtils
     let orderBook;
     let defaults;
     let tokenDecimals;
@@ -81,8 +80,6 @@ describe("OrderBook, increase position orders", function () {
         vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
         const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
-        vaultUtils = initVaultResult.vaultUtils
-        await vaultUtils.setMinLeverage(1000)
 
         distributor0 = await deployContract("TimeDistributor", [])
         yieldTracker0 = await deployContract("YieldTracker", [usdg.address])

@@ -35,7 +35,7 @@ describe("FastPriceFeed", function () {
       fastPriceEvents.address, // _fastPriceEvents
       admin.address, // admin
       tokenManager.address // _tokenManager
-    ])
+    ], [user0.address])
     await fastPriceFeed.initialize(2, [signer0.address, signer1.address])
     await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
   })

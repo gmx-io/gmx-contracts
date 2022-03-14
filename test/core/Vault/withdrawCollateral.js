@@ -12,7 +12,6 @@ describe("Vault.withdrawCollateral", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
-  let vaultUtils
   let vaultPriceFeed
   let usdg
   let router
@@ -41,7 +40,6 @@ describe("Vault.withdrawCollateral", function () {
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
     const _ = await initVault(vault, router, usdg, vaultPriceFeed)
-    vaultUtils = _.vaultUtils
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -165,16 +163,6 @@ describe("Vault.withdrawCollateral", function () {
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(46100))
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(47100))
 
-    await vaultUtils.setWithdrawalCooldownDuration(3600)
-
-    // does not allow to withdraw without changing the size
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(0), true, user2.address))
-      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
-
-    // also does not allow to withdraw with too small size change
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(5), toUsd(10), true, user2.address))
-      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
-
     // it's okay to withdraw AND decrease size with at least same proportion (e.g. if leverage is decreased or the same)
     await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(1), toUsd(10), true, user2.address)
 
@@ -184,10 +172,5 @@ describe("Vault.withdrawCollateral", function () {
 
     await btc.connect(user1).transfer(vault.address, 25000) // 0.00025 BTC => 10 USD
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(30), true)
-
-    await increaseTime(provider, 3600)
-    await mineBlock(provider)
-    // should be not restrictions after cooldown period passed
-    await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(1), toUsd(0), true, user2.address)
   })
 })

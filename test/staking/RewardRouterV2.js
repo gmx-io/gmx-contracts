@@ -63,7 +63,9 @@ describe("RewardRouterV2", function () {
       rewardManager.address,
       tokenManager.address,
       tokenManager.address,
-      expandDecimals(1000000, 18)
+      expandDecimals(1000000, 18),
+      10,
+      100
     ])
 
     bnb = await deployContract("Token", [])
@@ -1217,7 +1219,9 @@ describe("RewardRouterV2", function () {
       rewardManagerV2.address,
       tokenManager.address,
       tokenManager.address,
-      expandDecimals(1000000, 18)
+      expandDecimals(1000000, 18),
+      10,
+      100
     ])
 
     // use new rewardRouter, use eth for weth
