@@ -112,6 +112,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
     }
 
+    function setTokenManager(address _tokenManager) external onlyGov {
+        tokenManager = _tokenManager;
+    }
+
+    function setSigner(address _account, bool _isActive) external onlyTokenManager {
+        isSigner[_account] = _isActive;
+    }
+
     function setUpdater(address _account, bool _isActive) external onlyTokenManager {
         isUpdater[_account] = _isActive;
     }
