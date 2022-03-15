@@ -153,9 +153,9 @@ contract BasePositionManager is ReentrancyGuard, Governable {
 
         address timelock = IVault(_vault).gov();
 
-        ITimelock(timelock).setIsLeverageEnabled(_vault, true);
+        ITimelock(timelock).enableLeverage(_vault);
         IRouter(router).pluginIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
-        ITimelock(timelock).setIsLeverageEnabled(_vault, false);
+        ITimelock(timelock).disableLeverage(_vault);
 
         _emitIncreasePositionReferral(_account, _sizeDelta);
     }
@@ -171,9 +171,9 @@ contract BasePositionManager is ReentrancyGuard, Governable {
 
         address timelock = IVault(_vault).gov();
 
-        ITimelock(timelock).setIsLeverageEnabled(_vault, true);
+        ITimelock(timelock).enableLeverage(_vault);
         uint256 amountOut = IVault(_vault).decreasePosition(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver);
-        ITimelock(timelock).setIsLeverageEnabled(_vault, false);
+        ITimelock(timelock).disableLeverage(_vault);
 
         _emitDecreasePositionReferral(_account, _sizeDelta);
 
