@@ -284,6 +284,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         require(msg.value == _executionFee, "PositionRouter: invalid msg.value");
         require(_path.length == 1 || _path.length == 2, "PositionRouter: invalid _path length");
 
+        _transferInETH();
         _setTraderReferralCode(_referralCode);
 
         if (_amountIn > 0) {
@@ -319,9 +320,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         require(_path.length == 1 || _path.length == 2, "PositionRouter: invalid _path length");
         require(_path[0] == weth, "PositionRouter: invalid _path");
 
+        _transferInETH();
         _setTraderReferralCode(_referralCode);
-
-        IWETH(weth).deposit{ value: msg.value }();
 
         uint256 amountIn = msg.value.sub(_executionFee);
 
@@ -352,6 +352,11 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     ) external payable nonReentrant {
         require(_executionFee >= minExecutionFee, "PositionRouter: invalid executionFee");
         require(msg.value == _executionFee, "PositionRouter: invalid msg.value");
+        if (_withdrawETH) {
+            require(_collateralToken == weth, "PositionRouter: invalid _collateralToken");
+        }
+
+        _transferInETH();
 
         _createDecreasePosition(
             msg.sender,
@@ -378,7 +383,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     function executeIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
-        // if the request was already executed or cancelled, return true so that executeIncreasePositions loop will continue executing the next request
+        // if the request was already executed or cancelled, return true so that the executeIncreasePositions loop will continue executing the next request
         if (request.account == address(0)) { return true; }
 
         bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime, request.account);
@@ -400,7 +405,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
        _increasePosition(request.account, request.path[request.path.length - 1], request.indexToken, request.sizeDelta, request.isLong, request.acceptablePrice);
 
-        _executionFeeReceiver.sendValue(request.executionFee);
+       _transferOutETH(request.executionFee, _executionFeeReceiver);
 
         emit ExecuteIncreasePosition(
             request.account,
@@ -421,7 +426,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     function cancelIncreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
-        // if the request was already executed or cancelled, return true so that executeIncreasePositions loop will continue executing the next request
+        // if the request was already executed or cancelled, return true so that the executeIncreasePositions loop will continue executing the next request
         if (request.account == address(0)) { return true; }
 
         bool shouldCancel = _validateCancellation(request.blockNumber, request.blockTime, request.account);
@@ -435,7 +440,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             IERC20(request.path[0]).safeTransfer(request.account, request.amountIn);
         }
 
-        _executionFeeReceiver.sendValue(request.executionFee);
+       _transferOutETH(request.executionFee, _executionFeeReceiver);
 
         emit CancelIncreasePosition(
             request.account,
@@ -456,7 +461,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     function executeDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
-        // if the request was already executed or cancelled, return true so that executeDecreasePositions loop will continue executing the next request
+        // if the request was already executed or cancelled, return true so that the executeDecreasePositions loop will continue executing the next request
         if (request.account == address(0)) { return true; }
 
         bool shouldExecute = _validateExecution(request.blockNumber, request.blockTime, request.account);
@@ -471,7 +476,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
            _decreasePosition(request.account, request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, request.receiver, request.acceptablePrice);
         }
 
-        _executionFeeReceiver.sendValue(request.executionFee);
+       _transferOutETH(request.executionFee, _executionFeeReceiver);
 
         emit ExecuteDecreasePosition(
             request.account,
@@ -492,14 +497,15 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     function cancelDecreasePosition(bytes32 _key, address payable _executionFeeReceiver) public nonReentrant returns (bool) {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
-        // if the request was already executed or cancelled, return true so that executeDecreasePositions loop will continue executing the next request
+        // if the request was already executed or cancelled, return true so that the executeDecreasePositions loop will continue executing the next request
         if (request.account == address(0)) { return true; }
 
         bool shouldCancel = _validateCancellation(request.blockNumber, request.blockTime, request.account);
         if (!shouldCancel) { return false; }
 
         delete decreasePositionRequests[_key];
-        _executionFeeReceiver.sendValue(request.executionFee);
+
+       _transferOutETH(request.executionFee, _executionFeeReceiver);
 
         emit CancelDecreasePosition(
             request.account,
@@ -667,5 +673,11 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             block.number,
             block.timestamp
         );
+    }
+
+    function _transferInETH() private {
+        if (msg.value != 0) {
+            IWETH(weth).deposit{value: msg.value}();
+        }
     }
 }

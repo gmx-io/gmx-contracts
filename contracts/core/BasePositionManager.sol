@@ -83,6 +83,10 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         admin = msg.sender;
     }
 
+    receive() external payable {
+        require(msg.sender == weth, "BasePositionManager: invalid sender");
+    }
+
     function setAdmin(address _admin) external onlyGov {
         admin = _admin;
         emit SetAdmin(_admin);

@@ -140,6 +140,7 @@ contract PositionManager is BasePositionManager {
         address payable _receiver,
         uint256 _price
     ) external nonReentrant onlyPartnersOrLegacyMode {
+        require(_collateralToken == weth, "PositionManager: invalid _collateralToken");
         uint256 amountOut = _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         _transferOutETH(amountOut, _receiver);
     }
