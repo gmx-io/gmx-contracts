@@ -581,6 +581,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         bytes32 key = getRequestKey(_account, index);
         increasePositionRequests[key] = request;
 
+        increasePositionRequestKeys.push(key);
+
         emit CreateIncreasePosition(
             _account,
             _path,
@@ -630,6 +632,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         bytes32 key = getRequestKey(_account, index);
         decreasePositionRequests[key] = request;
+
+        decreasePositionRequestKeys.push(key);
 
         emit CreateDecreasePosition(
             _account,

@@ -20,7 +20,7 @@ async function runForArbitrum() {
     maxTokenSupply
   ])
 
-  // TODO: set positionManager if updating vault gov
+  // TODO: set PositionManager and OrderExecutor as handlers
 }
 
 async function runForAvax() {

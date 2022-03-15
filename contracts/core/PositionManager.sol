@@ -186,9 +186,9 @@ contract PositionManager is BasePositionManager {
         address _vault = vault;
         address timelock = IVault(_vault).gov();
 
-        ITimelock(timelock).setIsLeverageEnabled(_vault, true);
+        ITimelock(timelock).enableLeverage(_vault);
         IVault(_vault).liquidatePosition(_account, _collateralToken, _indexToken, _isLong, _feeReceiver);
-        ITimelock(timelock).setIsLeverageEnabled(_vault, false);
+        ITimelock(timelock).disableLeverage(_vault);
     }
 
     function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
