@@ -46,7 +46,7 @@ async function withdrawFeesArb() {
   const gov = await contractAt("Timelock", await vault.gov(), signer)
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
 
-  const tokenArr = [eth, usdc, link, uni, usdt, mim, frax, dai]
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = await contractAt("Token", tokenArr[i].address)
