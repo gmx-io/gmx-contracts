@@ -1,9 +1,11 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn, getFrameSigner } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 async function runForArbitrum() {
+  const signer = await getFrameSigner()
+
   const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
   const rewardManager = { address: ethers.constants.AddressZero }
   const buffer = 24 * 60 * 60
@@ -17,10 +19,18 @@ async function runForArbitrum() {
     rewardManager.address,
     tokenManager.address,
     mintReceiver.address,
-    maxTokenSupply
-  ])
+    maxTokenSupply,
+    10, // marginFeeBasisPoints 0.1%
+    10 // maxMarginFeeBasisPoints 0.1%
+  ], "Timelock")
 
-  // TODO: set PositionManager and OrderExecutor as handlers
+  const positionManager = { address: "0x98a00666CfCb2BA5A405415C2BF6547C63bf5491" }
+  const orderExecutor = { address: "0x7257ac5D0a0aaC04AA7bA2AC0A6Eb742E332c3fB" }
+
+  let deployedTimelock = await contractAt("Timelock", timelock.address, signer)
+
+  await sendTxn(deployedTimelock.setContractHandler(positionManager.address, true), "deployedTimelock.setContractHandler(positionManager)")
+  await sendTxn(deployedTimelock.setContractHandler(orderExecutor.address, true), "deployedTimelock.setContractHandler(orderExecutor)")
 }
 
 async function runForAvax() {
@@ -37,7 +47,9 @@ async function runForAvax() {
     rewardManager.address,
     tokenManager.address,
     mintReceiver.address,
-    maxTokenSupply
+    maxTokenSupply,
+    10, // marginFeeBasisPoints 0.1%
+    10 // maxMarginFeeBasisPoints 0.1%
   ])
 }
 
