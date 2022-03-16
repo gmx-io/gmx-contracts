@@ -992,5 +992,103 @@ describe("PositionRouter", function () {
     expect(request.blockNumber).eq(blockNumber)
     expect(request.blockTime).eq(blockTime)
     expect(request.withdrawETH).eq(false)
+
+    await positionRouter.setPositionKeeper(positionKeeper.address, false)
+
+    await expect(positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address))
+      .to.be.revertedWith("PositionRouter: forbidden")
+
+    await positionRouter.setPositionKeeper(positionKeeper.address, true)
+
+    await positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address)
+
+    request = await positionRouter.decreasePositionRequests(key)
+    expect(request.account).eq(user0.address)
+
+    await mineBlock(provider)
+
+    expect(await bnb.balanceOf(user1.address)).eq(0)
+
+    const tx3 = await positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address)
+    await reportGasUsed(provider, tx3, "executeDecreasePosition gas used")
+
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(8000)
+
+    request = await positionRouter.decreasePositionRequests(key)
+    expect(request.account).eq(AddressZero)
+    expect(request.collateralToken).eq(AddressZero)
+    expect(request.indexToken).eq(AddressZero)
+
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+
+    expect(position[0]).eq(toUsd(5000)) // size
+    expect(position[1]).eq("292200000000000000000000000000000") // collateral, 592.2
+    expect(position[2]).eq(toUsd(300)) // averagePrice
+    expect(position[3]).eq(0) // entryFundingRate
+    expect(position[4]).eq("16666666666666666667") // reserveAmount, 16.666666666666666667
+    expect(position[5]).eq(0) // realisedPnl
+    expect(position[6]).eq(true) // hasProfit
+
+    expect(await bnb.balanceOf(user1.address)).eq("996666666666666666") // 0.996666666666666666
+
+    const collateralReceiver = newWallet()
+    decreasePositionParams[2] = toUsd(150)
+    decreasePositionParams[5] = collateralReceiver.address
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, true]), { value: 4000 })
+
+    key = await positionRouter.getRequestKey(user0.address, 2)
+    request = await positionRouter.decreasePositionRequests(key)
+
+    expect(request.account).eq(user0.address)
+    expect(request.collateralToken).eq(bnb.address)
+    expect(request.indexToken).eq(bnb.address)
+    expect(request.collateralDelta).eq(toUsd(150))
+    expect(request.sizeDelta).eq(toUsd(1000))
+    expect(request.isLong).eq(true)
+    expect(request.receiver).eq(collateralReceiver.address)
+    expect(request.acceptablePrice).eq(toUsd(290))
+    expect(request.withdrawETH).eq(true)
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    expect(await provider.getBalance(collateralReceiver.address)).eq(0)
+
+    await positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address)
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(12000)
+
+    request = await positionRouter.decreasePositionRequests(key)
+    expect(request.account).eq(AddressZero)
+
+    expect(await provider.getBalance(collateralReceiver.address)).eq("496666666666666666") // 0.496666666666666666
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, true]), { value: 4000 })
+
+    key = await positionRouter.getRequestKey(user0.address, 3)
+
+    request = await positionRouter.decreasePositionRequests(key)
+    expect(request.account).eq(user0.address)
+
+    await positionRouter.connect(positionKeeper).cancelDecreasePosition(key, executionFeeReceiver.address)
+
+    request = await positionRouter.decreasePositionRequests(key)
+    expect(request.account).eq(user0.address)
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    await positionRouter.connect(positionKeeper).cancelDecreasePosition(key, executionFeeReceiver.address)
+
+    request = await positionRouter.decreasePositionRequests(key)
+    expect(request.account).eq(AddressZero)
+
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(16000)
+
+    await positionRouter.connect(positionKeeper).cancelDecreasePosition(key, executionFeeReceiver.address)
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(16000)
   })
 })
