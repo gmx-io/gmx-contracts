@@ -11,7 +11,7 @@ use(solidity)
 describe("PositionRouter", function () {
   const { AddressZero, HashZero } = ethers.constants
   const provider = waffle.provider
-  const [wallet, positionKeeper, user0, user1, user2, user3, tokenManager, mintReceiver] = provider.getWallets()
+  const [wallet, positionKeeper, user0, user1, user2, user3, user4, user5, tokenManager, mintReceiver] = provider.getWallets()
   const depositFee = 50
   const minExecutionFee = 4000
   let vault
@@ -97,8 +97,6 @@ describe("PositionRouter", function () {
 
     await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(300))
     await vault.setTokenConfig(...getBnbConfig(bnb, bnbPriceFeed))
-
-    await bnb.connect(user3).deposit({ value: expandDecimals(100, 18) })
 
     await vault.setIsLeverageEnabled(false)
     await vault.setGov(timelock.address)
@@ -247,6 +245,21 @@ describe("PositionRouter", function () {
     expect(await positionRouter.minBlockDelayKeeper()).eq(7)
     expect(await positionRouter.minTimeDelayPublic()).eq(21)
     expect(await positionRouter.maxTimeDelay()).eq(600)
+  })
+
+  it("setRequestKeysStartValues", async () => {
+    await expect(positionRouter.connect(user0).setRequestKeysStartValues(5, 8))
+      .to.be.revertedWith("BasePositionManager: forbidden")
+
+    await positionRouter.setAdmin(user0.address)
+
+    expect(await positionRouter.increasePositionRequestKeysStart()).eq(0)
+    expect(await positionRouter.decreasePositionRequestKeysStart()).eq(0)
+
+    await positionRouter.connect(user0).setRequestKeysStartValues(5, 8)
+
+    expect(await positionRouter.increasePositionRequestKeysStart()).eq(5)
+    expect(await positionRouter.decreasePositionRequestKeysStart()).eq(8)
   })
 
   it("createIncreasePosition, executeIncreasePosition, cancelIncreasePosition", async () => {
@@ -1090,5 +1103,454 @@ describe("PositionRouter", function () {
 
     await positionRouter.connect(positionKeeper).cancelDecreasePosition(key, executionFeeReceiver.address)
     expect(await provider.getBalance(executionFeeReceiver.address)).eq(16000)
+  })
+
+  it("executeIncreasePositions, executeDecreasePositions", async () => {
+    await positionRouter.setDelayValues(5, 300, 500)
+    const executionFeeReceiver = newWallet()
+
+    await bnb.mint(vault.address, expandDecimals(500, 18))
+    await vault.buyUSDG(bnb.address, user1.address)
+
+    await router.addPlugin(positionRouter.address)
+    await router.connect(user0).approvePlugin(positionRouter.address)
+    await router.connect(user1).approvePlugin(positionRouter.address)
+    await router.connect(user2).approvePlugin(positionRouter.address)
+
+    await timelock.setContractHandler(positionRouter.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+
+    await expect(positionRouter.connect(positionKeeper).executeIncreasePositions(100, executionFeeReceiver.address))
+      .to.be.revertedWith("PositionRouter: forbidden")
+
+    await expect(positionRouter.connect(positionKeeper).executeDecreasePositions(100, executionFeeReceiver.address))
+      .to.be.revertedWith("PositionRouter: forbidden")
+
+    await positionRouter.setPositionKeeper(positionKeeper.address, true)
+
+    let queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(0) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(100, executionFeeReceiver.address)
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(100, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(0) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    const referralCode = "0x0000000000000000000000000000000000000000000000000000000000000123"
+
+    const params = [
+      [dai.address, bnb.address], // _path
+      bnb.address, // _indexToken
+      expandDecimals(600, 18), // _amountIn
+      expandDecimals(1, 18), // _minOut
+      toUsd(6000), // _sizeDelta
+      true, // _isLong
+      toUsd(300), // _acceptablePrice
+    ]
+
+    await router.addPlugin(positionRouter.address)
+
+    await router.connect(user0).approvePlugin(positionRouter.address)
+    await dai.mint(user0.address, expandDecimals(600, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(600, 18))
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    let key0 = await positionRouter.getRequestKey(user0.address, 1)
+    let request0 = await positionRouter.increasePositionRequests(key0)
+    expect(request0.account).eq(user0.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(1) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await router.connect(user1).approvePlugin(positionRouter.address)
+    await dai.mint(user1.address, expandDecimals(600, 18))
+    await dai.connect(user1).approve(router.address, expandDecimals(600, 18))
+    await positionRouter.connect(user1).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    let key1 = await positionRouter.getRequestKey(user1.address, 1)
+    let request1 = await positionRouter.increasePositionRequests(key1)
+    expect(request1.account).eq(user1.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(2) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await router.connect(user2).approvePlugin(positionRouter.address)
+    await dai.mint(user2.address, expandDecimals(600, 18))
+    await dai.connect(user2).approve(router.address, expandDecimals(600, 18))
+    await positionRouter.connect(user2).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    let key2 = await positionRouter.getRequestKey(user2.address, 1)
+    let request2 = await positionRouter.increasePositionRequests(key2)
+    expect(request2.account).eq(user2.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(3) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    params[4] = toUsd(500000) // _sizeDelta
+
+    await router.connect(user3).approvePlugin(positionRouter.address)
+    await dai.mint(user3.address, expandDecimals(600, 18))
+    await dai.connect(user3).approve(router.address, expandDecimals(600, 18))
+    await positionRouter.connect(user3).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    let key3 = await positionRouter.getRequestKey(user3.address, 1)
+    let request3 = await positionRouter.increasePositionRequests(key3)
+    expect(request3.account).eq(user3.address)
+
+    params[4] = toUsd(6000) // _sizeDelta
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(4) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await router.connect(user4).approvePlugin(positionRouter.address)
+    await dai.mint(user4.address, expandDecimals(600, 18))
+    await dai.connect(user4).approve(router.address, expandDecimals(600, 18))
+    await positionRouter.connect(user4).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    let key4 = await positionRouter.getRequestKey(user4.address, 1)
+    let request4 = await positionRouter.increasePositionRequests(key4)
+    expect(request4.account).eq(user4.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(5) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeIncreasePosition(key2, executionFeeReceiver.address)
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(4000)
+
+    expect((await positionRouter.increasePositionRequests(key2)).account).eq(AddressZero)
+
+    await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key3, executionFeeReceiver.address))
+      .to.be.revertedWith("Vault: fees exceed collateral")
+
+    // queue: request0, request1, request2 (executed), request3 (not executable), request4
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(0, executionFeeReceiver.address)
+    expect((await positionRouter.increasePositionRequests(key0)).account).eq(user0.address)
+    expect((await positionRouter.increasePositionRequests(key1)).account).eq(user1.address)
+    expect((await positionRouter.increasePositionRequests(key2)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key3)).account).eq(user3.address)
+    expect((await positionRouter.increasePositionRequests(key4)).account).eq(user4.address)
+
+    expect(await positionRouter.increasePositionRequestKeys(0)).eq(key0)
+    expect(await positionRouter.increasePositionRequestKeys(1)).eq(key1)
+    expect(await positionRouter.increasePositionRequestKeys(2)).eq(key2)
+    expect(await positionRouter.increasePositionRequestKeys(3)).eq(key3)
+    expect(await positionRouter.increasePositionRequestKeys(4)).eq(key4)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(0) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(5) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(1, executionFeeReceiver.address)
+    expect((await positionRouter.increasePositionRequests(key0)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key1)).account).eq(user1.address)
+    expect((await positionRouter.increasePositionRequests(key2)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key3)).account).eq(user3.address)
+    expect((await positionRouter.increasePositionRequests(key4)).account).eq(user4.address)
+
+    expect(await positionRouter.increasePositionRequestKeys(0)).eq(HashZero)
+    expect(await positionRouter.increasePositionRequestKeys(1)).eq(key1)
+    expect(await positionRouter.increasePositionRequestKeys(2)).eq(key2)
+    expect(await positionRouter.increasePositionRequestKeys(3)).eq(key3)
+    expect(await positionRouter.increasePositionRequestKeys(4)).eq(key4)
+
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(8000)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(1) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(5) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(0, executionFeeReceiver.address)
+
+    expect((await positionRouter.increasePositionRequests(key0)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key1)).account).eq(user1.address)
+    expect((await positionRouter.increasePositionRequests(key2)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key3)).account).eq(user3.address)
+    expect((await positionRouter.increasePositionRequests(key4)).account).eq(user4.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(1) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(5) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(8000)
+
+    expect(await dai.balanceOf(user0.address)).eq(0)
+    expect(await dai.balanceOf(user1.address)).eq(0)
+    expect(await dai.balanceOf(user2.address)).eq(0)
+    expect(await dai.balanceOf(user3.address)).eq(0)
+    expect(await dai.balanceOf(user4.address)).eq(0)
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(10, executionFeeReceiver.address)
+
+    expect((await positionRouter.increasePositionRequests(key0)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key1)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key2)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key3)).account).eq(AddressZero)
+    expect((await positionRouter.increasePositionRequests(key4)).account).eq(AddressZero)
+
+    expect(await positionRouter.increasePositionRequestKeys(0)).eq(HashZero)
+    expect(await positionRouter.increasePositionRequestKeys(1)).eq(HashZero)
+    expect(await positionRouter.increasePositionRequestKeys(2)).eq(HashZero)
+    expect(await positionRouter.increasePositionRequestKeys(3)).eq(HashZero)
+    expect(await positionRouter.increasePositionRequestKeys(4)).eq(HashZero)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(5) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(5) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    expect(await provider.getBalance(executionFeeReceiver.address)).eq(20000)
+
+    expect(await dai.balanceOf(user0.address)).eq(0)
+    expect(await dai.balanceOf(user1.address)).eq(0)
+    expect(await dai.balanceOf(user2.address)).eq(0)
+    expect(await dai.balanceOf(user3.address)).eq(expandDecimals(600, 18)) // refunded
+    expect(await dai.balanceOf(user4.address)).eq(0)
+
+    await dai.mint(user0.address, expandDecimals(600, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(600, 18))
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    await dai.mint(user0.address, expandDecimals(600, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(600, 18))
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(5) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(10, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(5) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await mineBlock(provider)
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(6, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(6) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(6, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(6) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeIncreasePositions(10, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
+
+    let decreasePositionParams = [
+      bnb.address, // _collateralToken
+      bnb.address, // _indexToken
+      toUsd(300), // _collateralDelta
+      toUsd(1000), // _sizeDelta
+      true // _isLong
+    ]
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 4000, false]), { value: 4000 })
+    let decreaseKey0 = await positionRouter.getRequestKey(user0.address, 1)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey0)).account).eq(user0.address)
+
+    await positionRouter.connect(user1).createDecreasePosition(...decreasePositionParams.concat([user1.address, toUsd(290), 4000, false]), { value: 4000 })
+    let decreaseKey1 = await positionRouter.getRequestKey(user1.address, 1)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey1)).account).eq(user1.address)
+
+    await positionRouter.connect(user2).createDecreasePosition(...decreasePositionParams.concat([user2.address, toUsd(290), 4000, false]), { value: 4000 })
+    let decreaseKey2 = await positionRouter.getRequestKey(user2.address, 1)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey2)).account).eq(user2.address)
+
+    await positionRouter.connect(user3).createDecreasePosition(...decreasePositionParams.concat([user3.address, toUsd(290), 4000, false]), { value: 4000 })
+    let decreaseKey3 = await positionRouter.getRequestKey(user3.address, 1)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey3)).account).eq(user3.address)
+
+    await positionRouter.connect(user4).createDecreasePosition(...decreasePositionParams.concat([user4.address, toUsd(290), 4000, false]), { value: 4000 })
+    let decreaseKey4 = await positionRouter.getRequestKey(user4.address, 1)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey4)).account).eq(user4.address)
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    expect(await bnb.balanceOf(user0.address)).eq(0)
+    expect(await bnb.balanceOf(user1.address)).eq(0)
+    expect(await bnb.balanceOf(user2.address)).eq(0)
+    expect(await bnb.balanceOf(user3.address)).eq(0)
+    expect(await bnb.balanceOf(user4.address)).eq(0)
+
+    await expect(positionRouter.connect(positionKeeper).executeDecreasePosition(decreaseKey3, executionFeeReceiver.address))
+      .to.be.revertedWith("Vault: empty position")
+
+    await positionRouter.connect(positionKeeper).executeDecreasePosition(decreaseKey2, executionFeeReceiver.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey2)).account).eq(AddressZero)
+
+    expect(await bnb.balanceOf(user0.address)).eq(0)
+    expect(await bnb.balanceOf(user1.address)).eq(0)
+    expect(await bnb.balanceOf(user2.address)).eq("996666666666666666")
+    expect(await bnb.balanceOf(user3.address)).eq(0)
+    expect(await bnb.balanceOf(user4.address)).eq(0)
+
+    // queue: request0, request1, request2 (executed), request3 (not executable), request4
+
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(0, executionFeeReceiver.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey0)).account).eq(user0.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey1)).account).eq(user1.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey2)).account).eq(AddressZero)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey3)).account).eq(user3.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey4)).account).eq(user4.address)
+
+    expect(await positionRouter.decreasePositionRequestKeys(0)).eq(decreaseKey0)
+    expect(await positionRouter.decreasePositionRequestKeys(1)).eq(decreaseKey1)
+    expect(await positionRouter.decreasePositionRequestKeys(2)).eq(decreaseKey2)
+    expect(await positionRouter.decreasePositionRequestKeys(3)).eq(decreaseKey3)
+    expect(await positionRouter.decreasePositionRequestKeys(4)).eq(decreaseKey4)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(0) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(5) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(1, executionFeeReceiver.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey0)).account).eq(AddressZero)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey1)).account).eq(user1.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey2)).account).eq(AddressZero)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey3)).account).eq(user3.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey4)).account).eq(user4.address)
+
+    expect(await positionRouter.decreasePositionRequestKeys(0)).eq(HashZero)
+    expect(await positionRouter.decreasePositionRequestKeys(1)).eq(decreaseKey1)
+    expect(await positionRouter.decreasePositionRequestKeys(2)).eq(decreaseKey2)
+    expect(await positionRouter.decreasePositionRequestKeys(3)).eq(decreaseKey3)
+    expect(await positionRouter.decreasePositionRequestKeys(4)).eq(decreaseKey4)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(1) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(5) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(10, executionFeeReceiver.address)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey0)).account).eq(AddressZero)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey1)).account).eq(AddressZero)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey2)).account).eq(AddressZero)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey3)).account).eq(AddressZero)
+    expect((await positionRouter.decreasePositionRequests(decreaseKey4)).account).eq(AddressZero)
+
+    expect(await positionRouter.decreasePositionRequestKeys(0)).eq(HashZero)
+    expect(await positionRouter.decreasePositionRequestKeys(1)).eq(HashZero)
+    expect(await positionRouter.decreasePositionRequestKeys(2)).eq(HashZero)
+    expect(await positionRouter.decreasePositionRequestKeys(3)).eq(HashZero)
+    expect(await positionRouter.decreasePositionRequestKeys(4)).eq(HashZero)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(5) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(5) // decreasePositionRequestKeys.length
+
+    expect(await bnb.balanceOf(user0.address)).eq("996666666666666666")
+    expect(await bnb.balanceOf(user1.address)).eq("996666666666666666")
+    expect(await bnb.balanceOf(user2.address)).eq("996666666666666666")
+    expect(await bnb.balanceOf(user3.address)).eq(0)
+    expect(await bnb.balanceOf(user4.address)).eq("996666666666666666")
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 4000, false]), { value: 4000 })
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(5) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(7) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(10, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(5) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(7) // decreasePositionRequestKeys.length
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(6, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(6) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(7) // decreasePositionRequestKeys.length
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(6, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(6) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(7) // decreasePositionRequestKeys.length
+
+    await positionRouter.connect(positionKeeper).executeDecreasePositions(10, executionFeeReceiver.address)
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(7) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(7) // decreasePositionRequestKeys.length
   })
 })
