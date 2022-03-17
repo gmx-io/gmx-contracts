@@ -19,18 +19,17 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     // shift the 1s by (256 - 32) to get (256 - 32) 0s followed by 32 1s
     uint256 constant public PRICE_BITMASK = uint256(~0) >> (256 - 32);
 
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
+
+    uint256 public constant MAX_PRICE_DURATION = 30 minutes;
+
     bool public isInitialized;
     bool public isSpreadEnabled = false;
-    uint256 public executePositionCount = 0;
     address public fastPriceEvents;
 
     address public tokenManager;
 
     address public positionRouter;
-
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
-
-    uint256 public constant MAX_PRICE_DURATION = 30 minutes;
 
     uint256 public override lastUpdatedAt;
     uint256 public override lastUpdatedBlock;
@@ -62,6 +61,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256[] public tokenPrecisions;
 
     event DisableFastPrice(address signer);
+    event EnableFastPrice(address signer);
 
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
@@ -133,12 +133,12 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         priceDuration = _priceDuration;
     }
 
-    function setIsSpreadEnabled(bool _isSpreadEnabled) external onlyGov {
-        isSpreadEnabled = _isSpreadEnabled;
+    function setMinBlockInterval(uint256 _minBlockInterval) external onlyGov {
+        minBlockInterval = _minBlockInterval;
     }
 
-    function setExecutePositionCount(uint256 _executePositionCount) external onlyGov {
-        executePositionCount = _executePositionCount;
+    function setIsSpreadEnabled(bool _isSpreadEnabled) external onlyGov {
+        isSpreadEnabled = _isSpreadEnabled;
     }
 
     function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
@@ -151,6 +151,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     function setVolBasisPoints(uint256 _volBasisPoints) external onlyGov {
         volBasisPoints = _volBasisPoints;
+    }
+
+    function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external onlyGov {
+        maxDeviationBasisPoints = _maxDeviationBasisPoints;
+    }
+
+    function setMinAuthorizations(uint256 _minAuthorizations) external onlyGov {
+        minAuthorizations = _minAuthorizations;
     }
 
     function setTokens(address[] memory _tokens, uint256[] memory _tokenPrecisions) external onlyGov {
@@ -224,6 +232,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         require(disableFastPriceVotes[msg.sender], "FastPriceFeed: already enabled");
         disableFastPriceVotes[msg.sender] = false;
         disableFastPriceVoteCount = disableFastPriceVoteCount.sub(1);
+
+        emit EnableFastPrice(msg.sender);
     }
 
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
@@ -320,7 +330,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             return false;
         }
 
-        lastUpdatedAt = block.timestamp;
+        lastUpdatedAt = _timestamp;
         lastUpdatedBlock = block.number;
 
         return true;

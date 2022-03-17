@@ -28,13 +28,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     struct DecreasePositionRequest {
         address account;
-        address collateralToken;
+        address[] path;
         address indexToken;
         uint256 collateralDelta;
         uint256 sizeDelta;
         bool isLong;
         address receiver;
         uint256 acceptablePrice;
+        uint256 minOut;
         uint256 executionFee;
         uint256 blockNumber;
         uint256 blockTime;
@@ -109,13 +110,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     event CreateDecreasePosition(
         address indexed account,
-        address collateralToken,
+        address[] path,
         address indexToken,
         uint256 collateralDelta,
         uint256 sizeDelta,
         bool isLong,
         address receiver,
         uint256 acceptablePrice,
+        uint256 minOut,
         uint256 executionFee,
         uint256 index,
         uint256 blockNumber,
@@ -124,13 +126,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     event ExecuteDecreasePosition(
         address indexed account,
-        address collateralToken,
+        address[] path,
         address indexToken,
         uint256 collateralDelta,
         uint256 sizeDelta,
         bool isLong,
         address receiver,
         uint256 acceptablePrice,
+        uint256 minOut,
         uint256 executionFee,
         uint256 blockGap,
         uint256 timeGap
@@ -138,13 +141,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     event CancelDecreasePosition(
         address indexed account,
-        address collateralToken,
+        address[] path,
         address indexToken,
         uint256 collateralDelta,
         uint256 sizeDelta,
         bool isLong,
         address receiver,
         uint256 acceptablePrice,
+        uint256 minOut,
         uint256 executionFee,
         uint256 blockGap,
         uint256 timeGap
@@ -340,33 +344,37 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     }
 
     function createDecreasePosition(
-        address _collateralToken,
+        address[] memory _path,
         address _indexToken,
         uint256 _collateralDelta,
         uint256 _sizeDelta,
         bool _isLong,
         address _receiver,
         uint256 _acceptablePrice,
+        uint256 _minOut,
         uint256 _executionFee,
         bool _withdrawETH
     ) external payable nonReentrant {
         require(_executionFee >= minExecutionFee, "PositionRouter: invalid executionFee");
         require(msg.value == _executionFee, "PositionRouter: invalid msg.value");
+        require(_path.length == 1 || _path.length == 2, "PositionRouter: invalid _path length");
+
         if (_withdrawETH) {
-            require(_collateralToken == weth, "PositionRouter: invalid _collateralToken");
+            require(_path[_path.length - 1] == weth, "PositionRouter: invalid _path");
         }
 
         _transferInETH();
 
         _createDecreasePosition(
             msg.sender,
-            _collateralToken,
+            _path,
             _indexToken,
             _collateralDelta,
             _sizeDelta,
             _isLong,
             _receiver,
             _acceptablePrice,
+            _minOut,
             _executionFee,
             _withdrawETH
         );
@@ -469,24 +477,31 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         delete decreasePositionRequests[_key];
 
+        uint256 amountOut = _decreasePosition(request.account, request.path[0], request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, address(this), request.acceptablePrice);
+
+        if (request.path.length > 1) {
+            IERC20(request.path[0]).safeTransfer(vault, amountOut);
+            amountOut = _swap(request.path, request.minOut, address(this));
+        }
+
         if (request.withdrawETH) {
-           uint256 amountOut = _decreasePosition(request.account, request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, address(this), request.acceptablePrice);
            _transferOutETH(amountOut, payable(request.receiver));
         } else {
-           _decreasePosition(request.account, request.collateralToken, request.indexToken, request.collateralDelta, request.sizeDelta, request.isLong, request.receiver, request.acceptablePrice);
+           IERC20(request.path[request.path.length - 1]).safeTransfer(request.receiver, amountOut);
         }
 
        _transferOutETH(request.executionFee, _executionFeeReceiver);
 
         emit ExecuteDecreasePosition(
             request.account,
-            request.collateralToken,
+            request.path,
             request.indexToken,
             request.collateralDelta,
             request.sizeDelta,
             request.isLong,
             request.receiver,
             request.acceptablePrice,
+            request.minOut,
             request.executionFee,
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
@@ -509,13 +524,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         emit CancelDecreasePosition(
             request.account,
-            request.collateralToken,
+            request.path,
             request.indexToken,
             request.collateralDelta,
             request.sizeDelta,
             request.isLong,
             request.receiver,
             request.acceptablePrice,
+            request.minOut,
             request.executionFee,
             block.number.sub(request.blockNumber),
             block.timestamp.sub(request.blockTime)
@@ -526,6 +542,16 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     function getRequestKey(address _account, uint256 _index) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_account, _index));
+    }
+
+    function getIncreasePositionRequestPath(bytes32 _key) public view returns (address[] memory) {
+        IncreasePositionRequest memory request = increasePositionRequests[_key];
+        return request.path;
+    }
+
+    function getDecreasePositionRequestPath(bytes32 _key) public view returns (address[] memory) {
+        DecreasePositionRequest memory request = decreasePositionRequests[_key];
+        return request.path;
     }
 
     function _setTraderReferralCode(bytes32 _referralCode) internal {
@@ -582,8 +608,6 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         uint256 _executionFee,
         bool _hasCollateralInETH
     ) internal {
-        require(_path.length == 1 || _path.length == 2, "PositionRouter: invalid _path");
-
         uint256 index = increasePositionsIndex[_account].add(1);
         increasePositionsIndex[_account] = index;
 
@@ -626,13 +650,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     function _createDecreasePosition(
         address _account,
-        address _collateralToken,
+        address[] memory _path,
         address _indexToken,
         uint256 _collateralDelta,
         uint256 _sizeDelta,
         bool _isLong,
         address _receiver,
         uint256 _acceptablePrice,
+        uint256 _minOut,
         uint256 _executionFee,
         bool _withdrawETH
     ) internal {
@@ -641,13 +666,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         DecreasePositionRequest memory request = DecreasePositionRequest(
             _account,
-            _collateralToken,
+            _path,
             _indexToken,
             _collateralDelta,
             _sizeDelta,
             _isLong,
             _receiver,
             _acceptablePrice,
+            _minOut,
             _executionFee,
             block.number,
             block.timestamp,
@@ -661,23 +687,18 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         emit CreateDecreasePosition(
             _account,
-            _collateralToken,
+            _path,
             _indexToken,
             _collateralDelta,
             _sizeDelta,
             _isLong,
             _receiver,
             _acceptablePrice,
+            _minOut,
             _executionFee,
             index,
             block.number,
             block.timestamp
         );
-    }
-
-    function _transferInETH() private {
-        if (msg.value != 0) {
-            IWETH(weth).deposit{value: msg.value}();
-        }
     }
 }

@@ -11,7 +11,7 @@ use(solidity)
 describe("PositionRouter", function () {
   const { AddressZero, HashZero } = ethers.constants
   const provider = waffle.provider
-  const [wallet, positionKeeper, user0, user1, user2, user3, user4, user5, tokenManager, mintReceiver] = provider.getWallets()
+  const [wallet, positionKeeper, minter, user0, user1, user2, user3, user4, user5, tokenManager, mintReceiver] = provider.getWallets()
   const depositFee = 50
   const minExecutionFee = 4000
   let vault
@@ -38,6 +38,7 @@ describe("PositionRouter", function () {
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
     bnbPriceFeed = await deployContract("PriceFeed", [])
+    await bnb.connect(minter).deposit({ value: expandDecimals(100, 18) })
 
     btc = await deployContract("Token", [])
     btcPriceFeed = await deployContract("PriceFeed", [])
@@ -957,13 +958,14 @@ describe("PositionRouter", function () {
     expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
 
     let decreasePositionParams = [
-      bnb.address, // _collateralToken
+      [bnb.address, dai.address], // _collateralToken
       bnb.address, // _indexToken
       toUsd(300), // _collateralDelta
       toUsd(1000), // _sizeDelta
       true, // _isLong
       user1.address,  // _receiver
-      toUsd(290)  // _acceptablePrice
+      toUsd(290),  // _acceptablePrice
+      0 // _minOut
     ]
 
     await expect(positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([3000, false])))
@@ -978,12 +980,20 @@ describe("PositionRouter", function () {
     await expect(positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, false]), { value: 3000 }))
       .to.be.revertedWith("PositionRouter: invalid msg.value")
 
-    decreasePositionParams[0] = dai.address
+    await expect(positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, true]), { value: 4000 }))
+      .to.be.revertedWith("PositionRouter: invalid _path")
+
+    decreasePositionParams[0] = []
 
     await expect(positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, true]), { value: 4000 }))
-      .to.be.revertedWith("PositionRouter: invalid _collateralToken")
+      .to.be.revertedWith("PositionRouter: invalid _path length")
 
-    decreasePositionParams[0] = bnb.address
+    decreasePositionParams[0] = [bnb.address, dai.address, bnb.address]
+
+    await expect(positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, true]), { value: 4000 }))
+      .to.be.revertedWith("PositionRouter: invalid _path length")
+
+    decreasePositionParams[0] = [bnb.address]
 
     const tx2 = await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, false]), { value: 4000 })
     await reportGasUsed(provider, tx2, "createDecreasePosition gas used")
@@ -993,9 +1003,11 @@ describe("PositionRouter", function () {
 
     key = await positionRouter.getRequestKey(user0.address, 1)
     request = await positionRouter.decreasePositionRequests(key)
+    let decreaseRequestPath = await positionRouter.getDecreasePositionRequestPath(key)
 
     expect(request.account).eq(user0.address)
-    expect(request.collateralToken).eq(bnb.address)
+    expect(decreaseRequestPath.length).eq(1)
+    expect(decreaseRequestPath[0]).eq(bnb.address)
     expect(request.indexToken).eq(bnb.address)
     expect(request.collateralDelta).eq(toUsd(300))
     expect(request.sizeDelta).eq(toUsd(1000))
@@ -1029,7 +1041,6 @@ describe("PositionRouter", function () {
 
     request = await positionRouter.decreasePositionRequests(key)
     expect(request.account).eq(AddressZero)
-    expect(request.collateralToken).eq(AddressZero)
     expect(request.indexToken).eq(AddressZero)
 
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
@@ -1054,7 +1065,6 @@ describe("PositionRouter", function () {
     request = await positionRouter.decreasePositionRequests(key)
 
     expect(request.account).eq(user0.address)
-    expect(request.collateralToken).eq(bnb.address)
     expect(request.indexToken).eq(bnb.address)
     expect(request.collateralDelta).eq(toUsd(150))
     expect(request.sizeDelta).eq(toUsd(1000))
@@ -1103,6 +1113,105 @@ describe("PositionRouter", function () {
 
     await positionRouter.connect(positionKeeper).cancelDecreasePosition(key, executionFeeReceiver.address)
     expect(await provider.getBalance(executionFeeReceiver.address)).eq(16000)
+
+    decreasePositionParams = [
+      [bnb.address, dai.address], // _collateralToken
+      bnb.address, // _indexToken
+      toUsd(50), // _collateralDelta
+      toUsd(500), // _sizeDelta
+      true, // _isLong
+      user1.address,  // _receiver
+      toUsd(290),  // _acceptablePrice
+      expandDecimals(100, 18) // _minOut
+    ]
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, false]), { value: 4000 })
+    key = await positionRouter.getRequestKey(user0.address, 4)
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    expect(await dai.balanceOf(user1.address)).eq(0)
+
+    await expect(positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address))
+      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+
+    decreasePositionParams[7] = expandDecimals(40, 18)
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, false]), { value: 4000 })
+    key = await positionRouter.getRequestKey(user0.address, 5)
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    const tx4 = await positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address)
+    await reportGasUsed(provider, tx4, "executeDecreasePosition gas used")
+
+    expect(await dai.balanceOf(user1.address)).eq("49351500000000000000") // 49.3515
+
+    let increasePositionParams = [
+      [bnb.address, dai.address], // _path
+      bnb.address, // _indexToken
+      expandDecimals(2, 18), // _amountIn
+      expandDecimals(1, 18), // _minOut
+      toUsd(6000), // _sizeDelta
+      false, // _isLong
+      toUsd(300), // _acceptablePrice
+    ]
+
+    await bnb.mint(user0.address, expandDecimals(2, 18))
+    await bnb.connect(user0).approve(router.address, expandDecimals(2, 18))
+    await dai.mint(vault.address, expandDecimals(10000, 18))
+    await vault.buyUSDG(dai.address, user1.address)
+
+    await positionRouter.connect(user0).createIncreasePosition(...increasePositionParams.concat([4000, referralCode]), { value: 4000 })
+    key = await positionRouter.getRequestKey(user0.address, 2)
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    await positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address)
+
+    position = await vault.getPosition(user0.address, dai.address, bnb.address, false)
+    expect(position[0]).eq(toUsd(6000)) // size
+    expect(position[1]).eq("592200000000000000000000000000000") // collateral, 592.2
+    expect(position[2]).eq(toUsd(300)) // averagePrice
+    expect(position[3]).eq(0) // entryFundingRate
+    expect(position[4]).eq(expandDecimals(6000, 18)) // reserveAmount
+    expect(position[5]).eq(0) // realisedPnl
+    expect(position[6]).eq(true) // hasProfit
+
+    const collateralReceiver1 = newWallet()
+
+    decreasePositionParams = [
+      [dai.address, bnb.address], // _collateralToken
+      bnb.address, // _indexToken
+      toUsd(150), // _collateralDelta
+      toUsd(500), // _sizeDelta
+      false, // _isLong
+      collateralReceiver1.address,  // _receiver
+      toUsd(310),  // _acceptablePrice
+      "400000000000000000" // _minOut
+    ]
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, true]), { value: 4000 })
+    key = await positionRouter.getRequestKey(user0.address, 6)
+
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+    await mineBlock(provider)
+
+    expect(await provider.getBalance(collateralReceiver1.address)).eq(0)
+    await positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address)
+    expect(await provider.getBalance(collateralReceiver1.address)).eq("496838333333333333") // 0.496838333333333333
   })
 
   it("executeIncreasePositions, executeDecreasePositions", async () => {
@@ -1391,30 +1500,30 @@ describe("PositionRouter", function () {
     expect(queueLengths[3]).eq(0) // decreasePositionRequestKeys.length
 
     let decreasePositionParams = [
-      bnb.address, // _collateralToken
+      [bnb.address], // _path
       bnb.address, // _indexToken
       toUsd(300), // _collateralDelta
       toUsd(1000), // _sizeDelta
       true // _isLong
     ]
 
-    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, 0, toUsd(290), 4000, false]), { value: 4000 })
     let decreaseKey0 = await positionRouter.getRequestKey(user0.address, 1)
     expect((await positionRouter.decreasePositionRequests(decreaseKey0)).account).eq(user0.address)
 
-    await positionRouter.connect(user1).createDecreasePosition(...decreasePositionParams.concat([user1.address, toUsd(290), 4000, false]), { value: 4000 })
+    await positionRouter.connect(user1).createDecreasePosition(...decreasePositionParams.concat([user1.address, 0, toUsd(290), 4000, false]), { value: 4000 })
     let decreaseKey1 = await positionRouter.getRequestKey(user1.address, 1)
     expect((await positionRouter.decreasePositionRequests(decreaseKey1)).account).eq(user1.address)
 
-    await positionRouter.connect(user2).createDecreasePosition(...decreasePositionParams.concat([user2.address, toUsd(290), 4000, false]), { value: 4000 })
+    await positionRouter.connect(user2).createDecreasePosition(...decreasePositionParams.concat([user2.address, 0, toUsd(290), 4000, false]), { value: 4000 })
     let decreaseKey2 = await positionRouter.getRequestKey(user2.address, 1)
     expect((await positionRouter.decreasePositionRequests(decreaseKey2)).account).eq(user2.address)
 
-    await positionRouter.connect(user3).createDecreasePosition(...decreasePositionParams.concat([user3.address, toUsd(290), 4000, false]), { value: 4000 })
+    await positionRouter.connect(user3).createDecreasePosition(...decreasePositionParams.concat([user3.address, 0, toUsd(290), 4000, false]), { value: 4000 })
     let decreaseKey3 = await positionRouter.getRequestKey(user3.address, 1)
     expect((await positionRouter.decreasePositionRequests(decreaseKey3)).account).eq(user3.address)
 
-    await positionRouter.connect(user4).createDecreasePosition(...decreasePositionParams.concat([user4.address, toUsd(290), 4000, false]), { value: 4000 })
+    await positionRouter.connect(user4).createDecreasePosition(...decreasePositionParams.concat([user4.address, 0, toUsd(290), 4000, false]), { value: 4000 })
     let decreaseKey4 = await positionRouter.getRequestKey(user4.address, 1)
     expect((await positionRouter.decreasePositionRequests(decreaseKey4)).account).eq(user4.address)
 
@@ -1505,8 +1614,8 @@ describe("PositionRouter", function () {
     expect(await bnb.balanceOf(user3.address)).eq(0)
     expect(await bnb.balanceOf(user4.address)).eq("996666666666666666")
 
-    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 4000, false]), { value: 4000 })
-    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 0, 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 0, 4000, false]), { value: 4000 })
 
     queueLengths = await positionRouter.getRequestQueueLengths()
     expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
