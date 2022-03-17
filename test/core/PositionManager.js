@@ -28,6 +28,7 @@ describe("PositionManager", function () {
   let distributor0
   let yieldTracker0
   let orderBook
+  let deployTimelock
 
   let glpManager
   let glp
@@ -102,6 +103,19 @@ describe("PositionManager", function () {
     await btc.mint(user1.address, expandDecimals(10, 8))
     await btc.connect(user1).approve(router.address, expandDecimals(10, 8))
     await router.connect(user1).swap([btc.address, usdg.address], expandDecimals(10, 8), expandDecimals(59000, 18), user1.address)
+
+    deployTimelock = async () => {
+      return await deployContract("Timelock", [
+        wallet.address,
+        5 * 24 * 60 * 60,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero,
+        expandDecimals(1000, 18),
+        10,
+        100
+      ])
+    }
   })
 
   it("inits", async () => {
@@ -131,16 +145,7 @@ describe("PositionManager", function () {
   })
 
   it("increasePosition and decreasePosition", async () => {
-    const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      expandDecimals(1000, 18),
-      10,
-      100
-    ])
+    const timelock = await deployTimelock()
 
     await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
       .to.be.revertedWith("PositionManager: forbidden")
@@ -224,16 +229,7 @@ describe("PositionManager", function () {
   })
 
   it("increasePositionETH and decreasePositionETH", async () => {
-    const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      expandDecimals(1000, 18),
-      10,
-      100
-    ])
+    const timelock = await deployTimelock()
 
     await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
       .to.be.revertedWith("PositionManager: forbidden")
@@ -300,16 +296,7 @@ describe("PositionManager", function () {
   })
 
   it("increasePositionETH with swap", async () => {
-    const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      expandDecimals(1000, 18),
-      10,
-      100
-    ])
+    const timelock = await deployTimelock()
 
     await vault.setGov(timelock.address)
     await timelock.setContractHandler(positionManager.address, true)
@@ -332,16 +319,7 @@ describe("PositionManager", function () {
   });
 
   it("increasePosition and increasePositionETH to short", async () => {
-    const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      expandDecimals(1000, 18),
-      10,
-      100
-    ])
+    const timelock = await deployTimelock()
 
     await vault.setGov(timelock.address)
     await timelock.setContractHandler(positionManager.address, true)
@@ -369,16 +347,7 @@ describe("PositionManager", function () {
   })
 
   it("deposit collateral for shorts", async () => {
-    const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      expandDecimals(1000, 18),
-      10,
-      100
-    ])
+    const timelock = await deployTimelock()
 
     await vault.setGov(timelock.address)
     await timelock.setContractHandler(positionManager.address, true)
@@ -434,16 +403,7 @@ describe("PositionManager", function () {
   })
 
   it("executeDecreaseOrder", async () => {
-    const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      expandDecimals(1000, 18),
-      10,
-      100
-    ])
+    const timelock = await deployTimelock()
     await vault.setGov(timelock.address)
     await timelock.setContractHandler(positionManager.address, true)
     await timelock.setShouldToggleIsLeverageEnabled(true)
@@ -480,5 +440,28 @@ describe("PositionManager", function () {
 
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
     expect(position[0]).to.be.equal(0)
+  })
+
+  it("liquidatePosition", async () => {
+    const timelock = await deployTimelock()
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+
+    expect(await positionManager.isLiquidator(user1.address)).to.be.false
+    await expect(positionManager.connect(user1).liquidatePosition(user1.address, bnb.address, bnb.address, true, user0.address))
+      .to.be.revertedWith("PositionManager: forbidden")
+
+    await positionManager.setInLegacyMode(true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
+
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(100000), { value: expandDecimals(1, 18) })
+    let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(200))
+    await positionManager.setLiquidator(user1.address, true)
+    expect(await positionManager.isLiquidator(user1.address)).to.be.true
+    await positionManager.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user1.address)
   })
 })
