@@ -190,7 +190,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
             return;
         }
 
-        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getTraderReferralInfo(_account);
+        (bytes32 referralCode, address referrer) = IReferralStorage(_referralStorage).getTraderReferralInfo(_account);
         emit IncreasePositionReferral(
             _account,
             _sizeDelta,
@@ -205,7 +205,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
             return;
         }
 
-        (bytes32 referralCode, address referrer) = IReferralStorage(referralStorage).getTraderReferralInfo(_account);
+        (bytes32 referralCode, address referrer) = IReferralStorage(_referralStorage).getTraderReferralInfo(_account);
         emit DecreasePositionReferral(
             _account,
             _sizeDelta,
