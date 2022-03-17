@@ -227,6 +227,10 @@ contract Timelock is ITimelock {
         );
     }
 
+    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
+        IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
+    }
+
     function setTokenConfig(
         address _vault,
         address _token,
@@ -307,10 +311,6 @@ contract Timelock is ITimelock {
 
     function setIsSwapEnabled(address _vault, bool _isSwapEnabled) external onlyAdmin {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
-    }
-
-    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
-        IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 
     function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {
