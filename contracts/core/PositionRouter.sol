@@ -200,7 +200,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         emit SetRequestKeysStartValues(_increasePositionRequestKeysStart, _decreasePositionRequestKeysStart);
     }
 
-    function executeIncreasePositions(uint256 _endIndex, address payable _executionFeeReceiver) external override onlyPositionKeeper {
+    function executeIncreasePositions(uint256 _endIndex, address payable _executionFeeReceiver) external override nonReentrant onlyPositionKeeper {
         uint256 index = increasePositionRequestKeysStart;
         uint256 length = increasePositionRequestKeys.length;
 
@@ -235,7 +235,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         increasePositionRequestKeysStart = index;
     }
 
-    function executeDecreasePositions(uint256 _endIndex, address payable _executionFeeReceiver) external override onlyPositionKeeper {
+    function executeDecreasePositions(uint256 _endIndex, address payable _executionFeeReceiver) external override nonReentrant onlyPositionKeeper {
         uint256 index = decreasePositionRequestKeysStart;
         uint256 length = decreasePositionRequestKeys.length;
 

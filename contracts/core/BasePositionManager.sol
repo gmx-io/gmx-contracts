@@ -30,7 +30,13 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     address public vault;
     address public router;
     address public weth;
+
+    // to prevent using the deposit and withdrawal of collateral as a zero fee swap,
+    // there is a small depositFee charged if a collateral deposit results in the decrease
+    // of leverage for an existing position
+    // increasePositionBufferBps allows for a small amount of decrease of leverage
     uint256 public depositFee;
+    uint256 public increasePositionBufferBps = 100;
 
     address public referralStorage;
 
@@ -40,6 +46,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     mapping (address => uint256) public maxGlobalShortSizes;
 
     event SetDepositFee(uint256 depositFee);
+    event SetIncreasePositionBufferBps(uint256 increasePositionBufferBps);
     event SetReferralStorage(address referralStorage);
     event SetAdmin(address admin);
     event WithdrawFees(address token, address receiver, uint256 amount);
@@ -95,6 +102,11 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     function setDepositFee(uint256 _depositFee) external onlyAdmin {
         depositFee = _depositFee;
         emit SetDepositFee(_depositFee);
+    }
+
+    function setIncreasePositionBufferBps(uint256 _increasePositionBufferBps) external onlyAdmin {
+        increasePositionBufferBps = _increasePositionBufferBps;
+        emit SetIncreasePositionBufferBps(_increasePositionBufferBps);
     }
 
     function setReferralStorage(address _referralStorage) external onlyAdmin {
@@ -287,9 +299,10 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         uint256 nextCollateral = collateral.add(collateralDelta);
 
         uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
-        // add 100 to allow for a maximum of a 1% decrease since there might be some swap fees taken from the collateral
-        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 100).div(nextCollateral);
+        // allow for a maximum of a increasePositionBufferBps decrease since there might be some swap fees taken from the collateral
+        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + increasePositionBufferBps).div(nextCollateral);
 
+        // deduct a fee if the leverage is decreased
         return nextLeverage < prevLeverage;
     }
 }
