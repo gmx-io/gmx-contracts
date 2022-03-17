@@ -21,7 +21,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     bool public isInitialized;
     bool public isSpreadEnabled = false;
-    uint256 public executePositionCount = 0;
     address public fastPriceEvents;
 
     address public tokenManager;
@@ -135,10 +134,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     function setIsSpreadEnabled(bool _isSpreadEnabled) external onlyGov {
         isSpreadEnabled = _isSpreadEnabled;
-    }
-
-    function setExecutePositionCount(uint256 _executePositionCount) external onlyGov {
-        executePositionCount = _executePositionCount;
     }
 
     function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {

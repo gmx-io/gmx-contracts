@@ -106,12 +106,10 @@ contract PositionManager is BasePositionManager {
         require(_path[0] == weth, "PositionManager: invalid _path");
 
         if (msg.value > 0) {
+            _transferInETH();
             uint256 _amountIn = msg.value;
 
-            if (_path.length == 1) {
-                IWETH(weth).deposit{value: msg.value}();
-            } else {
-                IWETH(weth).deposit{value: msg.value}();
+            if (_path.length > 1) {
                 IERC20(weth).safeTransfer(vault, msg.value);
                 _amountIn = _swap(_path, _minOut, address(this));
             }

@@ -540,6 +540,10 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         return true;
     }
 
+    function getRequestKey(address _account, uint256 _index) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_account, _index));
+    }
+
     function getIncreasePositionRequestPath(bytes32 _key) public view returns (address[] memory) {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
         return request.path;
@@ -548,10 +552,6 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     function getDecreasePositionRequestPath(bytes32 _key) public view returns (address[] memory) {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
         return request.path;
-    }
-
-    function getRequestKey(address _account, uint256 _index) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_account, _index));
     }
 
     function _setTraderReferralCode(bytes32 _referralCode) internal {
@@ -608,8 +608,6 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         uint256 _executionFee,
         bool _hasCollateralInETH
     ) internal {
-        require(_path.length == 1 || _path.length == 2, "PositionRouter: invalid _path");
-
         uint256 index = increasePositionsIndex[_account].add(1);
         increasePositionsIndex[_account] = index;
 
@@ -702,11 +700,5 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             block.number,
             block.timestamp
         );
-    }
-
-    function _transferInETH() private {
-        if (msg.value != 0) {
-            IWETH(weth).deposit{value: msg.value}();
-        }
     }
 }

@@ -218,6 +218,11 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         }
 
         (bytes32 referralCode, address referrer) = IReferralStorage(_referralStorage).getTraderReferralInfo(_account);
+
+        if (referralCode == bytes32(0)) {
+            return;
+        }
+
         emit DecreasePositionReferral(
             _account,
             _sizeDelta,
@@ -237,6 +242,12 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         uint256 amountOut = IVault(vault).swap(_tokenIn, _tokenOut, _receiver);
         require(amountOut >= _minOut, "BasePositionManager: insufficient amountOut");
         return amountOut;
+    }
+
+    function _transferInETH() internal {
+        if (msg.value != 0) {
+            IWETH(weth).deposit{value: msg.value}();
+        }
     }
 
     function _transferOutETH(uint256 _amountOut, address payable _receiver) internal {
