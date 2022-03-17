@@ -265,7 +265,7 @@ contract PositionManager is BasePositionManager {
         if (!_isLong) { return _sizeDelta; }
 
         // if the position size is not increasing, this is a collateral deposit
-        require(_sizeDelta > 0, "OrderExecutor: long deposit");
+        require(_sizeDelta > 0, "PositionManager: long deposit");
 
         IVault _vault = IVault(vault);
         (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
@@ -281,7 +281,7 @@ contract PositionManager is BasePositionManager {
         // allow for a maximum of a increasePositionBufferBps decrease since there might be some swap fees taken from the collateral
         uint256 nextLeverageWithBuffer = nextSize.mul(BASIS_POINTS_DIVISOR + increasePositionBufferBps).div(nextCollateral);
 
-        require(nextLeverageWithBuffer >= prevLeverage, "OrderExecutor: long leverage decrease");
+        require(nextLeverageWithBuffer >= prevLeverage, "PositionManager: long leverage decrease");
 
         return _sizeDelta;
     }
