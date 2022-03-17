@@ -19,6 +19,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     // shift the 1s by (256 - 32) to get (256 - 32) 0s followed by 32 1s
     uint256 constant public PRICE_BITMASK = uint256(~0) >> (256 - 32);
 
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
+
+    uint256 public constant MAX_PRICE_DURATION = 30 minutes;
+
     bool public isInitialized;
     bool public isSpreadEnabled = false;
     address public fastPriceEvents;
@@ -26,10 +30,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     address public tokenManager;
 
     address public positionRouter;
-
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
-
-    uint256 public constant MAX_PRICE_DURATION = 30 minutes;
 
     uint256 public override lastUpdatedAt;
     uint256 public override lastUpdatedBlock;

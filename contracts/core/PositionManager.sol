@@ -14,14 +14,17 @@ contract PositionManager is BasePositionManager {
     address public orderBook;
     bool public inLegacyMode;
 
+    bool public shouldValidateIncreaseOrder = true;
+
     mapping (address => bool) public isOrderKeeper;
     mapping (address => bool) public isPartner;
     mapping (address => bool) public isLiquidator;
 
     event SetOrderKeeper(address indexed account, bool isActive);
     event SetLiquidator(address indexed account, bool isActive);
-    event SetInLegacyMode(bool inLegacyMode);
     event SetPartner(address account, bool isActive);
+    event SetInLegacyMode(bool inLegacyMode);
+    event SetShouldValidateIncreaseOrder(bool shouldValidateIncreaseOrder);
 
     modifier onlyOrderKeeper() {
         require(isOrderKeeper[msg.sender], "PositionManager: forbidden");
@@ -58,14 +61,19 @@ contract PositionManager is BasePositionManager {
         emit SetLiquidator(_account, _isActive);
     }
 
+    function setPartner(address _account, bool _isActive) external onlyAdmin {
+        isPartner[_account] = _isActive;
+        emit SetPartner(_account, _isActive);
+    }
+
     function setInLegacyMode(bool _inLegacyMode) external onlyAdmin {
         inLegacyMode = _inLegacyMode;
         emit SetInLegacyMode(_inLegacyMode);
     }
 
-    function setPartner(address _account, bool _isActive) external onlyAdmin {
-        isPartner[_account] = _isActive;
-        emit SetPartner(_account, _isActive);
+    function setShouldValidateIncreaseOrder(bool _shouldValidateIncreaseOrder) external onlyAdmin {
+        shouldValidateIncreaseOrder = _shouldValidateIncreaseOrder;
+        emit SetShouldValidateIncreaseOrder(_shouldValidateIncreaseOrder);
     }
 
     function increasePosition(
@@ -250,6 +258,8 @@ contract PositionManager is BasePositionManager {
             , // triggerAboveThreshold
             // executionFee
         ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
+
+        if (!shouldValidateIncreaseOrder) { return _sizeDelta; }
 
         // shorts are okay
         if (!_isLong) { return _sizeDelta; }

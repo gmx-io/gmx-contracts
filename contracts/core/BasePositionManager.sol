@@ -60,6 +60,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     event IncreasePositionReferral(
         address account,
         uint256 sizeDelta,
+        uint256 marginFeeBasisPoints,
         bytes32 referralCode,
         address referrer
     );
@@ -67,6 +68,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
     event DecreasePositionReferral(
         address account,
         uint256 sizeDelta,
+        uint256 marginFeeBasisPoints,
         bytes32 referralCode,
         address referrer
     );
@@ -206,6 +208,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         emit IncreasePositionReferral(
             _account,
             _sizeDelta,
+            IVault(vault).marginFeeBasisPoints(),
             referralCode,
             referrer
         );
@@ -226,6 +229,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         emit DecreasePositionReferral(
             _account,
             _sizeDelta,
+            IVault(vault).marginFeeBasisPoints(),
             referralCode,
             referrer
         );
