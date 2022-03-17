@@ -61,6 +61,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256[] public tokenPrecisions;
 
     event DisableFastPrice(address signer);
+    event EnableFastPrice(address signer);
 
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
@@ -132,6 +133,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         priceDuration = _priceDuration;
     }
 
+    function setMinBlockInterval(uint256 _minBlockInterval) external onlyGov {
+        minBlockInterval = _minBlockInterval;
+    }
+
     function setIsSpreadEnabled(bool _isSpreadEnabled) external onlyGov {
         isSpreadEnabled = _isSpreadEnabled;
     }
@@ -146,6 +151,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     function setVolBasisPoints(uint256 _volBasisPoints) external onlyGov {
         volBasisPoints = _volBasisPoints;
+    }
+
+    function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external onlyGov {
+        maxDeviationBasisPoints = _maxDeviationBasisPoints;
+    }
+
+    function setMinAuthorizations(uint256 _minAuthorizations) external onlyGov {
+        minAuthorizations = _minAuthorizations;
     }
 
     function setTokens(address[] memory _tokens, uint256[] memory _tokenPrecisions) external onlyGov {
@@ -219,6 +232,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         require(disableFastPriceVotes[msg.sender], "FastPriceFeed: already enabled");
         disableFastPriceVotes[msg.sender] = false;
         disableFastPriceVoteCount = disableFastPriceVoteCount.sub(1);
+
+        emit EnableFastPrice(msg.sender);
     }
 
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
@@ -315,7 +330,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             return false;
         }
 
-        lastUpdatedAt = block.timestamp;
+        lastUpdatedAt = _timestamp;
         lastUpdatedBlock = block.number;
 
         return true;
