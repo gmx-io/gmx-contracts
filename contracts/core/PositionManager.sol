@@ -69,15 +69,15 @@ contract PositionManager is BasePositionManager {
     }
 
     function increasePosition(
-       address[] memory _path,
-       address _indexToken,
-       uint256 _amountIn,
-       uint256 _minOut,
-       uint256 _sizeDelta,
-       bool _isLong,
-       uint256 _price
-   ) external nonReentrant onlyPartnersOrLegacyMode {
-       if (_amountIn > 0) {
+        address[] memory _path,
+        address _indexToken,
+        uint256 _amountIn,
+        uint256 _minOut,
+        uint256 _sizeDelta,
+        bool _isLong,
+        uint256 _price
+    ) external nonReentrant onlyPartnersOrLegacyMode {
+        if (_amountIn > 0) {
             if (_path.length > 1) {
                 IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
                 _amountIn = _swap(_path, _minOut, address(this));
@@ -85,12 +85,12 @@ contract PositionManager is BasePositionManager {
                 IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
             }
 
-           uint256 afterFeeAmount = _collectFees(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
-           IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
-       }
+            uint256 afterFeeAmount = _collectFees(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
+            IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
+        }
 
-       _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
-   }
+        _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
+    }
 
     function increasePositionETH(
         address[] memory _path,
