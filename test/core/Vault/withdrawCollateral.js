@@ -24,6 +24,9 @@ describe("Vault.withdrawCollateral", function () {
   let distributor0
   let yieldTracker0
 
+  let glpManager
+  let glp
+
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
     bnbPriceFeed = await deployContract("PriceFeed", [])
@@ -53,6 +56,9 @@ describe("Vault.withdrawCollateral", function () {
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
     await vaultPriceFeed.setTokenConfig(btc.address, btcPriceFeed.address, 8, false)
     await vaultPriceFeed.setTokenConfig(dai.address, daiPriceFeed.address, 8, false)
+
+    glp = await deployContract("GLP", [])
+    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
   })
 
   it("withdraw collateral", async () => {
@@ -172,5 +178,73 @@ describe("Vault.withdrawCollateral", function () {
 
     await btc.connect(user1).transfer(vault.address, 25000) // 0.00025 BTC => 10 USD
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(30), true)
+  })
+
+  it("withdraw collateral long", async () => {
+    await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
+    await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+    await vault.setTokenConfig(...getBnbConfig(bnb, bnbPriceFeed))
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+
+    await bnb.mint(vault.address, expandDecimals(10, 18))
+    await vault.buyUSDG(bnb.address, user1.address)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("4985000000000000000000") // 4985
+    expect(await glpManager.getAumInUsdg(true)).eq("4985000000000000000000") // 4985
+
+    await bnb.mint(vault.address, expandDecimals(1, 18))
+    await vault.connect(user0).increasePosition(user0.address, bnb.address, bnb.address, toUsd(2000), true)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("4985000000000000000000") // 4985
+    expect(await glpManager.getAumInUsdg(true)).eq("4985000000000000000000") // 4985
+
+    await bnb.mint(vault.address, expandDecimals(1, 18))
+    await vault.connect(user0).increasePosition(user0.address, bnb.address, bnb.address, toUsd(0), true)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("4985000000000000000000") // 4985
+    expect(await glpManager.getAumInUsdg(true)).eq("4985000000000000000000") // 4985
+
+    await vault.connect(user0).decreasePosition(user0.address, bnb.address, bnb.address, toUsd(500), toUsd(0), true, user2.address)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("4985000000000000000000") // 4985
+    expect(await glpManager.getAumInUsdg(true)).eq("4985000000000000000000") // 4985
+  })
+
+  it("withdraw collateral short", async () => {
+    await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
+    await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+    await vault.setTokenConfig(...getBnbConfig(bnb, bnbPriceFeed))
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+
+    await dai.mint(vault.address, expandDecimals(8000, 18))
+    await vault.buyUSDG(dai.address, user1.address)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("7976000000000000000000") // 7976
+    expect(await glpManager.getAumInUsdg(true)).eq("7976000000000000000000") // 7976
+
+    await dai.mint(vault.address, expandDecimals(500, 18))
+    await vault.connect(user0).increasePosition(user0.address, dai.address, bnb.address, toUsd(2000), false)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("7976000000000000000000") // 7976
+    expect(await glpManager.getAumInUsdg(true)).eq("7976000000000000000000") // 7976
+
+    await dai.mint(vault.address, expandDecimals(500, 18))
+    await vault.connect(user0).increasePosition(user0.address, dai.address, bnb.address, toUsd(0), false)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("7976000000000000000000") // 7976
+    expect(await glpManager.getAumInUsdg(true)).eq("7976000000000000000000") // 7976
+
+    await vault.connect(user0).decreasePosition(user0.address, dai.address, bnb.address, toUsd(500), toUsd(0), false, user2.address)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("7976000000000000000000") // 7976
+    expect(await glpManager.getAumInUsdg(true)).eq("7976000000000000000000") // 7976
   })
 })
