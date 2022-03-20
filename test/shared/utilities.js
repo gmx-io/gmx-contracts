@@ -91,6 +91,32 @@ function getPriceBitArray(prices) {
   return priceBitArray
 }
 
+function getPriceBits(prices) {
+  if (prices.length > 8) {
+    throw new Error("max prices.length exceeded")
+  }
+
+  let priceBitArray = []
+
+  let priceBits = new BN('0')
+
+  for (let j = 0; j < 8; j++) {
+    let index = j
+    if (index >= prices.length) {
+      break
+    }
+
+    const price = new BN(prices[index])
+    if (price.gt(new BN("2147483648"))) { // 2^31
+      throw new Error(`price exceeds bit limit ${price.toString()}`)
+    }
+
+    priceBits = priceBits.or(price.shln(j * 32))
+  }
+
+  return priceBits.toString()
+}
+
 module.exports = {
   newWallet,
   maxUint256,
@@ -104,5 +130,6 @@ module.exports = {
   getBlockTime,
   getTxnBalances,
   print,
-  getPriceBitArray
+  getPriceBitArray,
+  getPriceBits
 }
