@@ -118,289 +118,344 @@ describe("PositionManager", function () {
     }
   })
 
-  // it("inits", async () => {
-  //   expect(await positionManager.router(), 'router').eq(router.address)
-  //   expect(await positionManager.vault(), 'vault').eq(vault.address)
-  //   expect(await positionManager.weth(), 'weth').eq(bnb.address)
-  //   expect(await positionManager.depositFee()).eq(50)
-  //   expect(await positionManager.gov(), 'gov').eq(wallet.address)
-  // })
+  it("inits", async () => {
+    expect(await positionManager.router(), 'router').eq(router.address)
+    expect(await positionManager.vault(), 'vault').eq(vault.address)
+    expect(await positionManager.weth(), 'weth').eq(bnb.address)
+    expect(await positionManager.depositFee()).eq(50)
+    expect(await positionManager.gov(), 'gov').eq(wallet.address)
+  })
 
-  // it("setDepositFee", async () => {
-  //   await expect(positionManager.connect(user0).setDepositFee(10))
-  //     .to.be.revertedWith("BasePositionManager: forbidden")
+  it("setDepositFee", async () => {
+    await expect(positionManager.connect(user0).setDepositFee(10))
+      .to.be.revertedWith("BasePositionManager: forbidden")
 
-  //   expect(await positionManager.depositFee()).eq(50)
-  //   await positionManager.connect(wallet).setDepositFee(10)
-  //   expect(await positionManager.depositFee()).eq(10)
-  // })
+    expect(await positionManager.depositFee()).eq(50)
+    await positionManager.connect(wallet).setDepositFee(10)
+    expect(await positionManager.depositFee()).eq(10)
+  })
 
-  // it("approve", async () => {
-  //   await expect(positionManager.connect(user0).approve(bnb.address, user1.address, 10))
-  //     .to.be.revertedWith("Governable: forbidden")
+  it("approve", async () => {
+    await expect(positionManager.connect(user0).approve(bnb.address, user1.address, 10))
+      .to.be.revertedWith("Governable: forbidden")
 
-  //   expect(await bnb.allowance(positionManager.address, user1.address)).eq(0)
-  //   await positionManager.connect(wallet).approve(bnb.address, user1.address, 10)
-  //   expect(await bnb.allowance(positionManager.address, user1.address)).eq(10)
-  // })
+    expect(await bnb.allowance(positionManager.address, user1.address)).eq(0)
+    await positionManager.connect(wallet).approve(bnb.address, user1.address, 10)
+    expect(await bnb.allowance(positionManager.address, user1.address)).eq(10)
+  })
 
-  // it("increasePosition and decreasePosition", async () => {
-  //   const timelock = await deployTimelock()
+  it("setOrderKeeper", async () => {
+    await expect(positionManager.connect(user0).setOrderKeeper(user1.address, true))
+      .to.be.revertedWith("BasePositionManager: forbidden")
 
-  //   await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
-  //     .to.be.revertedWith("PositionManager: forbidden")
+    await positionManager.setAdmin(user0.address)
 
-  //   await vault.setGov(timelock.address)
-  //   await router.addPlugin(positionManager.address)
-  //   await router.connect(user0).approvePlugin(positionManager.address)
+    expect(await positionManager.isOrderKeeper(user1.address)).eq(false)
+    await positionManager.connect(user0).setOrderKeeper(user1.address, true)
+    expect(await positionManager.isOrderKeeper(user1.address)).eq(true)
+  })
 
-  //   await btc.connect(user0).approve(router.address, expandDecimals(1, 8))
-  //   await btc.mint(user0.address, expandDecimals(3, 8))
+  it("setLiquidator", async () => {
+    await expect(positionManager.connect(user0).setLiquidator(user1.address, true))
+      .to.be.revertedWith("BasePositionManager: forbidden")
 
-  //   await positionManager.setInLegacyMode(true)
-  //   await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
-  //     .to.be.revertedWith("Timelock: forbidden")
+    await positionManager.setAdmin(user0.address)
 
-  //   await timelock.setContractHandler(positionManager.address, true)
-  //   await timelock.setShouldToggleIsLeverageEnabled(true)
+    expect(await positionManager.isLiquidator(user1.address)).eq(false)
+    await positionManager.connect(user0).setLiquidator(user1.address, true)
+    expect(await positionManager.isLiquidator(user1.address)).eq(true)
+  })
 
-  //   await dai.mint(user0.address, expandDecimals(20000, 18))
-  //   await dai.connect(user0).approve(router.address, expandDecimals(20000, 18))
+  it("setPartner", async () => {
+    await expect(positionManager.connect(user0).setPartner(user1.address, true))
+      .to.be.revertedWith("BasePositionManager: forbidden")
 
-  //   await positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))
+    await positionManager.setAdmin(user0.address)
 
-  //   let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-  //   expect(position[0]).eq(toUsd(2000)) // size
-  //   expect(position[1]).eq("197399800000000000000000000000000") // collateral, 197.3998
-  //   expect(position[2]).eq(toNormalizedPrice(60000)) // averagePrice
-  //   expect(position[3]).eq(0) // entryFundingRate
-  //   expect(position[4]).eq("3333333") // reserveAmount
-  //   expect(position[5]).eq(0) // realisedPnl
-  //   expect(position[6]).eq(true) // hasProfit)
+    expect(await positionManager.isPartner(user1.address)).eq(false)
+    await positionManager.connect(user0).setPartner(user1.address, true)
+    expect(await positionManager.isPartner(user1.address)).eq(true)
+  })
 
-  //   // deposit
-  //   // should deduct extra fee
-  //   await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, 0, true, toUsd(60000))
+  it("setInLegacyMode", async () => {
+    await expect(positionManager.connect(user0).setInLegacyMode(true))
+      .to.be.revertedWith("BasePositionManager: forbidden")
 
-  //   position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-  //   expect(position[0]).eq(toUsd(2000)) // size
-  //   expect(position[1]).eq("495899800000000000000000000000000") // collateral, 495.8998, 495.8998 - 197.3998 => 298.5, 1.5 for fees
-  //   expect(position[2]).eq(toNormalizedPrice(60000)) // averagePrice
-  //   expect(position[3]).eq(0) // entryFundingRate
-  //   expect(position[4]).eq("3333333") // reserveAmount
-  //   expect(position[5]).eq(0) // realisedPnl
-  //   expect(position[6]).eq(true) // hasProfit
+    await positionManager.setAdmin(user0.address)
 
-  //   expect(await btc.balanceOf(positionManager.address)).eq(2500) // 2500 / (10**8) * 60000 => 1.5
-  //   await positionManager.approve(btc.address, user1.address, 5000)
-  //   expect(await btc.balanceOf(user2.address)).eq(0)
-  //   await btc.connect(user1).transferFrom(positionManager.address, user2.address, 2500)
-  //   expect(await btc.balanceOf(user2.address)).eq(2500)
+    expect(await positionManager.inLegacyMode()).eq(false)
+    await positionManager.connect(user0).setInLegacyMode(true)
+    expect(await positionManager.inLegacyMode()).eq(true)
+  })
 
-  //   // leverage is decreased because of big amount of collateral
-  //   // should deduct extra fee
-  //   await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, toUsd(300), true, toUsd(100000))
+  it("setShouldValidateIncreaseOrder", async () => {
+    await expect(positionManager.connect(user0).setShouldValidateIncreaseOrder(false))
+      .to.be.revertedWith("BasePositionManager: forbidden")
 
-  //   position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-  //   expect(position[0]).eq(toUsd(2300)) // size
-  //   expect(position[1]).eq("794099800000000000000000000000000") // collateral, 794.0998, 794.0998 - 495.8998 => 298.2, 1.5 for collateral fee, 0.3 for size delta fee
+    await positionManager.setAdmin(user0.address)
 
-  //   // regular position increase, no extra fee applied
-  //   await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, toUsd(1000), true, toUsd(100000))
-  //   position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-  //   expect(position[0]).eq(toUsd(3300)) // size
-  //   expect(position[1]).eq("1093099800000000000000000000000000") // collateral, 1093.0998, 1093.0998 - 794.0998 => 299, 1.0 for size delta fee
+    expect(await positionManager.shouldValidateIncreaseOrder()).eq(true)
+    await positionManager.connect(user0).setShouldValidateIncreaseOrder(false)
+    expect(await positionManager.shouldValidateIncreaseOrder()).eq(false)
+  })
 
-  //   expect(await btc.balanceOf(user0.address)).to.be.equal("298500000")
-  //   await positionManager.connect(user0).decreasePosition(btc.address, btc.address, position[1], position[0], true, user0.address, 0)
-  //   expect(await btc.balanceOf(user0.address)).to.be.equal("300316333")
-  //   position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-  //   expect(position[0]).eq(0) // size
-  //   expect(position[1]).eq(0) // collateral
+  it("increasePosition and decreasePosition", async () => {
+    const timelock = await deployTimelock()
 
-  //   await positionManager.setInLegacyMode(false)
-  //   await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))).to.be.revertedWith("PositionManager: forbidden")
+    await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
+      .to.be.revertedWith("PositionManager: forbidden")
 
-  //   // partners should have access in non-legacy mode
-  //   expect(await positionManager.isPartner(user0.address)).to.be.false
-  //   await positionManager.setPartner(user0.address, true)
-  //   expect(await positionManager.isPartner(user0.address)).to.be.true
-  //   await positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))
-  // })
+    await vault.setGov(timelock.address)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
 
-  // it("increasePositionETH and decreasePositionETH", async () => {
-  //   const timelock = await deployTimelock()
+    await btc.connect(user0).approve(router.address, expandDecimals(1, 8))
+    await btc.mint(user0.address, expandDecimals(3, 8))
 
-  //   await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
-  //     .to.be.revertedWith("PositionManager: forbidden")
+    await positionManager.setInLegacyMode(true)
+    await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
+      .to.be.revertedWith("Timelock: forbidden")
 
-  //   await vault.setGov(timelock.address)
-  //   await router.addPlugin(positionManager.address)
-  //   await router.connect(user0).approvePlugin(positionManager.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
 
-  //   await positionManager.setInLegacyMode(true)
-  //   await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
-  //     .to.be.revertedWith("Timelock: forbidden")
+    await dai.mint(user0.address, expandDecimals(20000, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(20000, 18))
 
-  //   await timelock.setContractHandler(positionManager.address, true)
-  //   await timelock.setShouldToggleIsLeverageEnabled(true)
+    await positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))
 
-  //   await dai.mint(user0.address, expandDecimals(20000, 18))
-  //   await dai.connect(user0).approve(router.address, expandDecimals(20000, 18))
+    let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("197399800000000000000000000000000") // collateral, 197.3998
+    expect(position[2]).eq(toNormalizedPrice(60000)) // averagePrice
+    expect(position[3]).eq(0) // entryFundingRate
+    expect(position[4]).eq("3333333") // reserveAmount
+    expect(position[5]).eq(0) // realisedPnl
+    expect(position[6]).eq(true) // hasProfit)
 
-  //   position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    // deposit
+    // should deduct extra fee
+    await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, 0, true, toUsd(60000))
 
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(2000), true, toUsd(100000), { value: expandDecimals(1, 18) })
-  //   position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
-  //   expect(position[0]).eq(toUsd(2000))
-  //   expect(position[1]).eq("298000000000000000000000000000000")
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("495899800000000000000000000000000") // collateral, 495.8998, 495.8998 - 197.3998 => 298.5, 1.5 for fees
+    expect(position[2]).eq(toNormalizedPrice(60000)) // averagePrice
+    expect(position[3]).eq(0) // entryFundingRate
+    expect(position[4]).eq("3333333") // reserveAmount
+    expect(position[5]).eq(0) // realisedPnl
+    expect(position[6]).eq(true) // hasProfit
 
-  //   // deposit
-  //   // should deduct extra fee
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(60000), { value: expandDecimals(1, 18) })
-  //   position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
-  //   expect(position[0]).eq(toUsd(2000)) // size
-  //   expect(position[1]).eq("596500000000000000000000000000000") // collateral, 298 + 300 - 1.5 (300 * 0.5%) = 596.5
+    expect(await btc.balanceOf(positionManager.address)).eq(2500) // 2500 / (10**8) * 60000 => 1.5
+    await positionManager.approve(btc.address, user1.address, 5000)
+    expect(await btc.balanceOf(user2.address)).eq(0)
+    await btc.connect(user1).transferFrom(positionManager.address, user2.address, 2500)
+    expect(await btc.balanceOf(user2.address)).eq(2500)
 
-  //   expect(await bnb.balanceOf(positionManager.address)).eq(expandDecimals(5, 15)) // 1 * 0.5%
+    // leverage is decreased because of big amount of collateral
+    // should deduct extra fee
+    await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, toUsd(300), true, toUsd(100000))
 
-  //   // leverage is decreased because of big amount of collateral
-  //   // should deduct extra fee
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(300), true, toUsd(60000), { value: expandDecimals(1, 18) })
-  //   position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
-  //   expect(position[0]).eq(toUsd(2300)) // size
-  //   expect(position[1]).eq("894700000000000000000000000000000") // collateral, 596.5 + 300 - 0.3 - 1.5 = 894.7
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2300)) // size
+    expect(position[1]).eq("794099800000000000000000000000000") // collateral, 794.0998, 794.0998 - 495.8998 => 298.2, 1.5 for collateral fee, 0.3 for size delta fee
 
-  //   // regular position increase, no extra fee applied
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(60000), { value: expandDecimals(1, 18) })
-  //   position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
-  //   expect(position[0]).eq(toUsd(3300)) // size
-  //   expect(position[1]).eq("1193700000000000000000000000000000") // collateral, 894.7 + 300 - 1 = 1193.7
+    // regular position increase, no extra fee applied
+    await positionManager.connect(user0).increasePosition([btc.address], btc.address, "500000", 0, toUsd(1000), true, toUsd(100000))
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(3300)) // size
+    expect(position[1]).eq("1093099800000000000000000000000000") // collateral, 1093.0998, 1093.0998 - 794.0998 => 299, 1.0 for size delta fee
 
-  //   const balanceBefore = await provider.getBalance(user0.address)
-  //   await positionManager.connect(user0).decreasePositionETH(bnb.address, bnb.address, position[1], position[0], true, user0.address, 0)
-  //   const balanceAfter = await provider.getBalance(user0.address)
-  //   expect(balanceAfter.gt(balanceBefore))
-  //   position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
-  //   expect(position[0]).eq(0) // size
-  //   expect(position[1]).eq(0) // collateral
+    expect(await btc.balanceOf(user0.address)).to.be.equal("298500000")
+    await positionManager.connect(user0).decreasePosition(btc.address, btc.address, position[1], position[0], true, user0.address, 0)
+    expect(await btc.balanceOf(user0.address)).to.be.equal("300316333")
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(0) // size
+    expect(position[1]).eq(0) // collateral
 
-  //   await positionManager.setInLegacyMode(false)
-  //   await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(60000), { value: expandDecimals(1, 18) })).to.be.revertedWith("PositionManager: forbidden")
+    await positionManager.setInLegacyMode(false)
+    await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))).to.be.revertedWith("PositionManager: forbidden")
 
-  //   // partners should have access in non-legacy mode
-  //   expect(await positionManager.isPartner(user0.address)).to.be.false
-  //   await positionManager.setPartner(user0.address, true)
-  //   expect(await positionManager.isPartner(user0.address)).to.be.true
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(60000), { value: expandDecimals(1, 18) })
-  // })
+    // partners should have access in non-legacy mode
+    expect(await positionManager.isPartner(user0.address)).to.be.false
+    await positionManager.setPartner(user0.address, true)
+    expect(await positionManager.isPartner(user0.address)).to.be.true
+    await positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))
+  })
 
-  // it("increasePositionETH with swap", async () => {
-  //   const timelock = await deployTimelock()
+  it("increasePositionETH and decreasePositionETH", async () => {
+    const timelock = await deployTimelock()
 
-  //   await vault.setGov(timelock.address)
-  //   await timelock.setContractHandler(positionManager.address, true)
-  //   await router.addPlugin(positionManager.address)
-  //   await router.connect(user0).approvePlugin(positionManager.address)
+    await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
+      .to.be.revertedWith("PositionManager: forbidden")
 
-  //   await timelock.setShouldToggleIsLeverageEnabled(true)
-  //   await positionManager.setInLegacyMode(true)
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address, btc.address], btc.address, 0, toUsd(2000), true, toUsd(60000), { value: expandDecimals(1, 18) })
+    await vault.setGov(timelock.address)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
 
-  //   let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-  //   expect(position[0]).eq(toUsd(2000)) // size
-  //   expect(position[1]).eq("297100000000000000000000000000000") // collateral, 297.1, 300 - 297.1 => 2.9, 0.9 fee for swap, 2.0 fee for size delta
+    await positionManager.setInLegacyMode(true)
+    await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
+      .to.be.revertedWith("Timelock: forbidden")
 
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address, btc.address], btc.address, 0, 0, true, toUsd(60000), { value: expandDecimals(1, 18) })
+    await timelock.setContractHandler(positionManager.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
 
-  //   position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-  //   expect(position[0]).eq(toUsd(2000)) // size
-  //   expect(position[1]).eq("594704200000000000000000000000000") // collateral, 594.7042, 594.7042 - 297.1 => 297.6042, 300 - 297.6042 => 2.3958, ~1.5 + 0.9 fee for swap
-  // });
+    await dai.mint(user0.address, expandDecimals(20000, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(20000, 18))
 
-  // it("increasePosition and increasePositionETH to short", async () => {
-  //   const timelock = await deployTimelock()
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
 
-  //   await vault.setGov(timelock.address)
-  //   await timelock.setContractHandler(positionManager.address, true)
-  //   await router.addPlugin(positionManager.address)
-  //   await router.connect(user0).approvePlugin(positionManager.address)
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(2000), true, toUsd(100000), { value: expandDecimals(1, 18) })
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(2000))
+    expect(position[1]).eq("298000000000000000000000000000000")
 
-  //   await dai.mint(user0.address, expandDecimals(200, 18))
-  //   await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+    // deposit
+    // should deduct extra fee
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(60000), { value: expandDecimals(1, 18) })
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("596500000000000000000000000000000") // collateral, 298 + 300 - 1.5 (300 * 0.5%) = 596.5
 
-  //   await timelock.setShouldToggleIsLeverageEnabled(true)
-  //   await positionManager.setInLegacyMode(true)
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address, dai.address], btc.address, 0, toUsd(3000), false, 0, { value: expandDecimals(1, 18) })
+    expect(await bnb.balanceOf(positionManager.address)).eq(expandDecimals(5, 15)) // 1 * 0.5%
 
-  //   let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
-  //   expect(position[0]).eq(toUsd(3000))
-  //   expect(position[1]).eq("296100000000000000000000000000000")
+    // leverage is decreased because of big amount of collateral
+    // should deduct extra fee
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(300), true, toUsd(60000), { value: expandDecimals(1, 18) })
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(2300)) // size
+    expect(position[1]).eq("894700000000000000000000000000000") // collateral, 596.5 + 300 - 0.3 - 1.5 = 894.7
 
-  //   await btc.mint(user0.address, expandDecimals(1, 8))
-  //   await btc.connect(user0).approve(router.address, expandDecimals(1, 8))
-  //   await positionManager.connect(user0).increasePosition([btc.address, dai.address], bnb.address, "500000", 0, toUsd(3000), false, 0)
+    // regular position increase, no extra fee applied
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(60000), { value: expandDecimals(1, 18) })
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(3300)) // size
+    expect(position[1]).eq("1193700000000000000000000000000000") // collateral, 894.7 + 300 - 1 = 1193.7
 
-  //   position = await vault.getPosition(user0.address, dai.address, bnb.address, false)
-  //   expect(position[0]).eq(toUsd(3000))
-  //   expect(position[1]).eq("296100000000000000000000000000000")
-  // })
+    const balanceBefore = await provider.getBalance(user0.address)
+    await positionManager.connect(user0).decreasePositionETH(bnb.address, bnb.address, position[1], position[0], true, user0.address, 0)
+    const balanceAfter = await provider.getBalance(user0.address)
+    expect(balanceAfter.gt(balanceBefore))
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(0) // size
+    expect(position[1]).eq(0) // collateral
 
-  // it("deposit collateral for shorts", async () => {
-  //   const timelock = await deployTimelock()
+    await positionManager.setInLegacyMode(false)
+    await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(60000), { value: expandDecimals(1, 18) })).to.be.revertedWith("PositionManager: forbidden")
 
-  //   await vault.setGov(timelock.address)
-  //   await timelock.setContractHandler(positionManager.address, true)
-  //   await router.addPlugin(positionManager.address)
-  //   await router.connect(user0).approvePlugin(positionManager.address)
+    // partners should have access in non-legacy mode
+    expect(await positionManager.isPartner(user0.address)).to.be.false
+    await positionManager.setPartner(user0.address, true)
+    expect(await positionManager.isPartner(user0.address)).to.be.true
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(60000), { value: expandDecimals(1, 18) })
+  })
 
-  //   await dai.mint(user0.address, expandDecimals(200, 18))
-  //   await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+  it("increasePositionETH with swap", async () => {
+    const timelock = await deployTimelock()
 
-  //   await timelock.setShouldToggleIsLeverageEnabled(true)
-  //   await positionManager.setInLegacyMode(true)
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
 
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address, dai.address], btc.address, 0, toUsd(3000), false, 0, { value: expandDecimals(1, 18) })
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+    await positionManager.setInLegacyMode(true)
+    await positionManager.connect(user0).increasePositionETH([bnb.address, btc.address], btc.address, 0, toUsd(2000), true, toUsd(60000), { value: expandDecimals(1, 18) })
 
-  //   let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
-  //   expect(position[0]).eq(toUsd(3000))
-  //   expect(position[1]).eq("296100000000000000000000000000000") // 296.1
+    let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("297100000000000000000000000000000") // collateral, 297.1, 300 - 297.1 => 2.9, 0.9 fee for swap, 2.0 fee for size delta
 
-  //   await dai.mint(user0.address, expandDecimals(200, 18))
-  //   await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
-  //   await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(200, 18), 0, 0, false, 0)
+    await positionManager.connect(user0).increasePositionETH([bnb.address, btc.address], btc.address, 0, 0, true, toUsd(60000), { value: expandDecimals(1, 18) })
 
-  //   position = await vault.getPosition(user0.address, dai.address, btc.address, false)
-  //   expect(position[0]).eq(toUsd(3000))
-  //   expect(position[1]).eq("496100000000000000000000000000000") // 496.1, zero fee for short collateral deposits
-  // })
+    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("594704200000000000000000000000000") // collateral, 594.7042, 594.7042 - 297.1 => 297.6042, 300 - 297.6042 => 2.3958, ~1.5 + 0.9 fee for swap
+  });
 
-  // it("executeSwapOrder", async () => {
-  //   await dai.mint(user0.address, expandDecimals(1000, 18))
-  //   await dai.connect(user0).approve(router.address, expandDecimals(100, 18))
-  //   await orderBook.connect(user0).createSwapOrder(
-  //     [dai.address, btc.address],
-  //     expandDecimals(100, 18), //amountIn,
-  //     0,
-  //     0,
-  //     true,
-  //     expandDecimals(1, 17),
-  //     false,
-  //     false,
-  //     {value: expandDecimals(1, 17)}
-  //   )
-  //   const orderIndex = (await orderBook.swapOrdersIndex(user0.address)) - 1
+  it("increasePosition and increasePositionETH to short", async () => {
+    const timelock = await deployTimelock()
 
-  //   await expect(positionManager.connect(user1).executeSwapOrder(user0.address, orderIndex, user1.address))
-  //     .to.be.revertedWith("PositionManager: forbidden")
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
 
-  //   const balanceBefore = await provider.getBalance(user1.address)
-  //   await positionManager.setOrderKeeper(user1.address, true)
-  //   await positionManager.connect(user1).executeSwapOrder(user0.address, orderIndex, user1.address)
-  //   expect((await orderBook.swapOrders(user0.address, orderIndex))[0]).to.be.equal(ethers.constants.AddressZero)
-  //   const balanceAfter = await provider.getBalance(user1.address)
-  //   expect(balanceAfter.gt(balanceBefore)).to.be.true
-  // })
+    await dai.mint(user0.address, expandDecimals(200, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+    await positionManager.setInLegacyMode(true)
+    await positionManager.connect(user0).increasePositionETH([bnb.address, dai.address], btc.address, 0, toUsd(3000), false, 0, { value: expandDecimals(1, 18) })
+
+    let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("296100000000000000000000000000000")
+
+    await btc.mint(user0.address, expandDecimals(1, 8))
+    await btc.connect(user0).approve(router.address, expandDecimals(1, 8))
+    await positionManager.connect(user0).increasePosition([btc.address, dai.address], bnb.address, "500000", 0, toUsd(3000), false, 0)
+
+    position = await vault.getPosition(user0.address, dai.address, bnb.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("296100000000000000000000000000000")
+  })
+
+  it("deposit collateral for shorts", async () => {
+    const timelock = await deployTimelock()
+
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
+
+    await dai.mint(user0.address, expandDecimals(200, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+    await positionManager.setInLegacyMode(true)
+
+    await positionManager.connect(user0).increasePositionETH([bnb.address, dai.address], btc.address, 0, toUsd(3000), false, 0, { value: expandDecimals(1, 18) })
+
+    let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("296100000000000000000000000000000") // 296.1
+
+    await dai.mint(user0.address, expandDecimals(200, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(200, 18))
+    await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(200, 18), 0, 0, false, 0)
+
+    position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(toUsd(3000))
+    expect(position[1]).eq("496100000000000000000000000000000") // 496.1, zero fee for short collateral deposits
+  })
+
+  it("executeSwapOrder", async () => {
+    await dai.mint(user0.address, expandDecimals(1000, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(100, 18))
+    await orderBook.connect(user0).createSwapOrder(
+      [dai.address, btc.address],
+      expandDecimals(100, 18), //amountIn,
+      0,
+      0,
+      true,
+      expandDecimals(1, 17),
+      false,
+      false,
+      {value: expandDecimals(1, 17)}
+    )
+    const orderIndex = (await orderBook.swapOrdersIndex(user0.address)) - 1
+
+    await expect(positionManager.connect(user1).executeSwapOrder(user0.address, orderIndex, user1.address))
+      .to.be.revertedWith("PositionManager: forbidden")
+
+    const balanceBefore = await provider.getBalance(user1.address)
+    await positionManager.setOrderKeeper(user1.address, true)
+    await positionManager.connect(user1).executeSwapOrder(user0.address, orderIndex, user1.address)
+    expect((await orderBook.swapOrders(user0.address, orderIndex))[0]).to.be.equal(ethers.constants.AddressZero)
+    const balanceAfter = await provider.getBalance(user1.address)
+    expect(balanceAfter.gt(balanceBefore)).to.be.true
+  })
 
   it("executeIncreaseOrder", async () => {
     const timelock = await deployTimelock()
@@ -497,66 +552,66 @@ describe("PositionManager", function () {
     await positionManager.connect(user1).executeIncreaseOrder(user0.address, orderIndex, user1.address)
   })
 
-  // it("executeDecreaseOrder", async () => {
-  //   const timelock = await deployTimelock()
-  //   await vault.setGov(timelock.address)
-  //   await timelock.setContractHandler(positionManager.address, true)
-  //   await timelock.setShouldToggleIsLeverageEnabled(true)
-  //   await positionManager.setInLegacyMode(true)
-  //   await router.addPlugin(positionManager.address)
-  //   await router.connect(user0).approvePlugin(positionManager.address)
+  it("executeDecreaseOrder", async () => {
+    const timelock = await deployTimelock()
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+    await positionManager.setInLegacyMode(true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
 
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(100000), { value: expandDecimals(1, 18) })
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(100000), { value: expandDecimals(1, 18) })
 
-  //   let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
 
-  //   const executionFee = expandDecimals(1, 17) // 0.1 WETH
-  //   await orderBook.connect(user0).createDecreaseOrder(
-  //     bnb.address,
-  //     position[0],
-  //     bnb.address,
-  //     position[1],
-  //     true,
-  //     toUsd(290),
-  //     true,
-  //     {value: executionFee}
-  //   );
+    const executionFee = expandDecimals(1, 17) // 0.1 WETH
+    await orderBook.connect(user0).createDecreaseOrder(
+      bnb.address,
+      position[0],
+      bnb.address,
+      position[1],
+      true,
+      toUsd(290),
+      true,
+      {value: executionFee}
+    );
 
-  //   const orderIndex = (await orderBook.decreaseOrdersIndex(user0.address)) - 1
-  //   await expect(positionManager.connect(user1).executeDecreaseOrder(user0.address, orderIndex, user1.address))
-  //     .to.be.revertedWith("PositionManager: forbidden")
+    const orderIndex = (await orderBook.decreaseOrdersIndex(user0.address)) - 1
+    await expect(positionManager.connect(user1).executeDecreaseOrder(user0.address, orderIndex, user1.address))
+      .to.be.revertedWith("PositionManager: forbidden")
 
-  //   const balanceBefore = await provider.getBalance(user1.address)
-  //   await positionManager.setOrderKeeper(user1.address, true)
-  //   await positionManager.connect(user1).executeDecreaseOrder(user0.address, orderIndex, user1.address)
-  //   expect((await orderBook.decreaseOrders(user0.address, orderIndex))[0]).to.be.equal(ethers.constants.AddressZero)
-  //   const balanceAfter = await provider.getBalance(user1.address)
-  //   expect(balanceAfter.gt(balanceBefore)).to.be.true
+    const balanceBefore = await provider.getBalance(user1.address)
+    await positionManager.setOrderKeeper(user1.address, true)
+    await positionManager.connect(user1).executeDecreaseOrder(user0.address, orderIndex, user1.address)
+    expect((await orderBook.decreaseOrders(user0.address, orderIndex))[0]).to.be.equal(ethers.constants.AddressZero)
+    const balanceAfter = await provider.getBalance(user1.address)
+    expect(balanceAfter.gt(balanceBefore)).to.be.true
 
-  //   position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
-  //   expect(position[0]).to.be.equal(0)
-  // })
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).to.be.equal(0)
+  })
 
-  // it("liquidatePosition", async () => {
-  //   const timelock = await deployTimelock()
-  //   await vault.setGov(timelock.address)
-  //   await timelock.setContractHandler(positionManager.address, true)
-  //   await timelock.setShouldToggleIsLeverageEnabled(true)
+  it("liquidatePosition", async () => {
+    const timelock = await deployTimelock()
+    await vault.setGov(timelock.address)
+    await timelock.setContractHandler(positionManager.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
 
-  //   expect(await positionManager.isLiquidator(user1.address)).to.be.false
-  //   await expect(positionManager.connect(user1).liquidatePosition(user1.address, bnb.address, bnb.address, true, user0.address))
-  //     .to.be.revertedWith("PositionManager: forbidden")
+    expect(await positionManager.isLiquidator(user1.address)).to.be.false
+    await expect(positionManager.connect(user1).liquidatePosition(user1.address, bnb.address, bnb.address, true, user0.address))
+      .to.be.revertedWith("PositionManager: forbidden")
 
-  //   await positionManager.setInLegacyMode(true)
-  //   await router.addPlugin(positionManager.address)
-  //   await router.connect(user0).approvePlugin(positionManager.address)
+    await positionManager.setInLegacyMode(true)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
 
-  //   await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(100000), { value: expandDecimals(1, 18) })
-  //   let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    await positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(1000), true, toUsd(100000), { value: expandDecimals(1, 18) })
+    let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
 
-  //   await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(200))
-  //   await positionManager.setLiquidator(user1.address, true)
-  //   expect(await positionManager.isLiquidator(user1.address)).to.be.true
-  //   await positionManager.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user1.address)
-  // })
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(200))
+    await positionManager.setLiquidator(user1.address, true)
+    expect(await positionManager.isLiquidator(user1.address)).to.be.true
+    await positionManager.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user1.address)
+  })
 })

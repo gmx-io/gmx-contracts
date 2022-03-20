@@ -182,9 +182,9 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         address _vault = vault;
 
         if (_isLong) {
-            require(IVault(_vault).getMinPrice(_indexToken) >= _price, "Router: mark price lower than limit");
+            require(IVault(_vault).getMinPrice(_indexToken) >= _price, "BasePositionManager: mark price lower than limit");
         } else {
-            require(IVault(_vault).getMaxPrice(_indexToken) <= _price, "Router: mark price higher than limit");
+            require(IVault(_vault).getMaxPrice(_indexToken) <= _price, "BasePositionManager: mark price higher than limit");
         }
 
         address timelock = IVault(_vault).gov();
@@ -279,7 +279,7 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         if (shouldDeductFee) {
             uint256 afterFeeAmount = _amountIn.mul(BASIS_POINTS_DIVISOR.sub(depositFee)).div(BASIS_POINTS_DIVISOR);
             uint256 feeAmount = _amountIn.sub(afterFeeAmount);
-            address feeToken = _path[0];
+            address feeToken = _path[_path.length - 1];
             feeReserves[feeToken] = feeReserves[feeToken].add(feeAmount);
             return afterFeeAmount;
         }

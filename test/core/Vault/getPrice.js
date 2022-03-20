@@ -99,10 +99,10 @@ describe("Vault.getPrice", function () {
 
     await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(1.11))
     expect(await vaultPriceFeed.getPrice(usdc.address, true, true, true)).eq(expandDecimals(111, 28))
-
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(1, 30))
 
     await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(0.9))
+    expect(await vaultPriceFeed.getPrice(usdc.address, true, true, true)).eq(expandDecimals(111, 28))
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(1, 30))
 
     await vaultPriceFeed.setSpreadBasisPoints(usdc.address, 20)
@@ -110,13 +110,15 @@ describe("Vault.getPrice", function () {
 
     await vaultPriceFeed.setSpreadBasisPoints(usdc.address, 0)
     await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(0.89))
+    await usdcPriceFeed.setLatestAnswer(toChainlinkPrice(0.89))
+    expect(await vaultPriceFeed.getPrice(usdc.address, true, true, true)).eq(expandDecimals(1, 30))
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(89, 28))
 
     await vaultPriceFeed.setSpreadBasisPoints(usdc.address, 20)
     expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(89, 28))
 
     await vaultPriceFeed.setUseV2Pricing(true)
-    expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq("888220000000000000000000000000")
+    expect(await vaultPriceFeed.getPrice(usdc.address, false, true, true)).eq(expandDecimals(89, 28))
 
     await vaultPriceFeed.setSpreadBasisPoints(btc.address, 0)
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))

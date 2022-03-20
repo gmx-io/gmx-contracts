@@ -578,6 +578,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         require(msg.sender == _account, "PositionRouter: forbidden");
 
         require(_positionBlockTime.add(minTimeDelayPublic) <= block.timestamp, "PositionRouter: min delay not yet passed");
+
+        return true;
     }
 
     function _validateCancellation(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
@@ -594,6 +596,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         require(msg.sender == _account, "PositionRouter: forbidden");
 
         require(_positionBlockTime.add(minTimeDelayPublic) <= block.timestamp, "PositionRouter: min delay not yet passed");
+
+        return true;
     }
 
     function _createIncreasePosition(
