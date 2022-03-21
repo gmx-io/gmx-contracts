@@ -216,11 +216,23 @@ describe("PositionManager", function () {
     await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
       .to.be.revertedWith("Timelock: forbidden")
 
+    // path length should be 1 or 2
+    await expect(positionManager.connect(user0).increasePosition([btc.address, bnb.address, dai.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
+      .to.be.revertedWith("PositionManager: invalid _path.length")
+
     await timelock.setContractHandler(positionManager.address, true)
     await timelock.setShouldToggleIsLeverageEnabled(true)
 
     await dai.mint(user0.address, expandDecimals(20000, 18))
     await dai.connect(user0).approve(router.address, expandDecimals(20000, 18))
+
+    // too low desired price
+    await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(50000)))
+      .to.be.revertedWith("BasePositionManager: mark price higher than limit")
+
+    // too big minOut
+    await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "1332333", toUsd(2000), true, toNormalizedPrice(60000)))
+      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
 
     await positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))
 
@@ -266,6 +278,11 @@ describe("PositionManager", function () {
     expect(position[0]).eq(toUsd(3300)) // size
     expect(position[1]).eq("1093099800000000000000000000000000") // collateral, 1093.0998, 1093.0998 - 794.0998 => 299, 1.0 for size delta fee
 
+    await positionManager.setInLegacyMode(false)
+    await expect(positionManager.connect(user0).decreasePosition(btc.address, btc.address, position[1], position[0], true, user0.address, 0))
+      .to.be.revertedWith("PositionManager: forbidden")
+    await positionManager.setInLegacyMode(true)
+
     expect(await btc.balanceOf(user0.address)).to.be.equal("298500000")
     await positionManager.connect(user0).decreasePosition(btc.address, btc.address, position[1], position[0], true, user0.address, 0)
     expect(await btc.balanceOf(user0.address)).to.be.equal("300316333")
@@ -297,11 +314,23 @@ describe("PositionManager", function () {
     await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
       .to.be.revertedWith("Timelock: forbidden")
 
+    // path[0] should always be weth
+    await expect(positionManager.connect(user0).increasePositionETH([btc.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
+      .to.be.revertedWith("PositionManager: invalid _path")
+
+    // path length should be 1 or 2
+    await expect(positionManager.connect(user0).increasePositionETH([bnb.address, dai.address, btc.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
+      .to.be.revertedWith("PositionManager: invalid _path.length")
+
     await timelock.setContractHandler(positionManager.address, true)
     await timelock.setShouldToggleIsLeverageEnabled(true)
 
     await dai.mint(user0.address, expandDecimals(20000, 18))
     await dai.connect(user0).approve(router.address, expandDecimals(20000, 18))
+
+    // too low desired price
+    await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(2000), true, toUsd(200), { value: expandDecimals(1, 18) }))
+      .to.be.revertedWith("BasePositionManager: mark price higher than limit")
 
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
 
@@ -331,6 +360,11 @@ describe("PositionManager", function () {
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
     expect(position[0]).eq(toUsd(3300)) // size
     expect(position[1]).eq("1193700000000000000000000000000000") // collateral, 894.7 + 300 - 1 = 1193.7
+
+    await positionManager.setInLegacyMode(false)
+    await expect(positionManager.connect(user0).decreasePositionETH(bnb.address, bnb.address, position[1], position[0], true, user0.address, 0))
+      .to.be.revertedWith("PositionManager: forbidden")
+    await positionManager.setInLegacyMode(true)
 
     const balanceBefore = await provider.getBalance(user0.address)
     await positionManager.connect(user0).decreasePositionETH(bnb.address, bnb.address, position[1], position[0], true, user0.address, 0)
@@ -400,6 +434,99 @@ describe("PositionManager", function () {
     expect(position[0]).eq(toUsd(3000))
     expect(position[1]).eq("296100000000000000000000000000000")
   })
+
+  it("decreasePositionAndSwap and decreasePositionAndSwapETH", async () => {
+    const timelock = await deployTimelock()
+    await vault.setGov(timelock.address)
+    await router.addPlugin(positionManager.address)
+    await router.connect(user0).approvePlugin(positionManager.address)
+
+    await positionManager.setInLegacyMode(true)
+
+    await timelock.setContractHandler(positionManager.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+
+    await dai.mint(user0.address, expandDecimals(20000, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(20000, 18))
+
+    await bnb.deposit({ value: expandDecimals(10, 18) })
+
+    // BNB Long
+    await positionManager.connect(user0).increasePosition([dai.address, bnb.address], bnb.address, expandDecimals(200, 18), 0, toUsd(2000), true, toNormalizedPrice(60000))
+
+    let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(2000)) // size
+
+    let params = [
+      [bnb.address, dai.address], // path
+      bnb.address, // indexToken
+      position[1], // collateralDelta
+      position[0], // sizeDelta
+      true, // isLong
+      user0.address, // reciever
+      0 // price
+    ]
+
+    await positionManager.setInLegacyMode(false)
+    await expect(positionManager.connect(user0).decreasePositionAndSwap(...params, expandDecimals(200, 18)))
+      .to.be.revertedWith("PositionManager: forbidden")
+    await positionManager.setInLegacyMode(true)
+
+    // too high minOut
+    await expect(positionManager.connect(user0).decreasePositionAndSwap(...params, expandDecimals(200, 18)))
+      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+
+    // invalid path[0] == path[1]
+    await expect(positionManager.connect(user0).decreasePositionAndSwap([bnb.address, bnb.address], ...params.slice(1), 0))
+      .to.be.revertedWith("Vault: invalid tokens")
+
+    // path.length > 2
+    await expect(positionManager.connect(user0).decreasePositionAndSwap([bnb.address, dai.address, bnb.address], ...params.slice(1), 0))
+      .to.be.revertedWith("PositionManager: invalid _path.length")
+
+    let daiBalance = await dai.balanceOf(user0.address)
+    await positionManager.connect(user0).decreasePositionAndSwap(...params, 0)
+    expect(await dai.balanceOf(user0.address)).to.be.equal(daiBalance.add("194813799999999999601"))
+
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(0) // size
+
+    // BTC Short
+    await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(200, 18), 0, toUsd(2000), false, toNormalizedPrice(60000))
+
+    position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(toUsd(2000)) // size
+
+    params = [
+      [dai.address, bnb.address], // path
+      btc.address, // indexToken
+      position[1], // collateralDelta
+      position[0], // sizeDelta
+      false, // isLong
+      user0.address, // reciever
+      toUsd(60000) // price
+    ]
+    await positionManager.setInLegacyMode(false)
+    await expect(positionManager.connect(user0).decreasePositionAndSwapETH(...params, expandDecimals(200, 18)))
+      .to.be.revertedWith("PositionManager: forbidden")
+    await positionManager.setInLegacyMode(true)
+
+    await expect(positionManager.connect(user0).decreasePositionAndSwapETH(...params, expandDecimals(200, 18)))
+      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+
+    await expect(positionManager.connect(user0).decreasePositionAndSwapETH([dai.address, dai.address], ...params.slice(1), 0))
+      .to.be.revertedWith("PositionManager: invalid _path")
+
+    await expect(positionManager.connect(user0).decreasePositionAndSwapETH([dai.address, btc.address, bnb.address], ...params.slice(1), 0))
+      .to.be.revertedWith("PositionManager: invalid _path.length")
+
+    const bnbBalance = await provider.getBalance(user0.address)
+    await positionManager.connect(user0).decreasePositionAndSwapETH(...params, 0)
+    expect((await provider.getBalance(user0.address)).gt(bnbBalance)).to.be.true
+
+    position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(position[0]).eq(0) // size
+  });
 
   it("deposit collateral for shorts", async () => {
     const timelock = await deployTimelock()

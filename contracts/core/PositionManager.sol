@@ -184,7 +184,7 @@ contract PositionManager is BasePositionManager {
         uint256 _minOut
     ) external nonReentrant onlyPartnersOrLegacyMode {
         require(_path.length == 2, "PositionManager: invalid _path.length");
-        require(_path[_path.length - 1] == weth, "Router: invalid _path");
+        require(_path[_path.length - 1] == weth, "PositionManager: invalid _path");
 
         uint256 amount = _decreasePosition(msg.sender, _path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         IERC20(_path[0]).safeTransfer(vault, amount);
