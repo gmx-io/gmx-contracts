@@ -89,7 +89,13 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: ARBISCAN_API_KEY
+    apiKey: {
+      mainnet: MAINNET_DEPLOY_KEY,
+      arbitrumOne: ARBISCAN_API_KEY,
+      avalanche: SNOWTRACE_API_KEY,
+      bsc: BSCSCAN_API_KEY,
+      polygon: POLYGONSCAN_API_KEY,
+    }
   },
   solidity: {
     version: "0.6.12",

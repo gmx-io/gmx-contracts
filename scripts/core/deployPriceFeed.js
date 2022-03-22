@@ -70,7 +70,7 @@ async function deployPriceFeedArb() {
 
 async function deployPriceFeedAvax() {
   const { avax, btc, eth, mim, usdce, usdc } = tokens
-  const tokenArr = []
+  const tokenArr = [avax, btc, eth, mim, usdce, usdc]
   const fastPriceTokens = [avax, btc, eth]
   if (fastPriceTokens.find(t => !t.fastPricePrecision)) {
     throw new Error("Invalid price precision")
