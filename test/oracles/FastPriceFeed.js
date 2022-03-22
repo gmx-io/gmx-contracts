@@ -95,12 +95,9 @@ describe("FastPriceFeed", function () {
 
   it("setSigner", async () => {
     await expect(fastPriceFeed.connect(user0).setSigner(user1.address, true))
-      .to.be.revertedWith("FastPriceFeed: forbidden")
+      .to.be.revertedWith("Governable: forbidden")
 
-    await expect(fastPriceFeed.connect(wallet).setSigner(user1.address, true))
-      .to.be.revertedWith("FastPriceFeed: forbidden")
-
-    await fastPriceFeed.setTokenManager(user0.address)
+    await fastPriceFeed.setGov(user0.address)
 
     expect(await fastPriceFeed.isSigner(user1.address)).eq(false)
     await fastPriceFeed.connect(user0).setSigner(user1.address, true)
@@ -109,12 +106,9 @@ describe("FastPriceFeed", function () {
 
   it("setUpdater", async () => {
     await expect(fastPriceFeed.connect(user0).setUpdater(user1.address, true))
-      .to.be.revertedWith("FastPriceFeed: forbidden")
+      .to.be.revertedWith("Governable: forbidden")
 
-    await expect(fastPriceFeed.connect(wallet).setUpdater(user1.address, true))
-      .to.be.revertedWith("FastPriceFeed: forbidden")
-
-    await fastPriceFeed.setTokenManager(user0.address)
+    await fastPriceFeed.setGov(user0.address)
 
     expect(await fastPriceFeed.isUpdater(user1.address)).eq(false)
     await fastPriceFeed.connect(user0).setUpdater(user1.address, true)
@@ -216,9 +210,9 @@ describe("FastPriceFeed", function () {
 
   it("setMinAuthorizations", async () => {
     await expect(fastPriceFeed.connect(user0).setMinAuthorizations(3))
-      .to.be.revertedWith("Governable: forbidden")
+      .to.be.revertedWith("FastPriceFeed: forbidden")
 
-    await fastPriceFeed.setGov(user0.address)
+    await fastPriceFeed.setTokenManager(user0.address)
 
     expect(await fastPriceFeed.minAuthorizations()).eq(2)
     await fastPriceFeed.connect(user0).setMinAuthorizations(3)
@@ -429,7 +423,7 @@ describe("FastPriceFeed", function () {
     await expect(fastPriceFeed.connect(user0).setCompactedPrices(priceBitArray, blockTime))
       .to.be.revertedWith("FastPriceFeed: forbidden")
 
-    await fastPriceFeed.connect(tokenManager).setUpdater(user0.address, true)
+    await fastPriceFeed.connect(wallet).setUpdater(user0.address, true)
 
     expect(await fastPriceFeed.lastUpdatedAt()).eq(0)
 
@@ -580,7 +574,7 @@ describe("FastPriceFeed", function () {
     await expect(fastPriceFeed.connect(user0).setPricesWithBits(priceBits, blockTime))
       .to.be.revertedWith("FastPriceFeed: forbidden")
 
-    await fastPriceFeed.connect(tokenManager).setUpdater(user0.address, true)
+    await fastPriceFeed.connect(wallet).setUpdater(user0.address, true)
 
     expect(await fastPriceFeed.lastUpdatedAt()).eq(0)
 

@@ -116,11 +116,11 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         tokenManager = _tokenManager;
     }
 
-    function setSigner(address _account, bool _isActive) external onlyTokenManager {
+    function setSigner(address _account, bool _isActive) external onlyGov {
         isSigner[_account] = _isActive;
     }
 
-    function setUpdater(address _account, bool _isActive) external onlyTokenManager {
+    function setUpdater(address _account, bool _isActive) external onlyGov {
         isUpdater[_account] = _isActive;
     }
 
@@ -157,7 +157,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
     }
 
-    function setMinAuthorizations(uint256 _minAuthorizations) external onlyGov {
+    function setMinAuthorizations(uint256 _minAuthorizations) external onlyTokenManager {
         minAuthorizations = _minAuthorizations;
     }
 
