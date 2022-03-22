@@ -310,7 +310,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
     }
 
-
     function _emitPriceEvent(address _fastPriceEvents, address _token, uint256 _price) private {
         if (_fastPriceEvents == address(0)) {
             return;
