@@ -259,6 +259,11 @@ contract BasePositionManager is ReentrancyGuard, Governable {
         _receiver.sendValue(_amountOut);
     }
 
+    function _transferOutETHWithGasLimit(uint256 _amountOut, address payable _receiver) internal {
+        IWETH(weth).withdraw(_amountOut);
+        _receiver.transfer(_amountOut);
+    }
+
     function _collectFees(
         address _account,
         address[] memory _path,

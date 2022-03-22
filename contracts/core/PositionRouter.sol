@@ -443,7 +443,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         delete increasePositionRequests[_key];
 
         if (request.hasCollateralInETH) {
-            _transferOutETH(request.amountIn, payable(request.account));
+            _transferOutETHWithGasLimit(request.amountIn, payable(request.account));
         } else {
             IERC20(request.path[0]).safeTransfer(request.account, request.amountIn);
         }
@@ -485,7 +485,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         }
 
         if (request.withdrawETH) {
-           _transferOutETH(amountOut, payable(request.receiver));
+           _transferOutETHWithGasLimit(amountOut, payable(request.receiver));
         } else {
            IERC20(request.path[request.path.length - 1]).safeTransfer(request.receiver, amountOut);
         }
