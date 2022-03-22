@@ -96,8 +96,6 @@ function getPriceBits(prices) {
     throw new Error("max prices.length exceeded")
   }
 
-  let priceBitArray = []
-
   let priceBits = new BN('0')
 
   for (let j = 0; j < 8; j++) {
