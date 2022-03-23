@@ -33,7 +33,7 @@ async function deployPriceFeedArb() {
   const chainlinkFlags = { address: "0x3C14e07Edd0dC67442FA96f1Ec6999c57E810a83" }
   const secondaryPriceFeed = await deployContract("FastPriceFeed", [
     5 * 60, // _priceDuration
-    1, // _minBlockInterval
+    0, // _minBlockInterval
     250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
     tokenManager.address, // _tokenManager
@@ -77,7 +77,7 @@ async function deployPriceFeedAvax() {
     throw new Error("Invalid price precision")
   }
 
-  const signer = await getFrameSigner()
+  // const signer = await getFrameSigner()
 
   const timelock = { address: "0xfec6FA94aF7BF1Ec917550426F6785aeee898814" }
   const fastPriceFeedGov = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
@@ -95,7 +95,7 @@ async function deployPriceFeedAvax() {
 
   const secondaryPriceFeed = await deployContract("FastPriceFeed", [
     5 * 60, // _priceDuration
-    1, // _minBlockInterval
+    0, // _minBlockInterval
     250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
     tokenManager.address, // _tokenManager

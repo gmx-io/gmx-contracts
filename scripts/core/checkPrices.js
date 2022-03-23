@@ -57,7 +57,7 @@ async function checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr) {
 async function checkPricesAvax() {
   const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x131238112aa25c0D8CD237a6c384d1A86D2BB152")
   // let vaultPriceFeed2
-  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x370aC5441ABd9d6D995A01958198D4334084E90A")
+  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
 
   const { avax, btc, eth, mim, usdce, usdc } = tokens
   const tokenArr = [avax, btc, eth, mim, usdce, usdc]
