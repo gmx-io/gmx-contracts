@@ -25,7 +25,7 @@ async function deployPriceFeedArb() {
   const signers = ["0x8A78BA7F6c187e381ffE9B6414FC11cebd5993c1"]
   const tokenManager = { address: "0x1EF8156b46e6f5A1973BfF4975177fd13275Ad59" }
 
-  const positionRouter = await contractAt("PositionRouter", "0x338fF5b9d64484c8890704a76FE7166Ed7d3AEAd")
+  const positionRouter = await contractAt("PositionRouter", "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba")
 
   // const fastPriceEvents = await contractAt("FastPriceEvents", "0x4530b7DE1958270A2376be192a24175D795e1b07", signer)
   const fastPriceEvents = await deployContract("FastPriceEvents", [])
@@ -89,7 +89,7 @@ async function deployPriceFeedAvax() {
   const signers = ["0x1D6d107F5960A66f293Ac07EDd08c1ffE79B548a"]
   const tokenManager = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
 
-  const positionRouter = await contractAt("PositionRouter", "0xc5BBc613f4617eE4F7E89320081182024F86bd6B")
+  const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
 
   const fastPriceEvents = await deployContract("FastPriceEvents", [])
 
