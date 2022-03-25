@@ -6,7 +6,7 @@ const { errors } = require("../../test/core/Vault/helpers")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-const depositFee = 50 // 0.5%
+const depositFee = 30 // 0.3%
 
 async function getArbValues() {
   const signer = await getFrameSigner()
