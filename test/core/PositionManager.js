@@ -737,7 +737,12 @@ describe("PositionManager", function () {
     let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
 
     await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(200))
+
+    await expect(positionManager.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user1.address))
+      .to.be.revertedWith("PositionManager: forbidden")
+
     await positionManager.setLiquidator(user1.address, true)
+
     expect(await positionManager.isLiquidator(user1.address)).to.be.true
     await positionManager.connect(user1).liquidatePosition(user0.address, bnb.address, bnb.address, true, user1.address)
   })
