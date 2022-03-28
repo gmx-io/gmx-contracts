@@ -12,13 +12,14 @@ import "../libraries/utils/ReentrancyGuard.sol";
 import "./interfaces/IRouter.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IOrderBook.sol";
+import "./interfaces/IBasePositionManager.sol";
 
 import "../access/Governable.sol";
 import "../peripherals/interfaces/ITimelock.sol";
 
 import "../referrals/interfaces/IReferralStorage.sol";
 
-contract BasePositionManager is ReentrancyGuard, Governable {
+contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Address for address payable;
@@ -42,8 +43,8 @@ contract BasePositionManager is ReentrancyGuard, Governable {
 
     mapping (address => uint256) public feeReserves;
 
-    mapping (address => uint256) public maxGlobalLongSizes;
-    mapping (address => uint256) public maxGlobalShortSizes;
+    mapping (address => uint256) public override maxGlobalLongSizes;
+    mapping (address => uint256) public override maxGlobalShortSizes;
 
     event SetDepositFee(uint256 depositFee);
     event SetIncreasePositionBufferBps(uint256 increasePositionBufferBps);
