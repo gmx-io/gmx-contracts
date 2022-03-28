@@ -37,7 +37,9 @@ describe("TokenManager", function () {
       user0.address,
       tokenManager.address,
       user2.address,
-      expandDecimals(1000, 18)
+      expandDecimals(1000, 18),
+      10,
+      100
     ])
 
     gmxTimelock = await deployContract("GmxTimelock", [

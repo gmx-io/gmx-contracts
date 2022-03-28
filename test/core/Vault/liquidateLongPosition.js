@@ -28,6 +28,9 @@ describe("Vault.liquidateLongPosition", function () {
   let distributor0
   let yieldTracker0
 
+  let glpManager
+  let glp
+
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
     bnbPriceFeed = await deployContract("PriceFeed", [])
@@ -63,6 +66,9 @@ describe("Vault.liquidateLongPosition", function () {
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
     await vaultPriceFeed.setTokenConfig(btc.address, btcPriceFeed.address, 8, false)
     await vaultPriceFeed.setTokenConfig(dai.address, daiPriceFeed.address, 8, false)
+
+    glp = await deployContract("GLP", [])
+    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
   })
 
   it("liquidate long", async () => {
@@ -84,7 +90,14 @@ describe("Vault.liquidateLongPosition", function () {
 
     await btc.mint(user0.address, expandDecimals(1, 8))
     await btc.connect(user1).transfer(vault.address, 25000) // 0.00025 BTC => 10 USD
+
+    expect(await glpManager.getAumInUsdg(false)).eq("99700000000000000000") // 99.7
+    expect(await glpManager.getAumInUsdg(true)).eq("102192500000000000000") // 102.1925
+
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("99702400000000000000") // 99.7024
+    expect(await glpManager.getAumInUsdg(true)).eq("100192710000000000000") // 100.19271
 
     let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
     expect(position[0]).eq(toUsd(90)) // size
@@ -143,8 +156,14 @@ describe("Vault.liquidateLongPosition", function () {
     await vault.setLiquidator(user1.address, true)
     expect(await vault.isLiquidator(user1.address)).eq(true)
 
+    expect(await glpManager.getAumInUsdg(false)).eq("99064997000000000000") // 99.064997
+    expect(await glpManager.getAumInUsdg(true)).eq("101418485000000000000") // 101.418485
+
     const tx = await vault.connect(user1).liquidatePosition(user0.address, btc.address, btc.address, true, user2.address)
     await reportGasUsed(provider, tx, "liquidatePosition gas used")
+
+    expect(await glpManager.getAumInUsdg(false)).eq("101522097000000000000") // 101.522097
+    expect(await glpManager.getAumInUsdg(true)).eq("114113985000000000000") // 114.113985
 
     position = await vault.getPosition(user0.address, btc.address, btc.address, true)
     expect(position[0]).eq(0) // size

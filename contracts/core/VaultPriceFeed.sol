@@ -185,6 +185,18 @@ contract VaultPriceFeed is IVaultPriceFeed {
             if (delta <= maxStrictPriceDeviation) {
                 return ONE_USD;
             }
+
+            // if _maximise and price is e.g. 1.02, return 1.02
+            if (_maximise && price > ONE_USD) {
+                return price;
+            }
+
+            // if !_maximise and price is e.g. 0.98, return 0.98
+            if (!_maximise && price < ONE_USD) {
+                return price;
+            }
+
+            return ONE_USD;
         }
 
         uint256 _spreadBasisPoints = spreadBasisPoints[_token];
@@ -212,6 +224,18 @@ contract VaultPriceFeed is IVaultPriceFeed {
             if (delta <= maxStrictPriceDeviation) {
                 return ONE_USD;
             }
+
+            // if _maximise and price is e.g. 1.02, return 1.02
+            if (_maximise && price > ONE_USD) {
+                return price;
+            }
+
+            // if !_maximise and price is e.g. 0.98, return 0.98
+            if (!_maximise && price < ONE_USD) {
+                return price;
+            }
+
+            return ONE_USD;
         }
 
         uint256 _spreadBasisPoints = spreadBasisPoints[_token];

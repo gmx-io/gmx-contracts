@@ -27,18 +27,4 @@ describe("VaultUtils", function () {
     const _ = await initVault(vault, router, usdg, vaultPriceFeed)
     vaultUtils = _.vaultUtils
   })
-
-  it("setWithdrawalCooldownDuration", async () => {
-    await expect(vaultUtils.connect(user0).setWithdrawalCooldownDuration(1234)).to.be.revertedWith("Governable: forbidden")
-
-    await vaultUtils.setWithdrawalCooldownDuration(1234)
-    expect(await vaultUtils.withdrawalCooldownDuration()).to.be.equal(1234)
-  })
-
-  it("setMinLeverage", async () => {
-    await expect(vaultUtils.connect(user0).setMinLeverage(50020)).to.be.revertedWith("Governable: forbidden")
-
-    await vaultUtils.setWithdrawalCooldownDuration(50020)
-    expect(await vaultUtils.withdrawalCooldownDuration()).to.be.equal(50020)
-  })
 })

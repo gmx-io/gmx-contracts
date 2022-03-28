@@ -3,12 +3,14 @@
 import "../libraries/math/SafeMath.sol";
 
 import "./interfaces/ISecondaryPriceFeed.sol";
+import "./interfaces/IFastPriceFeed.sol";
 import "./interfaces/IFastPriceEvents.sol";
+import "../core/interfaces/IPositionRouter.sol";
 import "../access/Governable.sol";
 
 pragma solidity 0.6.12;
 
-contract FastPriceFeed is ISecondaryPriceFeed, Governable {
+contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     using SafeMath for uint256;
 
     uint256 public constant PRICE_PRECISION = 10 ** 30;
@@ -17,32 +19,37 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     // shift the 1s by (256 - 32) to get (256 - 32) 0s followed by 32 1s
     uint256 constant public PRICE_BITMASK = uint256(~0) >> (256 - 32);
 
-    bool public isInitialized;
-    bool public isSpreadEnabled = false;
-    address public fastPriceEvents;
-
-    address public admin;
-    address public tokenManager;
-
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
     uint256 public constant MAX_PRICE_DURATION = 30 minutes;
 
-    uint256 public lastUpdatedAt;
-    uint256 public lastUpdatedBlock;
+    bool public isInitialized;
+    bool public isSpreadEnabled = false;
+    address public fastPriceEvents;
+
+    address public tokenManager;
+
+    address public positionRouter;
+
+    uint256 public override lastUpdatedAt;
+    uint256 public override lastUpdatedBlock;
 
     uint256 public priceDuration;
     uint256 public minBlockInterval;
+    uint256 public maxTimeDeviation;
 
     // volatility basis points
     uint256 public volBasisPoints;
     // max deviation from primary price
     uint256 public maxDeviationBasisPoints;
 
-    mapping (address => uint256) public prices;
-
     uint256 public minAuthorizations;
     uint256 public disableFastPriceVoteCount = 0;
+
+    mapping (address => bool) public isUpdater;
+
+    mapping (address => uint256) public prices;
+
     mapping (address => bool) public isSigner;
     mapping (address => bool) public disableFastPriceVotes;
 
@@ -54,14 +61,15 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
     uint256[] public tokenPrecisions;
 
     event DisableFastPrice(address signer);
+    event EnableFastPrice(address signer);
 
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
         _;
     }
 
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "FastPriceFeed: forbidden");
+    modifier onlyUpdater() {
+        require(isUpdater[msg.sender], "FastPriceFeed: forbidden");
         _;
     }
 
@@ -75,19 +83,19 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
       uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
-      address _admin,
-      address _tokenManager
+      address _tokenManager,
+      address _positionRouter
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
         minBlockInterval = _minBlockInterval;
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
-        admin = _admin;
         tokenManager = _tokenManager;
+        positionRouter = _positionRouter;
     }
 
-    function initialize(uint256 _minAuthorizations, address[] memory _signers) public onlyGov {
+    function initialize(uint256 _minAuthorizations, address[] memory _signers, address[] memory _updaters) public onlyGov {
         require(!isInitialized, "FastPriceFeed: already initialized");
         isInitialized = true;
 
@@ -97,10 +105,23 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
             address signer = _signers[i];
             isSigner[signer] = true;
         }
+
+        for (uint256 i = 0; i < _updaters.length; i++) {
+            address updater = _updaters[i];
+            isUpdater[updater] = true;
+        }
     }
 
-    function setAdmin(address _admin) external onlyTokenManager {
-        admin = _admin;
+    function setTokenManager(address _tokenManager) external onlyGov {
+        tokenManager = _tokenManager;
+    }
+
+    function setSigner(address _account, bool _isActive) external onlyGov {
+        isSigner[_account] = _isActive;
+    }
+
+    function setUpdater(address _account, bool _isActive) external onlyGov {
+        isUpdater[_account] = _isActive;
     }
 
     function setFastPriceEvents(address _fastPriceEvents) external onlyGov {
@@ -112,12 +133,32 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         priceDuration = _priceDuration;
     }
 
+    function setMinBlockInterval(uint256 _minBlockInterval) external onlyGov {
+        minBlockInterval = _minBlockInterval;
+    }
+
     function setIsSpreadEnabled(bool _isSpreadEnabled) external onlyGov {
         isSpreadEnabled = _isSpreadEnabled;
     }
 
+    function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
+        maxTimeDeviation = _maxTimeDeviation;
+    }
+
+    function setLastUpdatedAt(uint256 _lastUpdatedAt) external onlyGov {
+        lastUpdatedAt = _lastUpdatedAt;
+    }
+
     function setVolBasisPoints(uint256 _volBasisPoints) external onlyGov {
         volBasisPoints = _volBasisPoints;
+    }
+
+    function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external onlyGov {
+        maxDeviationBasisPoints = _maxDeviationBasisPoints;
+    }
+
+    function setMinAuthorizations(uint256 _minAuthorizations) external onlyTokenManager {
+        minAuthorizations = _minAuthorizations;
     }
 
     function setTokens(address[] memory _tokens, uint256[] memory _tokenPrecisions) external onlyGov {
@@ -126,41 +167,57 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         tokenPrecisions = _tokenPrecisions;
     }
 
-    function setPrices(address[] memory _tokens, uint256[] memory _prices) external onlyAdmin {
-        setLastUpdatedAt();
+    function setPrices(address[] memory _tokens, uint256[] memory _prices, uint256 _timestamp) external onlyUpdater {
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
 
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            address token = _tokens[i];
-            prices[token] = _prices[i];
-            if (fastPriceEvents != address(0)) {
-              IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, _prices[i]);
+        if (shouldUpdate) {
+            address _fastPriceEvents = fastPriceEvents;
+
+            for (uint256 i = 0; i < _tokens.length; i++) {
+                address token = _tokens[i];
+                prices[token] = _prices[i];
+                _emitPriceEvent(_fastPriceEvents, token,  _prices[i]);
             }
         }
     }
 
-    function setCompactedPrices(uint256[] memory _priceBitArray) external onlyAdmin {
-        setLastUpdatedAt();
+    function setCompactedPrices(uint256[] memory _priceBitArray, uint256 _timestamp) external onlyUpdater {
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
 
-        for (uint256 i = 0; i < _priceBitArray.length; i++) {
-            uint256 priceBits = _priceBitArray[i];
+        if (shouldUpdate) {
+            address _fastPriceEvents = fastPriceEvents;
 
-            for (uint256 j = 0; j < 8; j++) {
-                uint256 index = i * 8 + j;
-                if (index >= tokens.length) { return; }
+            for (uint256 i = 0; i < _priceBitArray.length; i++) {
+                uint256 priceBits = _priceBitArray[i];
 
-                uint256 startBit = 32 * j;
-                uint256 price = (priceBits >> startBit) & PRICE_BITMASK;
+                for (uint256 j = 0; j < 8; j++) {
+                    uint256 index = i * 8 + j;
+                    if (index >= tokens.length) { return; }
 
-                address token = tokens[i * 8 + j];
-                uint256 tokenPrecision = tokenPrecisions[i * 8 + j];
-                uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
-                prices[token] = adjustedPrice;
+                    uint256 startBit = 32 * j;
+                    uint256 price = (priceBits >> startBit) & PRICE_BITMASK;
 
-                if (fastPriceEvents != address(0)) {
-                  IFastPriceEvents(fastPriceEvents).emitPriceEvent(token, adjustedPrice);
+                    address token = tokens[i * 8 + j];
+                    uint256 tokenPrecision = tokenPrecisions[i * 8 + j];
+                    uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
+                    prices[token] = adjustedPrice;
+
+                    _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
                 }
             }
         }
+    }
+
+    function setPricesWithBits(uint256 _priceBits, uint256 _timestamp) external onlyUpdater {
+        _setPricesWithBits(_priceBits, _timestamp);
+    }
+
+    function setPricesWithBitsAndExecute(uint256 _priceBits, uint256 _timestamp, uint256 _endIndexForIncreasePositions, uint256 _endIndexForDecreasePositions) external onlyUpdater {
+        _setPricesWithBits(_priceBits, _timestamp);
+
+        IPositionRouter _positionRouter = IPositionRouter(positionRouter);
+        _positionRouter.executeIncreasePositions(_endIndexForIncreasePositions, payable(msg.sender));
+        _positionRouter.executeDecreasePositions(_endIndexForDecreasePositions, payable(msg.sender));
     }
 
     function disableFastPrice() external onlySigner {
@@ -175,10 +232,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         require(disableFastPriceVotes[msg.sender], "FastPriceFeed: already enabled");
         disableFastPriceVotes[msg.sender] = false;
         disableFastPriceVoteCount = disableFastPriceVoteCount.sub(1);
-    }
 
-    function favorFastPrice() public view returns (bool) {
-        return (disableFastPriceVoteCount < minAuthorizations) && !isSpreadEnabled;
+        emit EnableFastPrice(msg.sender);
     }
 
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
@@ -220,9 +275,65 @@ contract FastPriceFeed is ISecondaryPriceFeed, Governable {
         return fastPrice < minPrice ? minPrice : fastPrice;
     }
 
-    function setLastUpdatedAt() private {
-        require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
-        lastUpdatedAt = block.timestamp;
+    function favorFastPrice() public view returns (bool) {
+        if (isSpreadEnabled) {
+            return false;
+        }
+
+        if (disableFastPriceVoteCount >= minAuthorizations) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function _setPricesWithBits(uint256 _priceBits, uint256 _timestamp) private {
+        bool shouldUpdate = _setLastUpdatedValues(_timestamp);
+
+        if (shouldUpdate) {
+            address _fastPriceEvents = fastPriceEvents;
+
+            for (uint256 j = 0; j < 8; j++) {
+                uint256 index = j;
+                if (index >= tokens.length) { return; }
+
+                uint256 startBit = 32 * j;
+                uint256 price = (_priceBits >> startBit) & PRICE_BITMASK;
+
+                address token = tokens[j];
+                uint256 tokenPrecision = tokenPrecisions[j];
+                uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
+                prices[token] = adjustedPrice;
+
+                _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
+            }
+        }
+    }
+
+    function _emitPriceEvent(address _fastPriceEvents, address _token, uint256 _price) private {
+        if (_fastPriceEvents == address(0)) {
+            return;
+        }
+
+        IFastPriceEvents(_fastPriceEvents).emitPriceEvent(_token, _price);
+    }
+
+    function _setLastUpdatedValues(uint256 _timestamp) private returns (bool) {
+        if (minBlockInterval > 0) {
+            require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
+        }
+
+        require(_timestamp > block.timestamp.sub(maxTimeDeviation), "FastPriceFeed: _timestamp below allowed range");
+        require(_timestamp < block.timestamp.add(maxTimeDeviation), "FastPriceFeed: _timestamp exceeds allowed range");
+
+        // do not update prices if _timestamp is before the current lastUpdatedAt value
+        if (_timestamp < lastUpdatedAt) {
+            return false;
+        }
+
+        lastUpdatedAt = _timestamp;
         lastUpdatedBlock = block.number;
+
+        return true;
     }
 }

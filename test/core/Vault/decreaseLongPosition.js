@@ -25,6 +25,9 @@ describe("Vault.decreaseLongPosition", function () {
   let yieldTracker0
   let vaultUtils
 
+  let glpManager
+  let glp
+
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
     bnbPriceFeed = await deployContract("PriceFeed", [])
@@ -67,6 +70,9 @@ describe("Vault.decreaseLongPosition", function () {
       60 * 60, // _minProfitTime
       false // _hasDynamicFees
     )
+
+    glp = await deployContract("GLP", [])
+    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
   })
 
   it("decreasePosition long", async () => {
@@ -94,7 +100,13 @@ describe("Vault.decreaseLongPosition", function () {
     await expect(vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(110), true))
       .to.be.revertedWith("Vault: reserve exceeds pool")
 
+    expect(await glpManager.getAumInUsdg(false)).eq("99700000000000000000") // 99.7
+    expect(await glpManager.getAumInUsdg(true)).eq("102192500000000000000") // 102.1925
+
     await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("99702400000000000000") // 99.7024
+    expect(await glpManager.getAumInUsdg(true)).eq("100192710000000000000") // 100.19271
 
     let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
     expect(position[0]).eq(toUsd(90)) // size
@@ -149,9 +161,6 @@ describe("Vault.decreaseLongPosition", function () {
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, 0, toUsd(100), true, user2.address))
       .to.be.revertedWith("Vault: position size exceeded")
 
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(10), toUsd(50), true, user2.address))
-      .to.be.revertedWith("SafeMath: subtraction overflow")
-
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(8.91), toUsd(50), true, user2.address))
       .to.be.revertedWith("Vault: liquidation fees exceed collateral")
 
@@ -161,8 +170,14 @@ describe("Vault.decreaseLongPosition", function () {
     expect(await vault.poolAmounts(btc.address)).eq(274250 - 219)
     expect(await btc.balanceOf(user2.address)).eq(0)
 
+    expect(await glpManager.getAumInUsdg(false)).eq("102202981000000000000") // 102.202981
+    expect(await glpManager.getAumInUsdg(true)).eq("103183601000000000000") // 103.183601
+
     const tx = await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(3), toUsd(50), true, user2.address)
     await reportGasUsed(provider, tx, "decreasePosition gas used")
+
+    expect(await glpManager.getAumInUsdg(false)).eq("103917746000000000000") // 103.917746
+    expect(await glpManager.getAumInUsdg(true)).eq("107058666000000000000") // 107.058666
 
     leverage = await vault.getPositionLeverage(user0.address, btc.address, btc.address, true)
     expect(leverage).eq(57887) // ~5.8X leverage
@@ -183,6 +198,46 @@ describe("Vault.decreaseLongPosition", function () {
     expect(await btc.balanceOf(user2.address)).eq(16878) // 0.00016878 * 47100 => 7.949538 USD
 
     await validateVaultBalance(expect, vault, btc, 1)
+  })
+
+  it("decreasePosition long aum", async () => {
+    await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
+    await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+    await vault.setTokenConfig(...getBnbConfig(bnb, bnbPriceFeed))
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(500))
+
+    await bnb.mint(vault.address, expandDecimals(10, 18))
+    await vault.buyUSDG(bnb.address, user1.address)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("4985000000000000000000") // 4985
+    expect(await glpManager.getAumInUsdg(true)).eq("4985000000000000000000") // 4985
+
+    await bnb.mint(vault.address, expandDecimals(1, 18))
+    await vault.connect(user0).increasePosition(user0.address, bnb.address, bnb.address, toUsd(1000), true)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("4985000000000000000000") // 4985
+    expect(await glpManager.getAumInUsdg(true)).eq("4985000000000000000000") // 4985
+
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(750))
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(750))
+    await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(750))
+
+    expect(await glpManager.getAumInUsdg(false)).eq("7227000000000000000000") // 7227
+    expect(await glpManager.getAumInUsdg(true)).eq("7227000000000000000000") // 7227
+
+    await vault.connect(user0).decreasePosition(user0.address, bnb.address, bnb.address, toUsd(0), toUsd(500), true, user2.address)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("7227000000000000000250") // 7227.00000000000000025
+    expect(await glpManager.getAumInUsdg(true)).eq("7227000000000000000250") // 7227.00000000000000025
+
+    await vault.connect(user0).decreasePosition(user0.address, bnb.address, bnb.address, toUsd(250), toUsd(100), true, user2.address)
+
+    expect(await glpManager.getAumInUsdg(false)).eq("7227000000000000000250") // 7227.00000000000000025
+    expect(await glpManager.getAumInUsdg(true)).eq("7227000000000000000250") // 7227.00000000000000025
   })
 
   it("decreasePosition long minProfitBasisPoints", async () => {
@@ -330,70 +385,5 @@ describe("Vault.decreaseLongPosition", function () {
     expect(await btc.balanceOf(user2.address)).eq(21868) // 0.00021868 * 40790 => ~8.92 USD
 
     await validateVaultBalance(expect, vault, btc)
-  })
-
-  it("decreasePosition within withdrawal cooldown duration", async () => {
-    await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
-    await vault.setTokenConfig(...getDaiConfig(dai, daiPriceFeed))
-
-    await expect(vault.connect(user1).decreasePosition(user0.address, btc.address, btc.address, 0, 0, true, user2.address))
-      .to.be.revertedWith("Vault: invalid msg.sender")
-
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
-    await vault.setTokenConfig(...getBtcConfig(btc, btcPriceFeed))
-
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(41000))
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(40000))
-
-    await btc.mint(user1.address, expandDecimals(1, 8))
-    await btc.connect(user1).transfer(vault.address, 250000) // 0.0025 BTC => 100 USD
-    await vault.buyUSDG(btc.address, user1.address)
-
-    await btc.mint(user0.address, expandDecimals(1, 8))
-
-    await btc.connect(user1).transfer(vault.address, 25000) // 0.00025 BTC => 10 USD
-    await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
-
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(41000 + 307)) // 41000 * 0.75% => 307.5
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(41000 + 307))
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(41000 + 307))
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(47100))
-
-    await vaultUtils.setWithdrawalCooldownDuration(6 * 60 * 60)
-
-    // position is still closable inside withdrawal cooldown period
-    await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, 0, toUsd(90), true, user2.address)
-    let position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-
-    await btc.connect(user1).transfer(vault.address, 50000)
-    await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
-    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    // and also partially closable using same leverage
-    await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(5), position[0].div(5), true, user2.address)
-
-    await btc.mint(user1.address, expandDecimals(1, 8))
-    await btc.connect(user1).transfer(vault.address, 250000) // 0.0025 BTC => 100 USD
-    await vault.buyUSDG(btc.address, user1.address)
-
-    await btc.connect(user1).transfer(vault.address, 100000)
-    await vault.connect(user0).increasePosition(user0.address, btc.address, btc.address, toUsd(90), true)
-    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(4), position[0].div(5), true, user2.address))
-      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
-
-    await increaseTime(provider, 6 * 60 * 60 - 100)
-    await mineBlock(provider)
-
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(4), position[0].div(5), true, user2.address))
-      .to.be.revertedWith("VaultUtils: cooldown duration not yet passed")
-
-    await increaseTime(provider, 110)
-    await mineBlock(provider)
-
-    await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, position[1].div(4), position[0].div(5), true, user2.address)
-
-    position = await vault.getPosition(user0.address, btc.address, btc.address, true)
-    await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, 0, position[0].div(2), true, user2.address))
-      .to.be.revertedWith("VaultUtils: leverage is too low")
   })
 })

@@ -63,7 +63,9 @@ describe("Timelock", function () {
       rewardManager.address,
       tokenManager.address,
       mintReceiver.address,
-      expandDecimals(1000, 18)
+      expandDecimals(1000, 18),
+      50, // marginFeeBasisPoints 0.5%
+      500, // maxMarginFeeBasisPoints 5%
     ])
     await vault.setGov(timelock.address)
 
@@ -97,7 +99,9 @@ describe("Timelock", function () {
       rewardManager.address,
       tokenManager.address,
       mintReceiver.address,
-      1000
+      1000,
+      10,
+      100
     ])).to.be.revertedWith("Timelock: invalid _buffer")
   })
 
@@ -194,7 +198,9 @@ describe("Timelock", function () {
       rewardManager.address,
       tokenManager.address,
       mintReceiver.address,
-      1000
+      1000,
+      10,
+      100
     ])
     await expect(timelock0.connect(user0).setBuffer(3 * 24 * 60 * 60 - 10))
       .to.be.revertedWith("Timelock: forbidden")
@@ -294,13 +300,7 @@ describe("Timelock", function () {
     await timelock.connect(wallet).setIsLeverageEnabled(vault.address, false)
     expect(await vault.isLeverageEnabled()).eq(false)
 
-    await expect(timelock.connect(user1).setIsLeverageEnabled(vault.address, false))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    await timelock.connect(wallet).setContractHandler(user1.address, true)
-
-    expect(await vault.isLeverageEnabled()).eq(false)
-    await timelock.connect(user1).setIsLeverageEnabled(vault.address, true)
+    await timelock.connect(wallet).setIsLeverageEnabled(vault.address, true)
     expect(await vault.isLeverageEnabled()).eq(true)
 
     await expect(timelock.connect(user1).addExcludedToken(user2.address))
@@ -1154,6 +1154,64 @@ describe("Timelock", function () {
 
     await expect(timelock.connect(wallet).setExternalAdmin(timelock.address, user3.address))
       .to.be.revertedWith("Timelock: invalid _target")
+  })
+
+  it("setShouldToggleIsLeverageEnabled", async () => {
+    await expect(timelock.connect(user0).setShouldToggleIsLeverageEnabled(true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await timelock.shouldToggleIsLeverageEnabled()).to.be.false
+    await expect(timelock.setShouldToggleIsLeverageEnabled(true))
+    expect(await timelock.shouldToggleIsLeverageEnabled()).to.be.true
+    await expect(timelock.setShouldToggleIsLeverageEnabled(false))
+    expect(await timelock.shouldToggleIsLeverageEnabled()).to.be.false
+  })
+
+  it("setMarginFeeBasisPoints", async () => {
+    await expect(timelock.connect(user0).setMarginFeeBasisPoints(100, 1000))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await timelock.marginFeeBasisPoints()).eq(50)
+    expect(await timelock.maxMarginFeeBasisPoints()).eq(500)
+
+    await timelock.setMarginFeeBasisPoints(100, 1000)
+    expect(await timelock.marginFeeBasisPoints()).eq(100)
+    expect(await timelock.maxMarginFeeBasisPoints()).eq(1000)
+  })
+
+  it("toggle leverage", async () => {
+    await expect(timelock.connect(user0).enableLeverage(vault.address))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.setMarginFeeBasisPoints(10, 100)
+    await expect(timelock.setShouldToggleIsLeverageEnabled(true))
+    const initialTaxBasisPoints = await vault.taxBasisPoints()
+
+    expect(await vault.isLeverageEnabled()).to.be.true
+
+    await timelock.disableLeverage(vault.address)
+    expect (await vault.taxBasisPoints()).to.be.equal(initialTaxBasisPoints)
+    expect(await vault.marginFeeBasisPoints()).eq(100)
+    expect(await vault.isLeverageEnabled()).to.be.false
+
+    await timelock.enableLeverage(vault.address)
+    expect (await vault.taxBasisPoints()).to.be.equal(initialTaxBasisPoints)
+    expect(await vault.marginFeeBasisPoints()).eq(10)
+    expect(await vault.isLeverageEnabled()).to.be.true
+
+    await expect(timelock.setShouldToggleIsLeverageEnabled(false))
+    await timelock.disableLeverage(vault.address)
+    expect (await vault.taxBasisPoints()).to.be.equal(initialTaxBasisPoints)
+    expect(await vault.marginFeeBasisPoints()).eq(100)
+    expect(await vault.isLeverageEnabled()).to.be.true
+
+    await expect(timelock.setShouldToggleIsLeverageEnabled(true))
+    await timelock.disableLeverage(vault.address)
+    await expect(timelock.setShouldToggleIsLeverageEnabled(false))
+    await timelock.enableLeverage(vault.address)
+    expect (await vault.taxBasisPoints()).to.be.equal(initialTaxBasisPoints)
+    expect(await vault.marginFeeBasisPoints()).eq(10)
+    expect(await vault.isLeverageEnabled()).to.be.false
   })
 
   it("setInPrivateLiquidationMode", async () => {

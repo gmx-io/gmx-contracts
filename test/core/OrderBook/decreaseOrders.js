@@ -18,7 +18,6 @@ describe("OrderBook, decrease position orders", () => {
     const [wallet, user0, user1, user2, user3] = provider.getWallets()
 
     let vault;
-    let vaultUtils;
     let orderBook;
     let defaults;
     let tokenDecimals;
@@ -56,8 +55,6 @@ describe("OrderBook, decrease position orders", () => {
         vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
         const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
-        vaultUtils = initVaultResult.vaultUtils
-        await vaultUtils.setMinLeverage(1000)
 
         distributor0 = await deployContract("TimeDistributor", [])
         yieldTracker0 = await deployContract("YieldTracker", [usdg.address])

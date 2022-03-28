@@ -2,50 +2,78 @@
 
 pragma solidity ^0.6.0;
 
-import "../libraries/math/SafeMath.sol";
-import "../libraries/token/IERC20.sol";
-import "../tokens/interfaces/IWETH.sol";
-import "../libraries/token/SafeERC20.sol";
-import "../libraries/utils/Address.sol";
-import "../libraries/utils/ReentrancyGuard.sol";
-
 import "./interfaces/IRouter.sol";
 import "./interfaces/IVault.sol";
-import "../access/Governable.sol";
+import "./interfaces/IOrderBook.sol";
+
 import "../peripherals/interfaces/ITimelock.sol";
+import "./BasePositionManager.sol";
 
-contract PositionManager is ReentrancyGuard, Governable {
-    using SafeMath for uint256;
-    using SafeERC20 for IERC20;
-    using Address for address payable;
+contract PositionManager is BasePositionManager {
 
-    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
+    address public orderBook;
+    bool public inLegacyMode;
 
-    address public router;
-    address public vault;
-    address public weth;
-    uint256 public depositFee;
+    bool public shouldValidateIncreaseOrder = true;
 
-    bool public isInitialized = false;
+    mapping (address => bool) public isOrderKeeper;
+    mapping (address => bool) public isPartner;
+    mapping (address => bool) public isLiquidator;
+
+    event SetOrderKeeper(address indexed account, bool isActive);
+    event SetLiquidator(address indexed account, bool isActive);
+    event SetPartner(address account, bool isActive);
+    event SetInLegacyMode(bool inLegacyMode);
+    event SetShouldValidateIncreaseOrder(bool shouldValidateIncreaseOrder);
+
+    modifier onlyOrderKeeper() {
+        require(isOrderKeeper[msg.sender], "PositionManager: forbidden");
+        _;
+    }
+
+    modifier onlyLiquidator() {
+        require(isLiquidator[msg.sender], "PositionManager: forbidden");
+        _;
+    }
+
+    modifier onlyPartnersOrLegacyMode() {
+        require(isPartner[msg.sender] || inLegacyMode, "PositionManager: forbidden");
+        _;
+    }
 
     constructor(
-        address _router,
         address _vault,
+        address _router,
         address _weth,
-        uint256 _depositFee
-    ) public {
-        router = _router;
-        vault = _vault;
-        weth = _weth;
-        depositFee = _depositFee;
+        uint256 _depositFee,
+        address _orderBook
+    ) public BasePositionManager(_vault, _router, _weth, _depositFee) {
+        orderBook = _orderBook;
     }
 
-    function setDepositFee(uint256 _depositFee) external onlyGov {
-        depositFee = _depositFee;
+    function setOrderKeeper(address _account, bool _isActive) external onlyAdmin {
+        isOrderKeeper[_account] = _isActive;
+        emit SetOrderKeeper(_account, _isActive);
     }
 
-    function approve(address _token, address _spender, uint256 _amount) external onlyGov {
-        IERC20(_token).approve(_spender, _amount);
+    function setLiquidator(address _account, bool _isActive) external onlyAdmin {
+        isLiquidator[_account] = _isActive;
+        emit SetLiquidator(_account, _isActive);
+    }
+
+    function setPartner(address _account, bool _isActive) external onlyAdmin {
+        isPartner[_account] = _isActive;
+        emit SetPartner(_account, _isActive);
+    }
+
+    function setInLegacyMode(bool _inLegacyMode) external onlyAdmin {
+        inLegacyMode = _inLegacyMode;
+        emit SetInLegacyMode(_inLegacyMode);
+    }
+
+    function setShouldValidateIncreaseOrder(bool _shouldValidateIncreaseOrder) external onlyAdmin {
+        shouldValidateIncreaseOrder = _shouldValidateIncreaseOrder;
+        emit SetShouldValidateIncreaseOrder(_shouldValidateIncreaseOrder);
     }
 
     function increasePosition(
@@ -56,20 +84,22 @@ contract PositionManager is ReentrancyGuard, Governable {
         uint256 _sizeDelta,
         bool _isLong,
         uint256 _price
-    ) external nonReentrant {
+    ) external nonReentrant onlyPartnersOrLegacyMode {
+        require(_path.length == 1 || _path.length == 2, "PositionManager: invalid _path.length");
+
         if (_amountIn > 0) {
-            if (_path.length > 1) {
+            if (_path.length == 1) {
+                IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
+            } else {
                 IRouter(router).pluginTransfer(_path[0], msg.sender, vault, _amountIn);
                 _amountIn = _swap(_path, _minOut, address(this));
-            } else {
-                IRouter(router).pluginTransfer(_path[0], msg.sender, address(this), _amountIn);
             }
 
-            uint256 afterFeeAmount = _getAfterFeeAmount(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
+            uint256 afterFeeAmount = _collectFees(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
             IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
         }
 
-        _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
+        _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
     function increasePositionETH(
@@ -79,105 +109,180 @@ contract PositionManager is ReentrancyGuard, Governable {
         uint256 _sizeDelta,
         bool _isLong,
         uint256 _price
-    ) external payable nonReentrant {
+    ) external payable nonReentrant onlyPartnersOrLegacyMode {
+        require(_path.length == 1 || _path.length == 2, "PositionManager: invalid _path.length");
         require(_path[0] == weth, "PositionManager: invalid _path");
 
         if (msg.value > 0) {
+            _transferInETH();
             uint256 _amountIn = msg.value;
+
             if (_path.length > 1) {
-                IWETH(weth).deposit{value: msg.value}();
                 IERC20(weth).safeTransfer(vault, msg.value);
                 _amountIn = _swap(_path, _minOut, address(this));
-            } else {
-                IWETH(weth).deposit{value: msg.value}();
             }
 
-            uint256 afterFeeAmount = _getAfterFeeAmount(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
+            uint256 afterFeeAmount = _collectFees(msg.sender, _path, _amountIn, _indexToken, _isLong, _sizeDelta);
             IERC20(_path[_path.length - 1]).safeTransfer(vault, afterFeeAmount);
         }
 
-        _increasePosition(_path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
+        _increasePosition(msg.sender, _path[_path.length - 1], _indexToken, _sizeDelta, _isLong, _price);
     }
 
-    function _increasePosition(address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong, uint256 _price) private {
-        if (_isLong) {
-            require(IVault(vault).getMaxPrice(_indexToken) <= _price, "PositionManager: mark price higher than limit");
-        } else {
-            require(IVault(vault).getMinPrice(_indexToken) >= _price, "PositionManager: mark price lower than limit");
-        }
-
-        address timelock = IVault(vault).gov();
-        ITimelock(timelock).setIsLeverageEnabled(vault, true);
-        IRouter(router).pluginIncreasePosition(msg.sender, _collateralToken, _indexToken, _sizeDelta, _isLong);
-        ITimelock(timelock).setIsLeverageEnabled(vault, false);
+    function decreasePosition(
+        address _collateralToken,
+        address _indexToken,
+        uint256 _collateralDelta,
+        uint256 _sizeDelta,
+        bool _isLong,
+        address _receiver,
+        uint256 _price
+    ) external nonReentrant onlyPartnersOrLegacyMode {
+        _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver, _price);
     }
 
-    function _swap(address[] memory _path, uint256 _minOut, address _receiver) private returns (uint256) {
-        if (_path.length == 2) {
-            return _vaultSwap(_path[0], _path[1], _minOut, _receiver);
-        }
-        revert("PositionManager: invalid _path.length");
+    function decreasePositionETH(
+        address _collateralToken,
+        address _indexToken,
+        uint256 _collateralDelta,
+        uint256 _sizeDelta,
+        bool _isLong,
+        address payable _receiver,
+        uint256 _price
+    ) external nonReentrant onlyPartnersOrLegacyMode {
+        require(_collateralToken == weth, "PositionManager: invalid _collateralToken");
+
+        uint256 amountOut = _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
+        _transferOutETH(amountOut, _receiver);
     }
 
-    function _vaultSwap(address _tokenIn, address _tokenOut, uint256 _minOut, address _receiver) private returns (uint256) {
-        uint256 amountOut = IVault(vault).swap(_tokenIn, _tokenOut, _receiver);
-        require(amountOut >= _minOut, "PositionManager: insufficient amountOut");
-        return amountOut;
-    }
-
-    function _getAfterFeeAmount(
-        address _account,
+    function decreasePositionAndSwap(
         address[] memory _path,
-        uint256 _amountIn,
+        address _indexToken,
+        uint256 _collateralDelta,
+        uint256 _sizeDelta,
+        bool _isLong,
+        address _receiver,
+        uint256 _price,
+        uint256 _minOut
+    ) external nonReentrant onlyPartnersOrLegacyMode {
+        require(_path.length == 2, "PositionManager: invalid _path.length");
+
+        uint256 amount = _decreasePosition(msg.sender, _path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
+        IERC20(_path[0]).safeTransfer(vault, amount);
+        _swap(_path, _minOut, _receiver);
+    }
+
+    function decreasePositionAndSwapETH(
+        address[] memory _path,
+        address _indexToken,
+        uint256 _collateralDelta,
+        uint256 _sizeDelta,
+        bool _isLong,
+        address payable _receiver,
+        uint256 _price,
+        uint256 _minOut
+    ) external nonReentrant onlyPartnersOrLegacyMode {
+        require(_path.length == 2, "PositionManager: invalid _path.length");
+        require(_path[_path.length - 1] == weth, "PositionManager: invalid _path");
+
+        uint256 amount = _decreasePosition(msg.sender, _path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
+        IERC20(_path[0]).safeTransfer(vault, amount);
+        uint256 amountOut = _swap(_path, _minOut, address(this));
+        _transferOutETH(amountOut, _receiver);
+    }
+
+    function liquidatePosition(
+        address _account,
+        address _collateralToken,
         address _indexToken,
         bool _isLong,
-        uint256 _sizeDelta
-    ) internal view returns (uint256) {
-        bool shouldDeductFee = _shouldDeductFee(
-            _account,
-            _path,
-            _amountIn,
-            _indexToken,
-            _isLong,
-            _sizeDelta
-        );
+        address _feeReceiver
+    ) external nonReentrant onlyLiquidator {
+        address _vault = vault;
+        address timelock = IVault(_vault).gov();
 
-        if (shouldDeductFee) {
-            return _amountIn.mul(BASIS_POINTS_DIVISOR.sub(depositFee)).div(BASIS_POINTS_DIVISOR);
-        }
-
-        return _amountIn;
+        ITimelock(timelock).enableLeverage(_vault);
+        IVault(_vault).liquidatePosition(_account, _collateralToken, _indexToken, _isLong, _feeReceiver);
+        ITimelock(timelock).disableLeverage(_vault);
     }
 
-    function _shouldDeductFee(
-        address _account,
-        address[] memory _path,
-        uint256 _amountIn,
-        address _indexToken,
-        bool _isLong,
-        uint256 _sizeDelta
-    ) internal view returns (bool) {
-        // if the position is a short, do not charge a fee
-        if (!_isLong) { return false; }
+    function executeSwapOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
+        IOrderBook(orderBook).executeSwapOrder(_account, _orderIndex, _feeReceiver);
+    }
+
+    function executeIncreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
+        uint256 sizeDelta =  _validateIncreaseOrder(_account, _orderIndex);
+
+        address _vault = vault;
+        address timelock = IVault(_vault).gov();
+
+        ITimelock(timelock).enableLeverage(_vault);
+        IOrderBook(orderBook).executeIncreaseOrder(_account, _orderIndex, _feeReceiver);
+        ITimelock(timelock).disableLeverage(_vault);
+
+        _emitIncreasePositionReferral(_account, sizeDelta);
+    }
+
+    function executeDecreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
+        address _vault = vault;
+        address timelock = IVault(_vault).gov();
+
+        ITimelock(timelock).enableLeverage(_vault);
+        IOrderBook(orderBook).executeDecreaseOrder(_account, _orderIndex, _feeReceiver);
+        ITimelock(timelock).disableLeverage(_vault);
+
+        (
+            , // _collateralToken
+            , // _collateralDelta
+            , // _indexToken
+            uint256 _sizeDelta,
+            , // _isLong
+            , // triggerPrice
+            , // triggerAboveThreshold
+            // executionFee
+        ) = IOrderBook(orderBook).getDecreaseOrder(_account, _orderIndex);
+
+        _emitDecreasePositionReferral(_account, _sizeDelta);
+    }
+
+    function _validateIncreaseOrder(address _account, uint256 _orderIndex) internal view returns (uint256) {
+        (
+            address _purchaseToken,
+            uint256 _purchaseTokenAmount,
+            address _collateralToken,
+            address _indexToken,
+            uint256 _sizeDelta,
+            bool _isLong,
+            , // triggerPrice
+            , // triggerAboveThreshold
+            // executionFee
+        ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
+
+        if (!shouldValidateIncreaseOrder) { return _sizeDelta; }
+
+        // shorts are okay
+        if (!_isLong) { return _sizeDelta; }
 
         // if the position size is not increasing, this is a collateral deposit
-        if (_sizeDelta == 0) { return true; }
-
-        address collateralToken = _path[_path.length - 1];
+        require(_sizeDelta > 0, "PositionManager: long deposit");
 
         IVault _vault = IVault(vault);
-        (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, collateralToken, _indexToken, _isLong);
+        (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
 
         // if there is no existing position, do not charge a fee
-        if (size == 0) { return false; }
+        if (size == 0) { return _sizeDelta; }
 
         uint256 nextSize = size.add(_sizeDelta);
-        uint256 collateralDelta = _vault.tokenToUsdMin(collateralToken, _amountIn);
+        uint256 collateralDelta = _vault.tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
         uint256 nextCollateral = collateral.add(collateralDelta);
 
         uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
-        uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + 1).div(nextCollateral);
+        // allow for a maximum of a increasePositionBufferBps decrease since there might be some swap fees taken from the collateral
+        uint256 nextLeverageWithBuffer = nextSize.mul(BASIS_POINTS_DIVISOR + increasePositionBufferBps).div(nextCollateral);
 
-        return nextLeverage < prevLeverage;
+        require(nextLeverageWithBuffer >= prevLeverage, "PositionManager: long leverage decrease");
+
+        return _sizeDelta;
     }
 }

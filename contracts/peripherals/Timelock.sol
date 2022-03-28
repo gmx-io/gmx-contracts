@@ -24,7 +24,6 @@ contract Timelock is ITimelock {
 
     uint256 public constant PRICE_PRECISION = 10 ** 30;
     uint256 public constant MAX_BUFFER = 5 days;
-    uint256 public constant MAX_FEE_BASIS_POINTS = 300; // 3%
     uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02%
     uint256 public constant MAX_LEVERAGE_VALIDATION = 500000; // 50x
 
@@ -35,6 +34,10 @@ contract Timelock is ITimelock {
     address public rewardManager;
     address public mintReceiver;
     uint256 public maxTokenSupply;
+
+    uint256 public marginFeeBasisPoints;
+    uint256 public maxMarginFeeBasisPoints;
+    bool public shouldToggleIsLeverageEnabled;
 
     mapping (bytes32 => uint256) public pendingActions;
     mapping (address => bool) public excludedTokens;
@@ -95,7 +98,9 @@ contract Timelock is ITimelock {
         address _rewardManager,
         address _tokenManager,
         address _mintReceiver,
-        uint256 _maxTokenSupply
+        uint256 _maxTokenSupply,
+        uint256 _marginFeeBasisPoints,
+        uint256 _maxMarginFeeBasisPoints
     ) public {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         admin = _admin;
@@ -104,6 +109,9 @@ contract Timelock is ITimelock {
         tokenManager = _tokenManager;
         mintReceiver = _mintReceiver;
         maxTokenSupply = _maxTokenSupply;
+
+        marginFeeBasisPoints = _marginFeeBasisPoints;
+        maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
     }
 
     function setAdmin(address _admin) external override onlyTokenManager {
@@ -140,6 +148,18 @@ contract Timelock is ITimelock {
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
+    function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyAdmin {
+        shouldToggleIsLeverageEnabled = _shouldToggleIsLeverageEnabled;
+    }
+
+    function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyAdmin {
+        marginFeeBasisPoints = _marginFeeBasisPoints;
+        maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
+    }
+
+    // assign _marginFeeBasisPoints to this.marginFeeBasisPoints
+    // because enableLeverage would update Vault.marginFeeBasisPoints to this.marginFeeBasisPoints
+    // and disableLeverage would reset the Vault.marginFeeBasisPoints to this.maxMarginFeeBasisPoints
     function setFees(
         address _vault,
         uint256 _taxBasisPoints,
@@ -152,13 +172,7 @@ contract Timelock is ITimelock {
         uint256 _minProfitTime,
         bool _hasDynamicFees
     ) external onlyAdmin {
-        require(_taxBasisPoints < MAX_FEE_BASIS_POINTS, "Timelock: invalid _taxBasisPoints");
-        require(_stableTaxBasisPoints < MAX_FEE_BASIS_POINTS, "Timelock: invalid _stableTaxBasisPoints");
-        require(_mintBurnFeeBasisPoints < MAX_FEE_BASIS_POINTS, "Timelock: invalid _mintBurnFeeBasisPoints");
-        require(_swapFeeBasisPoints < MAX_FEE_BASIS_POINTS, "Timelock: invalid _swapFeeBasisPoints");
-        require(_stableSwapFeeBasisPoints < MAX_FEE_BASIS_POINTS, "Timelock: invalid _stableSwapFeeBasisPoints");
-        require(_marginFeeBasisPoints < MAX_FEE_BASIS_POINTS, "Timelock: invalid _marginFeeBasisPoints");
-        require(_liquidationFeeUsd < 10 * PRICE_PRECISION, "Timelock: invalid _liquidationFeeUsd");
+        marginFeeBasisPoints = _marginFeeBasisPoints;
 
         IVault(_vault).setFees(
             _taxBasisPoints,
@@ -166,11 +180,55 @@ contract Timelock is ITimelock {
             _mintBurnFeeBasisPoints,
             _swapFeeBasisPoints,
             _stableSwapFeeBasisPoints,
-            _marginFeeBasisPoints,
+            maxMarginFeeBasisPoints,
             _liquidationFeeUsd,
             _minProfitTime,
             _hasDynamicFees
         );
+    }
+
+    function enableLeverage(address _vault) external override onlyAdminOrHandler {
+        IVault vault = IVault(_vault);
+
+        if (shouldToggleIsLeverageEnabled) {
+            vault.setIsLeverageEnabled(true);
+        }
+
+        vault.setFees(
+            vault.taxBasisPoints(),
+            vault.stableTaxBasisPoints(),
+            vault.mintBurnFeeBasisPoints(),
+            vault.swapFeeBasisPoints(),
+            vault.stableSwapFeeBasisPoints(),
+            marginFeeBasisPoints,
+            vault.liquidationFeeUsd(),
+            vault.minProfitTime(),
+            vault.hasDynamicFees()
+        );
+    }
+
+    function disableLeverage(address _vault) external override onlyAdminOrHandler {
+        IVault vault = IVault(_vault);
+
+        if (shouldToggleIsLeverageEnabled) {
+            vault.setIsLeverageEnabled(false);
+        }
+
+        vault.setFees(
+            vault.taxBasisPoints(),
+            vault.stableTaxBasisPoints(),
+            vault.mintBurnFeeBasisPoints(),
+            vault.swapFeeBasisPoints(),
+            vault.stableSwapFeeBasisPoints(),
+            maxMarginFeeBasisPoints, // marginFeeBasisPoints
+            vault.liquidationFeeUsd(),
+            vault.minProfitTime(),
+            vault.hasDynamicFees()
+        );
+    }
+
+    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
+        IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 
     function setTokenConfig(
@@ -253,10 +311,6 @@ contract Timelock is ITimelock {
 
     function setIsSwapEnabled(address _vault, bool _isSwapEnabled) external onlyAdmin {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
-    }
-
-    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
-        IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 
     function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {

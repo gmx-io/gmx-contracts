@@ -9,6 +9,7 @@ const {
   BSCSCAN_API_KEY,
   POLYGONSCAN_API_KEY,
   SNOWTRACE_API_KEY,
+  ARBISCAN_API_KEY,
   ETHERSCAN_API_KEY,
   BSC_TESTNET_URL,
   BSC_TESTNET_DEPLOY_KEY,
@@ -88,7 +89,13 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: SNOWTRACE_API_KEY
+    apiKey: {
+      mainnet: MAINNET_DEPLOY_KEY,
+      arbitrumOne: ARBISCAN_API_KEY,
+      avalanche: SNOWTRACE_API_KEY,
+      bsc: BSCSCAN_API_KEY,
+      polygon: POLYGONSCAN_API_KEY,
+    }
   },
   solidity: {
     version: "0.6.12",
