@@ -28,7 +28,7 @@ const processFile = async (file) => {
 const distribute = async () => {
   const nftHolders = {}
   const nftTxns = await processFile(inputDir + "nft-transfers.csv")
-  const shouldSendTokens = false
+  const shouldSendTokens = true
 
   for (let i = 0; i < nftTxns.length; i++) {
     const txn = nftTxns[i]
@@ -89,7 +89,7 @@ const distribute = async () => {
   console.log("holdersList", holdersList.length)
 
   const tokenHolders = holdersList
-  const earliestTxn = 1643673600 // Tuesday, 1 February 2022 00:00:00
+  const earliestTxn = 1646092800 // Tuesday, 1 March 2022 00:00:00
 
   const balanceList = []
   let totalBalance = 0
