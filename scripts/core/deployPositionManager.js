@@ -13,7 +13,7 @@ async function getArbValues() {
 
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const timelock = await contractAt("Timelock", await vault.gov(), signer)
-  const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064")
+  const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064", signer)
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x09f77E8A13De9a35a7231028187e9fD5DB8a2ACB")
 
@@ -35,7 +35,7 @@ async function getAvaxValues() {
 
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
   const timelock = await contractAt("Timelock", await vault.gov(), signer)
-  const router = await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8")
+  const router = await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8", signer)
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x4296e307f108B2f583FF2F7B7270ee7831574Ae5")
 
@@ -65,6 +65,7 @@ async function main() {
   await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
   await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
   await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
+  await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
 
   for (let i = 0; i < partnerContracts.length; i++) {
     const partnerContract = partnerContracts[i]
