@@ -31,12 +31,16 @@ function getChainId(network) {
 }
 
 async function getFrameSigner() {
-  const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
-  const signer = frame.getSigner()
-  if (getChainId(network) !== await signer.getChainId()) {
-    throw new Error("Incorrect frame network")
+  try {
+    const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+    const signer = frame.getSigner()
+    if (getChainId(network) !== await signer.getChainId()) {
+      throw new Error("Incorrect frame network")
+    }
+    return signer
+  } catch (e) {
+    throw new Error(`getFrameSigner error: ${e.toString()}`)
   }
-  return signer
 }
 
 async function sendTxn(txnPromise, label) {

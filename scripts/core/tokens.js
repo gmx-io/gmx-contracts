@@ -139,7 +139,8 @@ module.exports = {
       maxUsdgAmount: 35 * 1000 *1000,
       bufferAmount: 300,
       isStable: false,
-      isShortable: true
+      isShortable: true,
+      maxGlobalShortSize: 35 * 1000 * 1000,
     },
     eth: {
       name: "eth",
@@ -154,7 +155,8 @@ module.exports = {
       maxUsdgAmount: 75 * 1000 * 1000,
       bufferAmount: 10000,
       isStable: false,
-      isShortable: true
+      isShortable: true,
+      maxGlobalShortSize: 25 * 1000 * 1000,
     },
     usdc: {
       name: "usdc",
