@@ -140,7 +140,7 @@ module.exports = {
       bufferAmount: 300,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 50 * 1000 * 1000,
+      maxGlobalShortSize: 60 * 1000 * 1000,
     },
     eth: {
       name: "eth",
