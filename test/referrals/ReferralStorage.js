@@ -96,7 +96,7 @@ describe("ReferralStorage", function () {
   })
 
   it("Registers code", async () => {
-    const code = keccak256("0xFF")
+    const code = Buffer.from("MY_BEST_CODE".padStart(32))
 
     expect (await referralStorage.codeOwners(code)).to.be.equal(AddressZero)
 
