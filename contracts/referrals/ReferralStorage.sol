@@ -16,10 +16,6 @@ contract ReferralStorage is Governable, IReferralStorage {
         uint256 totalRebate; // e.g. 2400 for 24%
         uint256 discountShare; // 5000 for 50%/50%, 7000 for 30% rebates/70% discount
     }
-    // Tier0 = Tier {totalRebate = 10000, defaultTradersDiscountShare = 5000}
-    // Tier1 = Tier {totalRebate = 24000, defaultTradersDiscountShare = 5000}
-    // Tier2 = Tier {totalRebate = 24000, defaultTradersDiscountShare = 5000}
-    // for the last one extra EsGMX incentives will be hanled off-chain
 
     uint256 public constant BASIS_POINTS = 10000;
 
@@ -104,7 +100,10 @@ contract ReferralStorage is Governable, IReferralStorage {
 
     function getTraderReferralInfo(address _account) external override view returns (bytes32, address) {
         bytes32 code = traderReferralCodes[_account];
-        address referrer = codeOwners[code];
+        address referrer;
+        if (code != bytes32(0)) {
+            referrer = codeOwners[code];
+        }
         return (code, referrer);
     }
 
