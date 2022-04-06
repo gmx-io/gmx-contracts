@@ -8,6 +8,7 @@ const tokens = require('./tokens')[network];
 
 const depositFee = 30 // 0.3%
 
+// TODO: set referral storage
 async function getArbValues() {
   const signer = await getFrameSigner()
 
