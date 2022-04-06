@@ -79,6 +79,7 @@ contract ReferralStorage is Governable, IReferralStorage {
     }
 
     function registerCode(bytes32 _code) external {
+        require(_code != bytes32(0), "ReferralStorage: invalid _code");
         require(codeOwners[_code] == address(0), "ReferralStorage: code already exists");
 
         codeOwners[_code] = msg.sender;
@@ -86,6 +87,8 @@ contract ReferralStorage is Governable, IReferralStorage {
     }
 
     function setCodeOwner(bytes32 _code, address _newAccount) external {
+        require(_code != bytes32(0), "ReferralStorage: invalid _code");
+
         address account = codeOwners[_code];
         require(msg.sender == account, "ReferralStorage: forbidden");
 
@@ -94,6 +97,8 @@ contract ReferralStorage is Governable, IReferralStorage {
     }
 
     function govSetCodeOwner(bytes32 _code, address _newAccount) external onlyGov {
+        require(_code != bytes32(0), "ReferralStorage: invalid _code");
+
         codeOwners[_code] = _newAccount;
         emit GovSetCodeOwner(_code, _newAccount);
     }

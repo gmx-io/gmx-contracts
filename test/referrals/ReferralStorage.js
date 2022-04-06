@@ -100,6 +100,9 @@ describe("ReferralStorage", function () {
   })
 
   it("Registers code", async () => {
+    await expect(referralStorage.connect(user0).registerCode(HashZero))
+      .to.be.revertedWith("ReferralStorage: invalid _code")
+
     const code = Buffer.from("MY_BEST_CODE".padStart(32))
 
     expect (await referralStorage.codeOwners(code)).to.be.equal(AddressZero)
@@ -124,6 +127,9 @@ describe("ReferralStorage", function () {
     await referralStorage.connect(user0).registerCode(code)
     expect (await referralStorage.codeOwners(code)).to.be.equal(user0.address)
 
+    await expect(referralStorage.connect(user1).setCodeOwner(HashZero, user2.address))
+      .to.be.revertedWith("ReferralStorage: invalid _code")
+
     await expect(referralStorage.connect(user1).setCodeOwner(code, user2.address)).to.be.revertedWith("ReferralStorage: forbidden")
     await referralStorage.connect(user0).setCodeOwner(code, user2.address)
 
@@ -135,6 +141,9 @@ describe("ReferralStorage", function () {
 
     await referralStorage.connect(user0).registerCode(code)
     expect (await referralStorage.codeOwners(code)).to.be.equal(user0.address)
+
+    await expect(referralStorage.connect(user1).registerCode(HashZero))
+      .to.be.revertedWith("ReferralStorage: invalid _code")
 
     await expect(referralStorage.connect(user1).govSetCodeOwner(code, user2.address)).to.be.revertedWith("Governable: forbidden")
     await referralStorage.connect(wallet).govSetCodeOwner(code, user2.address)
