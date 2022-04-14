@@ -44,7 +44,8 @@ task("accounts", "Prints the list of accounts", async () => {
 module.exports = {
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: true
+      allowUnlimitedContractSize: true,
+      zksync: true
     },
     bsc: {
       url: BSC_URL,
@@ -109,5 +110,21 @@ module.exports = {
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",
+  },
+  zksolc: {
+    version: "0.1.0",
+    compilerSource: "docker",
+    settings: {
+      optimizer: {
+        enabled: true,
+      },
+      experimental: {
+        dockerImage: "matterlabs/zksolc",
+      },
+    },
+  },
+  zkSyncDeploy: {
+    zkSyncNetwork: "https://zksync2-testnet.zksync.dev",
+    ethNetwork: "goerli", // Can also be the RPC URL of the network (e.g. `https://goerli.infura.io/v3/<API_KEY>`)
   },
 }
