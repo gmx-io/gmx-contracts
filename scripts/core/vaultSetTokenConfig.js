@@ -19,8 +19,8 @@ async function main() {
   console.log("vaultTimelock", vaultTimelock.address)
   console.log("vaultMethod", vaultMethod)
 
-  const { dai } = tokens
-  const tokenArr = [dai]
+  const { link, uni } = tokens
+  const tokenArr = [link, uni]
 
   for (const token of tokenArr) {
     await sendTxn(vaultTimelock[vaultMethod](

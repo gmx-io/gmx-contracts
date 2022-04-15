@@ -185,8 +185,9 @@ module.exports = {
       maxUsdgAmount: 6 * 1000 * 1000,
       bufferAmount: 100000,
       isStable: false,
-      isShortable: false,
-      spreadBasisPoints: 7
+      isShortable: true,
+      spreadBasisPoints: 7,
+      maxGlobalShortSize: 1 * 1000 * 1000
     },
     uni: {
       name: "uni",
@@ -201,8 +202,9 @@ module.exports = {
       maxUsdgAmount: 2.5 * 1000 * 1000,
       bufferAmount: 20000,
       isStable: false,
-      isShortable: false,
-      spreadBasisPoints: 7
+      isShortable: true,
+      spreadBasisPoints: 7,
+      maxGlobalShortSize: 1 * 1000 * 1000
     },
     usdt: {
       name: "usdt",
