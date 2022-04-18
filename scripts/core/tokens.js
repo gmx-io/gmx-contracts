@@ -204,7 +204,7 @@ module.exports = {
       isStable: false,
       isShortable: true,
       spreadBasisPoints: 7,
-      maxGlobalShortSize: 1 * 1000 * 1000
+      maxGlobalShortSize: 500 * 1000
     },
     usdt: {
       name: "usdt",
