@@ -25,7 +25,7 @@ contract ReferralStorage is Governable, IReferralStorage {
 
     mapping (address => bool) public isHandler;
 
-    mapping (bytes32 => address) public codeOwners;
+    mapping (bytes32 => address) public override codeOwners;
     mapping (address => bytes32) public traderReferralCodes;
 
     event SetHandler(address handler, bool isActive);
