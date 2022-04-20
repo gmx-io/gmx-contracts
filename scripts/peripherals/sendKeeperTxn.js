@@ -1,0 +1,61 @@
+const fetch = require('node-fetch')
+const { contractAt } = require("../shared/helpers")
+
+const network = (process.env.HARDHAT_NETWORK || 'mainnet');
+
+const {
+  ARBITRUM_DEPLOY_KEY,
+  ARBITRUM_PRICE_TXN_URL,
+  ARBITRUM_PRICE_KEY,
+} = require("../../env.json")
+
+async function getArbValues() {
+  const wallet = new ethers.Wallet(ARBITRUM_DEPLOY_KEY)
+  const priceTxnUrl = ARBITRUM_PRICE_TXN_URL
+  const priceKey = ARBITRUM_PRICE_KEY
+  const gmx = await contractAt("GMX", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a")
+
+  return { wallet, priceTxnUrl, priceKey, gmx }
+}
+
+async function getAvaxValues() {
+}
+
+function getValues() {
+  if (network === "arbitrum") {
+    return getArbValues()
+  }
+
+  if (network === "avax") {
+    return getAvaxValues()
+  }
+}
+
+async function main() {
+  const { wallet, priceTxnUrl, priceKey, gmx } = await getValues()
+
+  const unsignedTxn = await gmx.populateTransaction.approve("0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8", 100)
+  const rawTxn = await wallet.signTransaction(unsignedTxn)
+  console.log("priceTxnUrl", priceTxnUrl)
+
+  const result = await fetch(priceTxnUrl, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      key: priceKey,
+      content: rawTxn
+    })
+  })
+  console.log("rawTxn", rawTxn)
+
+  const resultContent = await result.text()
+
+  console.log("result", result.status, resultContent)
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error)
+    process.exit(1)
+  })
