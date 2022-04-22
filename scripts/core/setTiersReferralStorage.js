@@ -31,10 +31,11 @@ async function main() {
   const { referralStorage } = await getValues()
 
   await sendTxn(referralStorage.setTier(0, 1000, 5000), "referralStorage.setTier 0")
-  await sendTxn(referralStorage.setTier(1, 2000, 6000), "referralStorage.setTier 1")
-  await sendTxn(referralStorage.setTier(2, 2700, 4444), "referralStorage.setTier 2")
+  await sendTxn(referralStorage.setTier(1, 2000, 5000), "referralStorage.setTier 1")
+  await sendTxn(referralStorage.setTier(2, 2500, 4000), "referralStorage.setTier 2")
 
   await sendTxn(referralStorage.setReferrerTier("0xbb00f2E53888E60974110d68F1060e5eAAB34790", 1), "referralStorage.setReferrerTier 1")
+  await sendTxn(referralStorage.setReferrerTier("0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8", 2), "referralStorage.setReferrerTier 2")
 }
 
 main()
