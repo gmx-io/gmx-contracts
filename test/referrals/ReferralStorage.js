@@ -83,7 +83,7 @@ describe("ReferralStorage", function () {
   })
 
   it("setTraderReferralCode", async () => {
-    const code = keccak256("0xFF")
+    const code = ethers.utils.formatBytes32String("MY_CODE")
 
     await expect(referralStorage.connect(user0).setTraderReferralCode(user1.address, code))
       .to.be.revertedWith("ReferralStorage: forbidden")
@@ -103,7 +103,7 @@ describe("ReferralStorage", function () {
     await expect(referralStorage.connect(user0).registerCode(HashZero))
       .to.be.revertedWith("ReferralStorage: invalid _code")
 
-    const code = Buffer.from("MY_BEST_CODE".padStart(32))
+    const code = ethers.utils.formatBytes32String("MY_CODE")
 
     expect (await referralStorage.codeOwners(code)).to.be.equal(AddressZero)
 
@@ -122,7 +122,7 @@ describe("ReferralStorage", function () {
   })
 
   it("setCodeOwner", async () => {
-    const code = keccak256("0xFF")
+    const code = ethers.utils.formatBytes32String("MY_CODE")
 
     await referralStorage.connect(user0).registerCode(code)
     expect (await referralStorage.codeOwners(code)).to.be.equal(user0.address)
@@ -137,7 +137,7 @@ describe("ReferralStorage", function () {
   })
 
   it("govSetCodeOwner", async () => {
-    const code = keccak256("0xFF")
+    const code = ethers.utils.formatBytes32String("MY_CODE")
 
     await referralStorage.connect(user0).registerCode(code)
     expect (await referralStorage.codeOwners(code)).to.be.equal(user0.address)
@@ -152,7 +152,7 @@ describe("ReferralStorage", function () {
   })
 
   it("getTraderReferralInfo", async () => {
-    const code = keccak256("0xFF")
+    const code = ethers.utils.formatBytes32String("MY_CODE")
 
     let info = await referralStorage.getTraderReferralInfo(user1.address)
     expect(info[0]).eq(HashZero)
@@ -170,5 +170,28 @@ describe("ReferralStorage", function () {
     info = await referralStorage.getTraderReferralInfo(user1.address)
     expect(info[0]).eq(code)
     expect(info[1]).eq(user1.address)
+  })
+
+  it("shouldValidateAllowedChars", async () => {
+    await expect(referralStorage.connect(user0).setShouldValidateAllowedChars(true))
+      .to.be.revertedWith("Governable: forbidden")
+
+    expect(await referralStorage.shouldValidateAllowedChars()).to.be.false
+    await referralStorage.setShouldValidateAllowedChars(true)
+    expect(await referralStorage.shouldValidateAllowedChars()).to.be.true
+
+    for (const codeString of ["BAD", "Bad_code", "bad_code_123!", "bad code", "%"]) {
+      const badCode = ethers.utils.formatBytes32String(codeString)
+      await expect(referralStorage.connect(user0).registerCode(badCode))
+        .to.be.revertedWith("ReferralStorage: invalid code")
+    }
+
+    for (const codeString of ["good", "good_code_123", "1", "f"]) {
+      const goodCode = ethers.utils.formatBytes32String(codeString)
+      await referralStorage.connect(user0).registerCode(goodCode)
+    }
+
+    await referralStorage.setShouldValidateAllowedChars(false)
+    expect(await referralStorage.shouldValidateAllowedChars()).to.be.false
   })
 });
