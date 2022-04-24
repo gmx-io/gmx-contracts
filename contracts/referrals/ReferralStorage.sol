@@ -18,6 +18,7 @@ contract ReferralStorage is Governable, IReferralStorage {
     }
 
     uint256 public constant BASIS_POINTS = 10000;
+    bool public shouldValidateAllowedChars = false;
 
     mapping (address => uint256) public referrerDiscountShares; // to override default value in tier
     mapping (address => uint256) public referrerTiers; // link between user <> tier
@@ -35,6 +36,7 @@ contract ReferralStorage is Governable, IReferralStorage {
     event SetReferrerDiscountShare(address referrer, uint256 discountShare);
     event RegisterCode(address account, bytes32 code);
     event SetCodeOwner(address account, address newAccount, bytes32 code);
+    event SetShouldValidateAllowedChars(bool shouldValidateAllowedChars);
     event GovSetCodeOwner(bytes32 code, address newAccount);
 
     modifier onlyHandler() {
@@ -45,6 +47,11 @@ contract ReferralStorage is Governable, IReferralStorage {
     function setHandler(address _handler, bool _isActive) external onlyGov {
         isHandler[_handler] = _isActive;
         emit SetHandler(_handler, _isActive);
+    }
+
+    function setShouldValidateAllowedChars(bool _shouldValidateAllowedChars) external onlyGov {
+        shouldValidateAllowedChars = _shouldValidateAllowedChars;
+        emit SetShouldValidateAllowedChars(_shouldValidateAllowedChars);
     }
 
     function setTier(uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external onlyGov {
@@ -81,6 +88,9 @@ contract ReferralStorage is Governable, IReferralStorage {
     function registerCode(bytes32 _code) external {
         require(_code != bytes32(0), "ReferralStorage: invalid _code");
         require(codeOwners[_code] == address(0), "ReferralStorage: code already exists");
+        if (shouldValidateAllowedChars) {
+            _validateCodeChars(_code);
+        }
 
         codeOwners[_code] = msg.sender;
         emit RegisterCode(msg.sender, _code);
@@ -115,5 +125,19 @@ contract ReferralStorage is Governable, IReferralStorage {
     function _setTraderReferralCode(address _account, bytes32 _code) private {
         traderReferralCodes[_account] = _code;
         emit SetTraderReferralCode(_account, _code);
+    }
+
+    function _validateCodeChars(bytes32 _code) pure private {
+        for (uint256 i = 0; i < _code.length; i++) {
+            uint8 c = uint8(_code[i]);
+            if (!(
+                c == 0 || // zero byte
+                c == 95 || // underscode "_"
+                (c >= 97 && c <= 122) || // a-z
+                (c >= 48 && c <= 57) // 0-9
+            )) {
+                revert("ReferralStorage: invalid code");
+            }
+        }
     }
 }
