@@ -8,9 +8,10 @@ const ARBITRUM_SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/gdev
 const AVALANCHE_SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/gdev8317/gmx-avalanche-referrals-staging'
 
 const BigNumber = ethers.BigNumber
-const SHARE_DIVISOR = BigNumber.from("1000000000000000000") // 1e18
+const formatUnits = ethers.utils.formatUnits
+const SHARE_DIVISOR = BigNumber.from("1000000000") // 1e9
 
-async function queryDistributionData(network, fromTimestamp, toTimestamp) {
+async function queryDistributionData(network, fromTimestamp, toTimestamp, account) {
   const subgraphEndpoint = {
     avalanche: AVALANCHE_SUBGRAPH_ENDPOINT,
     arbitrum: ARBITRUM_SUBGRAPH_ENDPOINT
@@ -20,12 +21,21 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp) {
     throw new Error("Unknown network " + network)
   }
 
+  let referrerCondition = ""
+  let referralCondition = ""
+  if (account) {
+    referrerCondition = `,referrer: "${account.toLowerCase()}"`
+    referralCondition = `,referral: "${account.toLowerCase()}"`
+  }
+
   const query = `
     {
       referrerStats(where: {
         period: daily,
         timestamp_gte: ${fromTimestamp},
-        timestamp_lt: ${toTimestamp}
+        timestamp_lt: ${toTimestamp},
+        discountUsd_gt: 0
+        ${referrerCondition}
       }) {
         id
         totalRebateUsd
@@ -39,7 +49,9 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp) {
       referralStats(where: {
         period: daily,
         timestamp_gte: ${fromTimestamp},
-        timestamp_lt: ${toTimestamp}
+        timestamp_lt: ${toTimestamp},
+        discountUsd_gt: 0
+        ${referralCondition}
       }) {
         id
         discountUsd
@@ -110,32 +122,34 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp) {
   }
   console.log("\nTotal referral volume: %s ($%s)",
     totalReferralVolume.toString(),
-    Number(ethers.utils.formatUnits(totalReferralVolume, 30)).toFixed(4)
+    Number(formatUnits(totalReferralVolume, 30)).toFixed(4)
   )
   console.log("Total fees collected from referral traders: %s ($%s)",
     totalReferralVolume.div(1000).toString(),
-    Number(ethers.utils.formatUnits(totalReferralVolume.div(1000), 30)).toFixed(4)
+    Number(formatUnits(totalReferralVolume.div(1000), 30)).toFixed(4)
   )
   console.log("Total rebates (for Affiliates + Traders): %s ($%s)",
     totalRebateUsd.toString(),
-    Number(ethers.utils.formatUnits(totalRebateUsd, 30)).toFixed(4)
+    Number(formatUnits(totalRebateUsd, 30)).toFixed(4)
   )
 
   console.log("\nReferrers (Affiliates):")
   console.log("Rebates sum: %s ($%s)",
     allReferrersRebateUsd.toString(),
-    Number(ethers.utils.formatUnits(allReferrersRebateUsd, 30)).toFixed(4)
+    Number(formatUnits(allReferrersRebateUsd, 30)).toFixed(4)
   )
+  let consoleData = []
   for (const data of Object.values(referrersRebatesData)) {
     if (data.share.eq(0)) {
       continue
     }
-    console.log("Account: %s Share: %s Volume: %s Trades: %s",
-      data.account,
-      data.share.toString(),
-      data.volume.toString(),
-      data.tradesCount
-    )
+    consoleData.push({
+      referrer: data.account,
+      "share, %": formatUnits(data.share, 7),
+      "volume, $": formatUnits(data.volume, 30),
+      "rebateUsd, $": formatUnits(data.rebateUsd, 30),
+      trades: data.tradesCount
+    })
     output.referrers.push({
       account: data.account,
       share: data.share.toString(),
@@ -145,6 +159,7 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp) {
       totalRebateUsd: data.totalRebateUsd.toString(),
     })
   }
+  console.table(consoleData)
 
   let allReferralsDiscountUsd = BigNumber.from(0)
   const referralDiscountData = data.referralStats.reduce((memo, item) => {
@@ -167,13 +182,19 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp) {
   console.log("Referrals (Traders):")
   console.log("Discount sum: %s ($%s)",
     allReferralsDiscountUsd.toString(),
-    Number(ethers.utils.formatUnits(allReferralsDiscountUsd, 30)).toFixed(4)
+    Number(formatUnits(allReferralsDiscountUsd, 30)).toFixed(4)
   )
+  consoleData = []
   for (const data of Object.values(referralDiscountData)) {
     if (data.share.eq(0)) {
       continue
     }
-    console.log("Account: %s Share: %s", data.account, data.share.toString())
+    consoleData.push({
+      referral: data.account,
+      "share, %": formatUnits(data.share, 7),
+      "volume, $": formatUnits(data.volume, 30),
+      "discountUsd, $": formatUnits(data.discountUsd, 30),
+    })
     output.referrals.push({
       account: data.account,
       share: data.share.toString(),
@@ -181,6 +202,7 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp) {
       volume: data.volume.toString()
     })
   }
+  console.table(consoleData)
 
   fs.writeFileSync(`./distribution-data-${network}.json`, JSON.stringify(output, null, 4))
 }
@@ -205,6 +227,9 @@ async function main() {
     help: 'Date to. Exclusive. E.g. 2022-04-27',
     default: "2022-04-27"
   });
+  parser.add_argument('-a', '--account', {
+    help: 'Account address'
+  })
 
   const args = parser.parse_args()
 
@@ -217,8 +242,11 @@ async function main() {
   console.log("Network: %s", args.network)
   console.log("From: %s (timestamp %s)", fromDate.toISOString().substring(0, 10), fromTimestamp)
   console.log("To (exclusively): %s (timestamp %s)", toDate.toISOString().substring(0, 10), toTimestamp)
+  if (args.account) {
+     console.log("Account: %s", args.account)
+  }
 
-  await queryDistributionData(args.network, fromTimestamp, toTimestamp)
+  await queryDistributionData(args.network, fromTimestamp, toTimestamp, args.account)
 }
 
 main()
