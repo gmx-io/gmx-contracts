@@ -9,7 +9,7 @@ const inputDir = path.resolve(__dirname, "../..") + "/data/bonds/"
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
-const inputFile = inputDir + "2022-03-30_transfers.csv"
+const inputFile = inputDir + "2022-04-20_transfers.csv"
 const shouldSendTxns = false
 
 async function getArbValues() {
@@ -81,10 +81,10 @@ async function main() {
 
   if (shouldSendTxns) {
     if (vestWithGmxAccounts.length > 0) {
-      await sendTxn(esGmxBatchSender.send(gmxVester.address, 4, vestWithGmxAccounts, vestWithGmxAmounts, { gasLimit: 30000000 }), "esGmxBatchSender.send(gmxVester)")
+      await sendTxn(esGmxBatchSender.send(gmxVester.address, 4, vestWithGmxAccounts, vestWithGmxAmounts), "esGmxBatchSender.send(gmxVester)")
     }
     if (vestWithGlpAccounts.length > 0) {
-      await sendTxn(esGmxBatchSender.send(glpVester.address, 320, vestWithGlpAccounts, vestWithGlpAmounts, { gasLimit: 30000000 }), "esGmxBatchSender.send(glpVester)")
+      await sendTxn(esGmxBatchSender.send(glpVester.address, 320, vestWithGlpAccounts, vestWithGlpAmounts), "esGmxBatchSender.send(glpVester)")
     }
   }
 }

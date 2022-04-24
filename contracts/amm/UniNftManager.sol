@@ -1,8 +1,16 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 contract UniNftManager {
+    struct CollectParams {
+        uint256 tokenId;
+        address recipient;
+        uint128 amount0Max;
+        uint128 amount1Max;
+    }
+
     function positions(uint256 /* tokenId */)
         external
         pure
@@ -36,4 +44,8 @@ contract UniNftManager {
             0
         );
     }
+
+    function collect(CollectParams calldata params) external returns (uint256 amount0, uint256 amount1) {}
+
+    function ownerOf(uint256 tokenId) external view returns (address) {}
 }
