@@ -66,7 +66,7 @@ async function main() {
     await sendTxn(signer.sendTransaction({
       to: transferItem.address,
       value: ethers.utils.parseEther(transferItem.amount)
-    }), `${transferItem.amount} to ${transferItem.address}`)
+    }), `${transferItem.amount} ${gasToken} to ${transferItem.address}`)
   }
 }
 
