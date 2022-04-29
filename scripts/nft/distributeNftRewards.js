@@ -7,6 +7,9 @@ const parse = require('csv-parse')
 
 const inputDir = path.resolve(__dirname, "../..") + "/data/nft/input/"
 
+const earliestTxn = 1648771200 // Friday, 1 April 2022 00:00:00
+const shouldSendTokens = true
+
 function bigNumberify(n) {
   return ethers.BigNumber.from(n)
 }
@@ -28,7 +31,6 @@ const processFile = async (file) => {
 const distribute = async () => {
   const nftHolders = {}
   const nftTxns = await processFile(inputDir + "nft-transfers.csv")
-  const shouldSendTokens = true
 
   for (let i = 0; i < nftTxns.length; i++) {
     const txn = nftTxns[i]
@@ -89,7 +91,6 @@ const distribute = async () => {
   console.log("holdersList", holdersList.length)
 
   const tokenHolders = holdersList
-  const earliestTxn = 1646092800 // Tuesday, 1 March 2022 00:00:00
 
   const balanceList = []
   let totalBalance = 0
