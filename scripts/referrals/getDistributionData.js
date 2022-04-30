@@ -83,50 +83,89 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp, accoun
     referralCondition = `,referral: "${account.toLowerCase()}"`
   }
 
-  const query = `
-    {
-      referrerStats(first: 1000, where: {
-        period: daily,
-        timestamp_gte: ${fromTimestamp},
-        timestamp_lt: ${toTimestamp},
-        discountUsd_gt: 0
-        ${referrerCondition}
-      }) {
-        id
-        totalRebateUsd
-        discountUsd
-        timestamp
-        volume
-        tradedReferralsCount
-        trades
-        referrer
-      }
-      referralStats(first: 1000, where: {
-        period: daily,
-        timestamp_gte: ${fromTimestamp},
-        timestamp_lt: ${toTimestamp},
-        discountUsd_gt: 0
-        ${referralCondition}
-      }) {
-        id
-        discountUsd
-        timestamp
-        referral
-        volume
-      }
-    }
-  `
+  const getReferrerStatsQuery = (skip) => `referrerStats(first: 1000, skip: ${skip}, where: {
+      period: daily,
+      timestamp_gte: ${fromTimestamp},
+      timestamp_lt: ${toTimestamp},
+      discountUsd_gt: 0
+      ${referrerCondition}
+    }) {
+      id
+      totalRebateUsd
+      discountUsd
+      timestamp
+      volume
+      tradedReferralsCount
+      trades
+      referrer
+    }`
 
-  const [data, referrersTiers] = await Promise.all([
+  const getReferralStatsQuery = (skip) => `referralStats(first: 1000, skip: ${skip}, where: {
+      period: daily,
+      timestamp_gte: ${fromTimestamp},
+      timestamp_lt: ${toTimestamp},
+      discountUsd_gt: 0
+      ${referralCondition}
+    }) {
+      id
+      discountUsd
+      timestamp
+      referral
+      volume
+    }`
+
+  const query = `{
+    referrerStats0: ${getReferrerStatsQuery(0)}
+    referrerStats1: ${getReferrerStatsQuery(1000)}
+    referrerStats2: ${getReferrerStatsQuery(2000)}
+    referrerStats3: ${getReferrerStatsQuery(3000)}
+    referrerStats4: ${getReferrerStatsQuery(4000)}
+    referrerStats5: ${getReferrerStatsQuery(5000)}
+
+    referralStats0: ${getReferralStatsQuery(0)}
+    referralStats1: ${getReferralStatsQuery(1000)}
+    referralStats2: ${getReferralStatsQuery(2000)}
+    referralStats3: ${getReferralStatsQuery(3000)}
+    referralStats4: ${getReferralStatsQuery(4000)}
+    referralStats5: ${getReferralStatsQuery(5000)}
+  }`
+
+  let [data, referrersTiers] = await Promise.all([
     requestSubgraph(network, query),
     getReferrersTiers(network)
   ])
+
+  const referrerStats = [
+    ...data.referrerStats0,
+    ...data.referrerStats1,
+    ...data.referrerStats2,
+    ...data.referrerStats3,
+    ...data.referrerStats4,
+    ...data.referrerStats5,
+  ]
+
+  const referralStats = [
+    ...data.referralStats0,
+    ...data.referralStats1,
+    ...data.referralStats2,
+    ...data.referralStats3,
+    ...data.referralStats4,
+    ...data.referralStats5,
+  ]
+
+  if (referralStats.length === 6000) {
+    throw new Error("Referrals stats should be paginated")
+  }
+
+  if (referrerStats.length === 6000) {
+    throw new Error("Referrers stats should be paginated")
+  }
 
   let allReferrersRebateUsd = BigNumber.from(0)
   let totalReferralVolume = BigNumber.from(0)
   let bonusTierReferralVolume = BigNumber.from(0)
   let totalRebateUsd = BigNumber.from(0)
-  const referrersRebatesData = data.referrerStats.reduce((memo, item) => {
+  const referrersRebatesData = referrerStats.reduce((memo, item) => {
     const tierId = referrersTiers[item.referrer] || 0
     memo[item.referrer] = memo[item.referrer] || {
       rebateUsd: BigNumber.from(0),
@@ -248,7 +287,7 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp, accoun
   console.table(consoleData)
 
   let allReferralsDiscountUsd = BigNumber.from(0)
-  const referralDiscountData = data.referralStats.reduce((memo, item) => {
+  const referralDiscountData = referralStats.reduce((memo, item) => {
     memo[item.referral] = memo[item.referral] || {
       discountUsd: BigNumber.from(0),
       volume: BigNumber.from(0)
