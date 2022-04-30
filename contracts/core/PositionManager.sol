@@ -228,10 +228,6 @@ contract PositionManager is BasePositionManager {
         address _vault = vault;
         address timelock = IVault(_vault).gov();
 
-        ITimelock(timelock).enableLeverage(_vault);
-        IOrderBook(orderBook).executeDecreaseOrder(_account, _orderIndex, _feeReceiver);
-        ITimelock(timelock).disableLeverage(_vault);
-
         (
             , // _collateralToken
             , // _collateralDelta
@@ -242,6 +238,10 @@ contract PositionManager is BasePositionManager {
             , // triggerAboveThreshold
             // executionFee
         ) = IOrderBook(orderBook).getDecreaseOrder(_account, _orderIndex);
+
+        ITimelock(timelock).enableLeverage(_vault);
+        IOrderBook(orderBook).executeDecreaseOrder(_account, _orderIndex, _feeReceiver);
+        ITimelock(timelock).disableLeverage(_vault);
 
         _emitDecreasePositionReferral(_account, _sizeDelta);
     }
