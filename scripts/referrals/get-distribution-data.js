@@ -127,7 +127,7 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp, accoun
   let bonusTierReferralVolume = BigNumber.from(0)
   let totalRebateUsd = BigNumber.from(0)
   const referrersRebatesData = data.referrerStats.reduce((memo, item) => {
-    const tierId = referrersTiers[account] || 0
+    const tierId = referrersTiers[item.referrer] || 0
     memo[item.referrer] = memo[item.referrer] || {
       rebateUsd: BigNumber.from(0),
       totalRebateUsd: BigNumber.from(0),
