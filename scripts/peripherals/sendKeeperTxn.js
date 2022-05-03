@@ -1,4 +1,4 @@
-const fetch = require('node-fetch')
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const { contractAt } = require("../shared/helpers")
 const BaseToken = require("../../artifacts/contracts/tokens/BaseToken.sol/BaseToken.json")
 
@@ -9,6 +9,10 @@ const {
   ARBITRUM_DEPLOY_KEY,
   ARBITRUM_PRICE_TXN_URL,
   ARBITRUM_PRICE_KEY,
+  AVAX_URL,
+  AVAX_DEPLOY_KEY,
+  AVAX_PRICE_TXN_URL,
+  AVAX_PRICE_KEY,
 } = require("../../env.json")
 
 async function getArbValues() {
@@ -22,6 +26,13 @@ async function getArbValues() {
 }
 
 async function getAvaxValues() {
+  const provider = new ethers.providers.JsonRpcProvider(AVAX_URL)
+  const wallet = new ethers.Wallet(AVAX_DEPLOY_KEY).connect(provider)
+  const priceTxnUrl = AVAX_PRICE_TXN_URL
+  const priceKey = AVAX_PRICE_KEY
+  const gmx = new ethers.Contract("0x62edc0692BD897D2295872a9FFCac5425011c661", BaseToken.abi, wallet)
+
+  return { wallet, priceTxnUrl, priceKey, gmx }
 }
 
 function getValues() {
@@ -45,13 +56,16 @@ async function main() {
 
   const startTime = Date.now()
 
+  const body = JSON.stringify({
+    key: priceKey,
+    content: rawTxn
+  })
+
+  console.log("post", body)
   const result = await fetch(priceTxnUrl, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      key: priceKey,
-      content: rawTxn
-    })
+    body
   })
 
   console.log('post price txn time taken:', Date.now() - startTime)
