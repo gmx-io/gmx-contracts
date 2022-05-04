@@ -117,7 +117,6 @@ async function main() {
 
   await sendTxn(esGmx.approve(batchSender.address, totalEsGmxAmount), "esGmx.approve")
   await sendTxn(batchSender.sendAndEmit(esGmx.address, esGmxAccounts, esGmxAmounts, rebatesTypeId), "batchSender.sendAndEmit(nativeToken, esGmx)")
-
 }
 
 main()
