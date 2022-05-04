@@ -243,7 +243,7 @@ module.exports = {
       isStrictStable: true,
       tokenWeight: 2000,
       minProfitBps: 0,
-      maxUsdgAmount: 6 * 1000 * 1000,
+      maxUsdgAmount: 7 * 1000 * 1000,
       bufferAmount: 0,
       isStable: true,
       isShortable: false

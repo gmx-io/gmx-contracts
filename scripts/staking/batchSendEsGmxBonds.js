@@ -9,7 +9,7 @@ const inputDir = path.resolve(__dirname, "../..") + "/data/bonds/"
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
-const inputFile = inputDir + "2022-04-20_transfers.csv"
+const inputFile = inputDir + "2022-05-04_transfers.csv"
 const shouldSendTxns = false
 
 async function getArbValues() {
