@@ -11,6 +11,8 @@ const ethPrice = "2840"
 const avaxPrice = "60"
 const gmxPrice = "28"
 
+const shouldSendTxn = false
+
 const { AddressZero } = ethers.constants
 
 async function getArbValues() {
@@ -111,12 +113,14 @@ async function main() {
   const totalNativeAmount = totalRebateAmount.add(totalDiscountAmount)
   console.log("amounts", totalRebateAmount.toString(), totalDiscountAmount.toString(), totalNativeAmount.toString(), totalEsGmxAmount.toString())
 
-  await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
-  await sendTxn(batchSender.sendAndEmit(nativeToken.address, rebateAccounts, rebateAmounts, rebatesTypeId), "batchSender.sendAndEmit(nativeToken, rebates)")
-  await sendTxn(batchSender.sendAndEmit(nativeToken.address, discountAccounts, discountAmounts, discountsTypeId), "batchSender.sendAndEmit(nativeToken, discounts)")
+  if (shouldSendTxn) {
+    await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
+    await sendTxn(batchSender.sendAndEmit(nativeToken.address, rebateAccounts, rebateAmounts, rebatesTypeId), "batchSender.sendAndEmit(nativeToken, rebates)")
+    await sendTxn(batchSender.sendAndEmit(nativeToken.address, discountAccounts, discountAmounts, discountsTypeId), "batchSender.sendAndEmit(nativeToken, discounts)")
 
-  await sendTxn(esGmx.approve(batchSender.address, totalEsGmxAmount), "esGmx.approve")
-  await sendTxn(batchSender.sendAndEmit(esGmx.address, esGmxAccounts, esGmxAmounts, rebatesTypeId), "batchSender.sendAndEmit(nativeToken, esGmx)")
+    await sendTxn(esGmx.approve(batchSender.address, totalEsGmxAmount), "esGmx.approve")
+    await sendTxn(batchSender.sendAndEmit(esGmx.address, esGmxAccounts, esGmxAmounts, rebatesTypeId), "batchSender.sendAndEmit(nativeToken, esGmx)")
+  }
 }
 
 main()
