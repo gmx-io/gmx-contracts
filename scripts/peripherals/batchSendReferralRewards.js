@@ -7,11 +7,11 @@ const avaxData = require("../../distribution-data-avalanche.json")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
 
-const ethPrice = "2840"
-const avaxPrice = "60"
+const ethPrice = "2375"
+const avaxPrice = "45"
 const gmxPrice = "28"
 
-const shouldSendTxn = false
+const shouldSendTxn = true
 
 const { AddressZero } = ethers.constants
 
@@ -111,7 +111,10 @@ async function main() {
   console.log("top referrer", rebatesData[0].account, rebatesData[0].rebateUsd)
 
   const totalNativeAmount = totalRebateAmount.add(totalDiscountAmount)
-  console.log("amounts", totalRebateAmount.toString(), totalDiscountAmount.toString(), totalNativeAmount.toString(), totalEsGmxAmount.toString())
+  console.log("total rebates", ethers.utils.formatUnits(totalRebateAmount, 18))
+  console.log("total discounts", ethers.utils.formatUnits(totalDiscountAmount, 18))
+  console.log(`total ${nativeToken.name}`, ethers.utils.formatUnits(totalNativeAmount, 18))
+  console.log(`total esGmx`, ethers.utils.formatUnits(totalEsGmxAmount, 18))
 
   if (shouldSendTxn) {
     await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
