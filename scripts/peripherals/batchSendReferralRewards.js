@@ -11,7 +11,7 @@ const ethPrice = "2375"
 const avaxPrice = "45"
 const gmxPrice = "28"
 
-const shouldSendTxn = true
+const shouldSendTxn = false
 
 const { AddressZero } = ethers.constants
 
@@ -61,7 +61,9 @@ async function main() {
   const discountsTypeId = 2
 
   let totalRebateAmount = bigNumberify(0)
+  let totalRebateUsd = bigNumberify(0)
   let totalDiscountAmount = bigNumberify(0)
+  let totalDiscountUsd = bigNumberify(0)
   let totalEsGmxAmount = bigNumberify(0)
   const rebateAccounts = []
   const rebateAmounts = []
@@ -78,6 +80,7 @@ async function main() {
     rebateAccounts.push(account)
     rebateAmounts.push(amount)
     totalRebateAmount = totalRebateAmount.add(amount)
+    totalRebateUsd = totalRebateUsd.add(rebateUsd)
 
     if (esgmxRewardsUsd) {
       const esGmxAmount = bigNumberify(esgmxRewardsUsd).mul(expandDecimals(1, 18)).div(expandDecimals(gmxPrice, 30))
@@ -95,6 +98,7 @@ async function main() {
     discountAccounts.push(account)
     discountAmounts.push(amount)
     totalDiscountAmount = totalDiscountAmount.add(amount)
+    totalDiscountUsd = totalDiscountUsd.add(discountUsd)
   }
 
   rebatesData.sort((a, b) => {
@@ -111,8 +115,10 @@ async function main() {
   console.log("top referrer", rebatesData[0].account, rebatesData[0].rebateUsd)
 
   const totalNativeAmount = totalRebateAmount.add(totalDiscountAmount)
-  console.log("total rebates", ethers.utils.formatUnits(totalRebateAmount, 18))
-  console.log("total discounts", ethers.utils.formatUnits(totalDiscountAmount, 18))
+  console.log(`total rebates (${nativeToken.name})`, ethers.utils.formatUnits(totalRebateAmount, 18))
+  console.log("total rebates (USD)", ethers.utils.formatUnits(totalRebateUsd, 30))
+  console.log(`total discounts (${nativeToken.name})`, ethers.utils.formatUnits(totalDiscountAmount, 18))
+  console.log("total discounts (USD)", ethers.utils.formatUnits(totalDiscountUsd, 30))
   console.log(`total ${nativeToken.name}`, ethers.utils.formatUnits(totalNativeAmount, 18))
   console.log(`total esGmx`, ethers.utils.formatUnits(totalEsGmxAmount, 18))
 
