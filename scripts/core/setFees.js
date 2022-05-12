@@ -24,7 +24,7 @@ async function main() {
     50, // _taxBasisPoints
     5, // _stableTaxBasisPoints
     25, // _mintBurnFeeBasisPoints
-    35, // _swapFeeBasisPoints
+    50, // _swapFeeBasisPoints
     1, // _stableSwapFeeBasisPoints
     10, // _marginFeeBasisPoints
     toUsd(5), // _liquidationFeeUsd
