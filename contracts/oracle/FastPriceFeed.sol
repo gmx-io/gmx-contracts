@@ -116,7 +116,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         tokenManager = _tokenManager;
     }
 
-    function setSigner(address _account, bool _isActive) external onlyGov {
+    function setSigner(address _account, bool _isActive) external override onlyGov {
         isSigner[_account] = _isActive;
     }
 
@@ -137,7 +137,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         minBlockInterval = _minBlockInterval;
     }
 
-    function setIsSpreadEnabled(bool _isSpreadEnabled) external onlyGov {
+    function setIsSpreadEnabled(bool _isSpreadEnabled) external override onlyGov {
         isSpreadEnabled = _isSpreadEnabled;
     }
 
