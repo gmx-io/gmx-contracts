@@ -3,12 +3,22 @@
 pragma solidity 0.6.12;
 
 import "../libraries/math/SafeMath.sol";
+import "../libraries/token/IERC20.sol";
+
 import "../core/interfaces/IGlpManager.sol";
 
 import "./interfaces/IRewardTracker.sol";
+import "./interfaces/IRewardTracker.sol";
 
+// provide a way to transfer staked GLP tokens by unstaking from the sender
+// and staking for the receiver
+// tests in RewardRouterV2.js
 contract StakedGlp {
     using SafeMath for uint256;
+
+    string public constant name = "StakedGlp";
+    string public constant symbol = "sGLP";
+    uint8 public constant decimals = 18;
 
     address public glp;
     IGlpManager public glpManager;
@@ -50,6 +60,14 @@ contract StakedGlp {
         _approve(_sender, msg.sender, nextAllowance);
         _transfer(_sender, _recipient, _amount);
         return true;
+    }
+
+    function balanceOf(address _account) external view returns (uint256) {
+        IRewardTracker(stakedGlpTracker).depositBalances(_account, glp);
+    }
+
+    function totalSupply() external view returns (uint256) {
+        IERC20(stakedGlpTracker).totalSupply();
     }
 
     function _approve(address _owner, address _spender, uint256 _amount) private {
