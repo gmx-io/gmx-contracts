@@ -11,6 +11,7 @@ import "../core/interfaces/IVaultUtils.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
 import "../oracle/interfaces/IFastPriceFeed.sol";
 import "../core/interfaces/IRouter.sol";
+import "../referrals/interfaces/IReferralStorage.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../tokens/interfaces/IBaseToken.sol";
 import "../tokens/interfaces/IMintable.sol";
@@ -340,6 +341,18 @@ contract Timelock is ITimelock {
 
     function setIsSpreadEnabled(address _fastPriceFeed, bool _isSpreadEnabled) external onlyAdminOrHandler {
         IFastPriceFeed(_fastPriceFeed).setIsSpreadEnabled(_isSpreadEnabled);
+    }
+
+    function setTier(address _referralStorage, uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external onlyAdminOrHandler {
+        IReferralStorage(_referralStorage).setTier(_tierId, _totalRebate, _discountShare);
+    }
+
+    function setReferrerTier(address _referralStorage, address _referrer, uint256 _tierId) external onlyAdminOrHandler {
+        IReferralStorage(_referralStorage).setReferrerTier(_referrer, _tierId);
+    }
+
+    function govSetCodeOwner(address _referralStorage, bytes32 _code, address _newAccount) external onlyAdminOrHandler {
+        IReferralStorage(_referralStorage).govSetCodeOwner(_code, _newAccount);
     }
 
     function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {
