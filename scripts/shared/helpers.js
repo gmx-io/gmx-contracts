@@ -47,7 +47,7 @@ async function sendTxn(txnPromise, label) {
   const txn = await txnPromise
   console.info(`Sending ${label}...`)
   await txn.wait()
-  console.info("... Sent!")
+  console.info(`... Sent! ${txn.hash}`)
   return txn
 }
 
