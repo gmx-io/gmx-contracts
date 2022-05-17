@@ -12,7 +12,7 @@ const { AddressZero } = ethers.constants
 
 describe("Timelock", function () {
   const provider = waffle.provider
-  const [wallet, user0, user1, user2, user3, rewardManager, tokenManager, mintReceiver] = provider.getWallets()
+  const [wallet, user0, user1, user2, user3, rewardManager, tokenManager, mintReceiver, positionRouter] = provider.getWallets()
   let vault
   let vaultUtils
   let vaultPriceFeed
@@ -27,6 +27,8 @@ describe("Timelock", function () {
   let distributor0
   let yieldTracker0
   let timelock
+  let fastPriceEvents
+  let fastPriceFeed
 
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
@@ -74,6 +76,18 @@ describe("Timelock", function () {
 
     await vaultPriceFeed.setGov(timelock.address)
     await router.setGov(timelock.address)
+
+    fastPriceEvents = await deployContract("FastPriceEvents", [])
+    fastPriceFeed = await deployContract("FastPriceFeed", [
+      5 * 60, // _priceDuration
+      2, // _minBlockInterval
+      250, // _maxDeviationBasisPoints
+      fastPriceEvents.address, // _fastPriceEvents
+      tokenManager.address, // _tokenManager
+      positionRouter.address // _positionRouter
+    ])
+
+    await fastPriceFeed.setGov(timelock.address)
   })
 
   it("inits", async () => {
@@ -189,6 +203,20 @@ describe("Timelock", function () {
     expect(await vault.shortableTokens(bnb.address)).eq(true)
     expect(await vault.bufferAmounts(bnb.address)).eq(300)
     expect(await vault.usdgAmounts(bnb.address)).eq(500)
+
+    await timelock.setContractHandler(user0.address, true)
+
+    await timelock.connect(user0).setTokenConfig(
+      vault.address,
+      bnb.address,
+      100, // _tokenWeight
+      50, // _minProfitBps
+      1000, // _maxUsdgAmount
+      300, // _bufferAmount
+      500 // _usdgAmount
+    )
+
+    expect(await vault.minProfitBasisPoints(bnb.address)).eq(50)
   })
 
   it("setBuffer", async () => {
@@ -254,6 +282,10 @@ describe("Timelock", function () {
     expect(await vaultPriceFeed.maxStrictPriceDeviation()).eq(0)
     await timelock.connect(wallet).setMaxStrictPriceDeviation(vaultPriceFeed.address, 100)
     expect(await vaultPriceFeed.maxStrictPriceDeviation()).eq(100)
+
+    await timelock.setContractHandler(user0.address, true)
+    await timelock.connect(user0).setMaxStrictPriceDeviation(vaultPriceFeed.address, 200)
+    expect(await vaultPriceFeed.maxStrictPriceDeviation()).eq(200)
   })
 
   it("setPriceSampleSpace", async () => {
@@ -351,8 +383,16 @@ describe("Timelock", function () {
     expect(await vault.stableFundingRateFactor()).eq(100)
 
     await timelock.connect(wallet).setFundingRate(vault.address, 60 * 60, 100, 0)
+    expect(await vault.fundingInterval()).eq(60 * 60)
     expect(await vault.fundingRateFactor()).eq(100)
     expect(await vault.stableFundingRateFactor()).eq(0)
+
+    await timelock.setContractHandler(user0.address, true)
+
+    await timelock.connect(user0).setFundingRate(vault.address, 120 * 60, 50, 75)
+    expect(await vault.fundingInterval()).eq(120 * 60)
+    expect(await vault.fundingRateFactor()).eq(50)
+    expect(await vault.stableFundingRateFactor()).eq(75)
   })
 
   it("transferIn", async () => {
@@ -373,6 +413,7 @@ describe("Timelock", function () {
   })
 
   it("approve", async () => {
+    await timelock.setContractHandler(user0.address, true)
     await expect(timelock.connect(user0).approve(dai.address, user1.address, expandDecimals(100, 18)))
       .to.be.revertedWith("Timelock: forbidden")
 
@@ -447,7 +488,48 @@ describe("Timelock", function () {
       .to.be.revertedWith("Timelock: action not signalled")
   })
 
+  it("setPriceFeedWatcher", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
+    await expect(timelock.connect(user0).setPriceFeedWatcher(fastPriceFeed.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).setPriceFeedWatcher(fastPriceFeed.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(user0).signalSetPriceFeedWatcher(fastPriceFeed.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).signalSetPriceFeedWatcher(fastPriceFeed.address, user1.address, true)
+
+    await expect(timelock.connect(wallet).setPriceFeedWatcher(fastPriceFeed.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 4 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setPriceFeedWatcher(fastPriceFeed.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 1 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setPriceFeedWatcher(user2.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).setPriceFeedWatcher(fastPriceFeed.address, user2.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).setPriceFeedWatcher(fastPriceFeed.address, user1.address, false))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    expect(await fastPriceFeed.isSigner(user1.address)).eq(false)
+    await timelock.connect(wallet).setPriceFeedWatcher(fastPriceFeed.address, user1.address, true)
+    expect(await fastPriceFeed.isSigner(user1.address)).eq(true)
+  })
+
   it("processMint", async () => {
+    await timelock.setContractHandler(user0.address, true)
     const gmx = await deployContract("GMX", [])
     await gmx.setGov(timelock.address)
 
@@ -515,6 +597,7 @@ describe("Timelock", function () {
   })
 
   it("setHandler", async () => {
+    await timelock.setContractHandler(user0.address, true)
     const vester = await deployContract("Vester", [
       "Vested GMX",
       "veGMX",
@@ -586,6 +669,8 @@ describe("Timelock", function () {
   })
 
   it("setGov", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
     await expect(timelock.connect(user0).setGov(vault.address, user1.address))
       .to.be.revertedWith("Timelock: forbidden")
 
@@ -637,6 +722,8 @@ describe("Timelock", function () {
   })
 
   it("setPriceFeed", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
     await expect(timelock.connect(user0).setPriceFeed(vault.address, user1.address))
       .to.be.revertedWith("Timelock: forbidden")
 
@@ -688,6 +775,8 @@ describe("Timelock", function () {
   })
 
   it("withdrawToken", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
     const gmx = await deployContract("GMX", [])
     await gmx.setGov(timelock.address)
 
@@ -736,6 +825,8 @@ describe("Timelock", function () {
   })
 
   it("vaultSetTokenConfig", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
     await timelock.connect(wallet).signalSetPriceFeed(vault.address, vaultPriceFeed.address)
     await increaseTime(provider, 5 * 24 * 60 * 60 + 10)
     await mineBlock(provider)
@@ -857,6 +948,8 @@ describe("Timelock", function () {
   })
 
   it("priceFeedSetTokenConfig", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
     await timelock.connect(wallet).signalSetPriceFeed(vault.address, vaultPriceFeed.address)
     await increaseTime(provider, 5 * 24 * 60 * 60 + 10)
     await mineBlock(provider)
@@ -980,6 +1073,8 @@ describe("Timelock", function () {
   })
 
   it("addPlugin", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
     await expect(timelock.connect(user0).addPlugin(router.address, user1.address))
       .to.be.revertedWith("Timelock: forbidden")
 
@@ -1165,6 +1260,10 @@ describe("Timelock", function () {
     expect(await timelock.shouldToggleIsLeverageEnabled()).to.be.true
     await expect(timelock.setShouldToggleIsLeverageEnabled(false))
     expect(await timelock.shouldToggleIsLeverageEnabled()).to.be.false
+
+    await timelock.setContractHandler(user0.address, true)
+    await timelock.connect(user0).setShouldToggleIsLeverageEnabled(true)
+    expect(await timelock.shouldToggleIsLeverageEnabled()).to.be.true
   })
 
   it("setMarginFeeBasisPoints", async () => {
@@ -1177,6 +1276,151 @@ describe("Timelock", function () {
     await timelock.setMarginFeeBasisPoints(100, 1000)
     expect(await timelock.marginFeeBasisPoints()).eq(100)
     expect(await timelock.maxMarginFeeBasisPoints()).eq(1000)
+
+    await timelock.setContractHandler(user0.address, true)
+    await timelock.connect(user0).setMarginFeeBasisPoints(20, 200)
+    expect(await timelock.marginFeeBasisPoints()).eq(20)
+    expect(await timelock.maxMarginFeeBasisPoints()).eq(200)
+  })
+
+  it("setFees", async () => {
+    await expect(timelock.connect(user0).setFees(
+      vault.address,
+      1, // _taxBasisPoints,
+      2, // _stableTaxBasisPoints,
+      3, // _mintBurnFeeBasisPoints,
+      4, // _swapFeeBasisPoints,
+      5, // _stableSwapFeeBasisPoints,
+      6, // _marginFeeBasisPoints,
+      7, // _liquidationFeeUsd,
+      8, // _minProfitTime,
+      false
+    )).to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vault.taxBasisPoints()).eq(50)
+    expect(await vault.stableTaxBasisPoints()).eq(20)
+    expect(await vault.mintBurnFeeBasisPoints()).eq(30)
+    expect(await vault.swapFeeBasisPoints()).eq(30)
+    expect(await vault.stableSwapFeeBasisPoints()).eq(4)
+    expect(await timelock.marginFeeBasisPoints()).eq(50)
+    expect(await vault.marginFeeBasisPoints()).eq(10)
+    expect(await vault.liquidationFeeUsd()).eq(toUsd(5))
+    expect(await vault.minProfitTime()).eq(0)
+    expect(await vault.hasDynamicFees()).eq(false)
+
+    await timelock.connect(wallet).setFees(
+      vault.address,
+      1, // _taxBasisPoints,
+      2, // _stableTaxBasisPoints,
+      3, // _mintBurnFeeBasisPoints,
+      4, // _swapFeeBasisPoints,
+      5, // _stableSwapFeeBasisPoints,
+      6, // _marginFeeBasisPoints,
+      7, // _liquidationFeeUsd,
+      8, // _minProfitTime,
+      false // _hasDynamicFees
+    )
+
+    expect(await vault.taxBasisPoints()).eq(1)
+    expect(await vault.stableTaxBasisPoints()).eq(2)
+    expect(await vault.mintBurnFeeBasisPoints()).eq(3)
+    expect(await vault.swapFeeBasisPoints()).eq(4)
+    expect(await vault.stableSwapFeeBasisPoints()).eq(5)
+    expect(await timelock.marginFeeBasisPoints()).eq(6)
+    expect(await vault.marginFeeBasisPoints()).eq(500)
+    expect(await vault.liquidationFeeUsd()).eq(7)
+    expect(await vault.minProfitTime()).eq(8)
+    expect(await vault.hasDynamicFees()).eq(false)
+
+    await timelock.setContractHandler(user0.address, true)
+
+    await timelock.connect(wallet).setFees(
+      vault.address,
+      11, // _taxBasisPoints,
+      12, // _stableTaxBasisPoints,
+      13, // _mintBurnFeeBasisPoints,
+      14, // _swapFeeBasisPoints,
+      15, // _stableSwapFeeBasisPoints,
+      16, // _marginFeeBasisPoints,
+      17, // _liquidationFeeUsd,
+      18, // _minProfitTime,
+      true // _hasDynamicFees
+    )
+
+    expect(await vault.taxBasisPoints()).eq(11)
+    expect(await vault.stableTaxBasisPoints()).eq(12)
+    expect(await vault.mintBurnFeeBasisPoints()).eq(13)
+    expect(await vault.swapFeeBasisPoints()).eq(14)
+    expect(await vault.stableSwapFeeBasisPoints()).eq(15)
+    expect(await timelock.marginFeeBasisPoints()).eq(16)
+    expect(await vault.marginFeeBasisPoints()).eq(500)
+    expect(await vault.liquidationFeeUsd()).eq(17)
+    expect(await vault.minProfitTime()).eq(18)
+    expect(await vault.hasDynamicFees()).eq(true)
+  })
+
+  it("setSwapFees", async () => {
+    await expect(timelock.connect(user0).setSwapFees(
+      vault.address,
+      1, // _taxBasisPoints,
+      2, // _stableTaxBasisPoints,
+      3, // _mintBurnFeeBasisPoints,
+      4, // _swapFeeBasisPoints,
+      5, // _stableSwapFeeBasisPoints
+    )).to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vault.taxBasisPoints()).eq(50)
+    expect(await vault.stableTaxBasisPoints()).eq(20)
+    expect(await vault.mintBurnFeeBasisPoints()).eq(30)
+    expect(await vault.swapFeeBasisPoints()).eq(30)
+    expect(await vault.stableSwapFeeBasisPoints()).eq(4)
+    expect(await timelock.marginFeeBasisPoints()).eq(50)
+    expect(await vault.marginFeeBasisPoints()).eq(10)
+    expect(await vault.liquidationFeeUsd()).eq(toUsd(5))
+    expect(await vault.minProfitTime()).eq(0)
+    expect(await vault.hasDynamicFees()).eq(false)
+
+    await timelock.connect(wallet).setSwapFees(
+      vault.address,
+      1, // _taxBasisPoints,
+      2, // _stableTaxBasisPoints,
+      3, // _mintBurnFeeBasisPoints,
+      4, // _swapFeeBasisPoints,
+      5, // _stableSwapFeeBasisPoints
+    )
+
+    expect(await vault.taxBasisPoints()).eq(1)
+    expect(await vault.stableTaxBasisPoints()).eq(2)
+    expect(await vault.mintBurnFeeBasisPoints()).eq(3)
+    expect(await vault.swapFeeBasisPoints()).eq(4)
+    expect(await vault.stableSwapFeeBasisPoints()).eq(5)
+    expect(await timelock.marginFeeBasisPoints()).eq(50)
+    expect(await vault.marginFeeBasisPoints()).eq(500)
+    expect(await vault.liquidationFeeUsd()).eq(toUsd(5))
+    expect(await vault.minProfitTime()).eq(0)
+    expect(await vault.hasDynamicFees()).eq(false)
+
+    await timelock.setContractHandler(user0.address, true)
+
+    await timelock.connect(wallet).setSwapFees(
+      vault.address,
+      11, // _taxBasisPoints,
+      12, // _stableTaxBasisPoints,
+      13, // _mintBurnFeeBasisPoints,
+      14, // _swapFeeBasisPoints,
+      15, // _stableSwapFeeBasisPoints
+    )
+
+    expect(await vault.taxBasisPoints()).eq(11)
+    expect(await vault.stableTaxBasisPoints()).eq(12)
+    expect(await vault.mintBurnFeeBasisPoints()).eq(13)
+    expect(await vault.swapFeeBasisPoints()).eq(14)
+    expect(await vault.stableSwapFeeBasisPoints()).eq(15)
+    expect(await timelock.marginFeeBasisPoints()).eq(50)
+    expect(await vault.marginFeeBasisPoints()).eq(500)
+    expect(await vault.liquidationFeeUsd()).eq(toUsd(5))
+    expect(await vault.minProfitTime()).eq(0)
+    expect(await vault.hasDynamicFees()).eq(false)
   })
 
   it("toggle leverage", async () => {
@@ -1252,6 +1496,8 @@ describe("Timelock", function () {
   })
 
   it("redeemUsdg", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
     await expect(timelock.connect(user0).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18)))
       .to.be.revertedWith("Timelock: forbidden")
 

@@ -1,6 +1,7 @@
 const { expect, use } = require("chai")
 const { solidity } = require("ethereum-waffle")
 const { deployContract } = require("../shared/fixtures")
+const { expandDecimals } = require("../shared/utilities")
 
 use(solidity)
 
@@ -13,11 +14,23 @@ const { keccak256 } = ethers.utils
 // for the last tier extra EsGMX incentives will be handled off-chain
 describe("ReferralStorage", function () {
   const provider = waffle.provider
-  const [wallet, user0, user1, user2, user3, user4] = provider.getWallets()
+  const [wallet, user0, user1, user2, user3, user4, rewardManager, tokenManager, mintReceiver] = provider.getWallets()
   let referralStorage
+  let timelock
 
   beforeEach(async () => {
     referralStorage = await deployContract("ReferralStorage", []);
+    timelock = await deployContract("Timelock", [
+      wallet.address,
+      5 * 24 * 60 * 60,
+      rewardManager.address,
+      tokenManager.address,
+      mintReceiver.address,
+      expandDecimals(1000, 18),
+      50, // marginFeeBasisPoints 0.5%
+      500, // maxMarginFeeBasisPoints 5%
+    ])
+
   })
 
   it("Sets new handler", async () => {
@@ -170,5 +183,60 @@ describe("ReferralStorage", function () {
     info = await referralStorage.getTraderReferralInfo(user1.address)
     expect(info[0]).eq(code)
     expect(info[1]).eq(user1.address)
+  })
+
+  it("timelock.setTier", async () => {
+    await referralStorage.setGov(timelock.address)
+
+    await expect(referralStorage.setTier(1, 12, 20))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await expect(timelock.connect(user0).setTier(referralStorage.address, 1, 12, 20))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.setContractHandler(user0.address, true)
+
+    let tier = await referralStorage.tiers(1)
+    expect(tier.totalRebate).eq(0)
+    expect(tier.discountShare).eq(0)
+
+    await timelock.connect(user0).setTier(referralStorage.address, 1, 12, 20)
+
+    tier = await referralStorage.tiers(1)
+    expect(tier.totalRebate).eq(12)
+    expect(tier.discountShare).eq(20)
+  })
+
+  it("timelock.setReferrerTier", async () => {
+    await referralStorage.setGov(timelock.address)
+
+    await expect(referralStorage.setReferrerTier(user1.address, 2))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await expect(timelock.connect(user0).setReferrerTier(referralStorage.address, user1.address, 2))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.setContractHandler(user0.address, true)
+
+    expect(await referralStorage.referrerTiers(user1.address)).eq(0)
+    await timelock.connect(user0).setReferrerTier(referralStorage.address, user1.address, 2)
+    expect(await referralStorage.referrerTiers(user1.address)).eq(2)
+  })
+
+  it("timelock.govSetCodeOwner", async () => {
+    const code = keccak256("0xFF")
+    await referralStorage.setGov(timelock.address)
+
+    await expect(referralStorage.govSetCodeOwner(code, user1.address))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await expect(timelock.connect(user0).govSetCodeOwner(referralStorage.address, code, user1.address))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.setContractHandler(user0.address, true)
+
+    expect(await referralStorage.codeOwners(code)).eq(AddressZero)
+    await timelock.connect(user0).govSetCodeOwner(referralStorage.address,code, user1.address)
+    expect(await referralStorage.codeOwners(code)).eq(user1.address)
   })
 });
