@@ -120,6 +120,7 @@ async function main() {
   console.log(`total discounts (${nativeToken.name})`, ethers.utils.formatUnits(totalDiscountAmount, 18))
   console.log("total discounts (USD)", ethers.utils.formatUnits(totalDiscountUsd, 30))
   console.log(`total ${nativeToken.name}`, ethers.utils.formatUnits(totalNativeAmount, 18))
+  console.log(`total USD`, ethers.utils.formatUnits(totalRebateUsd.add(totalDiscountUsd), 30))
   console.log(`total esGmx`, ethers.utils.formatUnits(totalEsGmxAmount, 18))
 
   if (shouldSendTxn) {
