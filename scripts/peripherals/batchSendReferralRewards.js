@@ -57,6 +57,10 @@ async function main() {
   console.log("rebates", rebatesData.length)
   console.log("discounts", discountsData.length)
 
+  if (rebatesData.length > 150 || discountsData.length > 150) {
+    throw new Error("Batching required")
+  }
+
   const rebatesTypeId = 1
   const discountsTypeId = 2
 
