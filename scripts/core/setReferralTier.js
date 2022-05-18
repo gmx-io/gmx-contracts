@@ -30,8 +30,8 @@ async function getValues() {
 async function main() {
   const { referralStorage } = await getValues()
 
-  const account = "0x43e37ae780aac89aadd10097bd90d5a79e1192ed"
-  const tier = 3 // tier 1, 2, 3
+  const account = "0xefe586d55138561b1b3C329e4b117d9951a4275c"
+  const tier = 2 // tier 1, 2, 3
   console.log("account", account)
 
   await sendTxn(referralStorage.setReferrerTier(account, tier - 1), "referralStorage.setReferrerTier")

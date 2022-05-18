@@ -47,7 +47,7 @@ contract ReferralStorage is Governable, IReferralStorage {
         emit SetHandler(_handler, _isActive);
     }
 
-    function setTier(uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external onlyGov {
+    function setTier(uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external override onlyGov {
         require(_totalRebate <= BASIS_POINTS, "ReferralStorage: invalid totalRebate");
         require(_discountShare <= BASIS_POINTS, "ReferralStorage: invalid discountShare");
 
@@ -58,7 +58,7 @@ contract ReferralStorage is Governable, IReferralStorage {
         emit SetTier(_tierId, _totalRebate, _discountShare);
     }
 
-    function setReferrerTier(address _referrer, uint256 _tierId) external onlyGov {
+    function setReferrerTier(address _referrer, uint256 _tierId) external override onlyGov {
         referrerTiers[_referrer] = _tierId;
         emit SetReferrerTier(_referrer, _tierId);
     }
@@ -96,7 +96,7 @@ contract ReferralStorage is Governable, IReferralStorage {
         emit SetCodeOwner(msg.sender, _newAccount, _code);
     }
 
-    function govSetCodeOwner(bytes32 _code, address _newAccount) external onlyGov {
+    function govSetCodeOwner(bytes32 _code, address _newAccount) external override onlyGov {
         require(_code != bytes32(0), "ReferralStorage: invalid _code");
 
         codeOwners[_code] = _newAccount;

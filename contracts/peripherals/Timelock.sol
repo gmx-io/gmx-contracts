@@ -9,7 +9,9 @@ import "../access/interfaces/IAdmin.sol";
 import "../core/interfaces/IVault.sol";
 import "../core/interfaces/IVaultUtils.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
+import "../oracle/interfaces/IFastPriceFeed.sol";
 import "../core/interfaces/IRouter.sol";
+import "../referrals/interfaces/IReferralStorage.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../tokens/interfaces/IBaseToken.sol";
 import "../tokens/interfaces/IMintable.sol";
@@ -52,6 +54,7 @@ contract Timelock is ITimelock {
     event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
     event SignalAddPlugin(address router, address plugin, bytes32 action);
+    event SignalSetPriceFeedWatcher(address fastPriceFeed, address account, bool isActive);
     event SignalRedeemUsdg(address vault, address token, uint256 amount);
     event SignalVaultSetTokenConfig(
         address vault,
@@ -142,19 +145,42 @@ contract Timelock is ITimelock {
       IVault(_vault).setMaxLeverage(_maxLeverage);
     }
 
-    function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyAdmin {
+    function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyAdminOrHandler {
         require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _fundingRateFactor");
         require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _stableFundingRateFactor");
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
-    function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyAdmin {
+    function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyAdminOrHandler {
         shouldToggleIsLeverageEnabled = _shouldToggleIsLeverageEnabled;
     }
 
-    function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyAdmin {
+    function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyAdminOrHandler {
         marginFeeBasisPoints = _marginFeeBasisPoints;
         maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
+    }
+
+    function setSwapFees(
+        address _vault,
+        uint256 _taxBasisPoints,
+        uint256 _stableTaxBasisPoints,
+        uint256 _mintBurnFeeBasisPoints,
+        uint256 _swapFeeBasisPoints,
+        uint256 _stableSwapFeeBasisPoints
+    ) external onlyAdminOrHandler {
+        IVault vault = IVault(_vault);
+
+        vault.setFees(
+            _taxBasisPoints,
+            _stableTaxBasisPoints,
+            _mintBurnFeeBasisPoints,
+            _swapFeeBasisPoints,
+            _stableSwapFeeBasisPoints,
+            maxMarginFeeBasisPoints,
+            vault.liquidationFeeUsd(),
+            vault.minProfitTime(),
+            vault.hasDynamicFees()
+        );
     }
 
     // assign _marginFeeBasisPoints to this.marginFeeBasisPoints
@@ -171,7 +197,7 @@ contract Timelock is ITimelock {
         uint256 _liquidationFeeUsd,
         uint256 _minProfitTime,
         bool _hasDynamicFees
-    ) external onlyAdmin {
+    ) external onlyAdminOrHandler {
         marginFeeBasisPoints = _marginFeeBasisPoints;
 
         IVault(_vault).setFees(
@@ -239,7 +265,7 @@ contract Timelock is ITimelock {
         uint256 _maxUsdgAmount,
         uint256 _bufferAmount,
         uint256 _usdgAmount
-    ) external onlyAdmin {
+    ) external onlyAdminOrHandler {
         require(_minProfitBps <= 500, "Timelock: invalid _minProfitBps");
 
         IVault vault = IVault(_vault);
@@ -276,41 +302,57 @@ contract Timelock is ITimelock {
         IVaultPriceFeed(_priceFeed).setIsAmmEnabled(_isEnabled);
     }
 
-    function setIsSecondaryPriceEnabled(address _priceFeed, bool _isEnabled) external onlyAdmin {
+    function setIsSecondaryPriceEnabled(address _priceFeed, bool _isEnabled) external onlyAdminOrHandler {
         IVaultPriceFeed(_priceFeed).setIsSecondaryPriceEnabled(_isEnabled);
     }
 
-    function setMaxStrictPriceDeviation(address _priceFeed, uint256 _maxStrictPriceDeviation) external onlyAdmin {
+    function setMaxStrictPriceDeviation(address _priceFeed, uint256 _maxStrictPriceDeviation) external onlyAdminOrHandler {
         IVaultPriceFeed(_priceFeed).setMaxStrictPriceDeviation(_maxStrictPriceDeviation);
     }
 
-    function setUseV2Pricing(address _priceFeed, bool _useV2Pricing) external onlyAdmin {
+    function setUseV2Pricing(address _priceFeed, bool _useV2Pricing) external onlyAdminOrHandler {
         IVaultPriceFeed(_priceFeed).setUseV2Pricing(_useV2Pricing);
     }
 
-    function setAdjustment(address _priceFeed, address _token, bool _isAdditive, uint256 _adjustmentBps) external onlyAdmin {
+    function setAdjustment(address _priceFeed, address _token, bool _isAdditive, uint256 _adjustmentBps) external onlyAdminOrHandler {
         IVaultPriceFeed(_priceFeed).setAdjustment(_token, _isAdditive, _adjustmentBps);
     }
 
-    function setSpreadBasisPoints(address _priceFeed, address _token, uint256 _spreadBasisPoints) external onlyAdmin {
+    function setSpreadBasisPoints(address _priceFeed, address _token, uint256 _spreadBasisPoints) external onlyAdminOrHandler {
         IVaultPriceFeed(_priceFeed).setSpreadBasisPoints(_token, _spreadBasisPoints);
     }
 
-    function setSpreadThresholdBasisPoints(address _priceFeed, uint256 _spreadThresholdBasisPoints) external onlyAdmin {
+    function setSpreadThresholdBasisPoints(address _priceFeed, uint256 _spreadThresholdBasisPoints) external onlyAdminOrHandler {
         IVaultPriceFeed(_priceFeed).setSpreadThresholdBasisPoints(_spreadThresholdBasisPoints);
     }
 
-    function setFavorPrimaryPrice(address _priceFeed, bool _favorPrimaryPrice) external onlyAdmin {
+    function setFavorPrimaryPrice(address _priceFeed, bool _favorPrimaryPrice) external onlyAdminOrHandler {
         IVaultPriceFeed(_priceFeed).setFavorPrimaryPrice(_favorPrimaryPrice);
     }
 
-    function setPriceSampleSpace(address _priceFeed,uint256 _priceSampleSpace) external onlyAdmin {
+    function setPriceSampleSpace(address _priceFeed,uint256 _priceSampleSpace) external onlyAdminOrHandler {
         require(_priceSampleSpace <= 5, "Invalid _priceSampleSpace");
         IVaultPriceFeed(_priceFeed).setPriceSampleSpace(_priceSampleSpace);
     }
 
-    function setIsSwapEnabled(address _vault, bool _isSwapEnabled) external onlyAdmin {
+    function setIsSwapEnabled(address _vault, bool _isSwapEnabled) external onlyAdminOrHandler {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
+    }
+
+    function setIsSpreadEnabled(address _fastPriceFeed, bool _isSpreadEnabled) external onlyAdminOrHandler {
+        IFastPriceFeed(_fastPriceFeed).setIsSpreadEnabled(_isSpreadEnabled);
+    }
+
+    function setTier(address _referralStorage, uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external onlyAdminOrHandler {
+        IReferralStorage(_referralStorage).setTier(_tierId, _totalRebate, _discountShare);
+    }
+
+    function setReferrerTier(address _referralStorage, address _referrer, uint256 _tierId) external onlyAdminOrHandler {
+        IReferralStorage(_referralStorage).setReferrerTier(_referrer, _tierId);
+    }
+
+    function govSetCodeOwner(address _referralStorage, bytes32 _code, address _newAccount) external onlyAdminOrHandler {
+        IReferralStorage(_referralStorage).govSetCodeOwner(_code, _newAccount);
     }
 
     function setVaultUtils(address _vault, IVaultUtils _vaultUtils) external onlyAdmin {
@@ -463,6 +505,19 @@ contract Timelock is ITimelock {
         _validateAction(action);
         _clearAction(action);
         IRouter(_router).addPlugin(_plugin);
+    }
+
+    function signalSetPriceFeedWatcher(address _fastPriceFeed, address _account, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setPriceFeedWatcher", _fastPriceFeed, _account, _isActive));
+        _setPendingAction(action);
+        emit SignalSetPriceFeedWatcher(_fastPriceFeed, _account, _isActive);
+    }
+
+    function setPriceFeedWatcher(address _fastPriceFeed, address _account, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setPriceFeedWatcher", _fastPriceFeed, _account, _isActive));
+        _validateAction(action);
+        _clearAction(action);
+        IFastPriceFeed(_fastPriceFeed).setSigner(_account, _isActive);
     }
 
     function signalRedeemUsdg(address _vault, address _token, uint256 _amount) external onlyAdmin {
