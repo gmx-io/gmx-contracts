@@ -187,7 +187,8 @@ module.exports = {
       isStable: false,
       isShortable: true,
       spreadBasisPoints: 7,
-      maxGlobalShortSize: 1 * 1000 * 1000
+      maxGlobalShortSize: 50 * 1000,
+      maxGlobalLongSize: 50 * 1000
     },
     uni: {
       name: "uni",
@@ -204,7 +205,8 @@ module.exports = {
       isStable: false,
       isShortable: true,
       spreadBasisPoints: 7,
-      maxGlobalShortSize: 500 * 1000
+      maxGlobalShortSize: 50 * 1000,
+      maxGlobalLongSize: 50 * 1000
     },
     usdt: {
       name: "usdt",
@@ -283,6 +285,7 @@ module.exports = {
       bufferAmount: 50000,
       isStable: false,
       isShortable: true,
+      maxGlobalLongSize: 4 * 1000 * 1000,
       maxGlobalShortSize: 4 * 1000 * 1000,
       spreadBasisPoints: 5
     },
@@ -339,7 +342,7 @@ module.exports = {
       priceFeed: "0xF096872672F44d6EBA71458D74fe67F9a77a23B9",
       priceDecimals: 8,
       isStrictStable: true,
-      tokenWeight: 39000,
+      tokenWeight: 33000,
       minProfitBps: 0,
       maxUsdgAmount: 70 * 1000 * 1000,
       bufferAmount: 27 * 1000 * 1000,
@@ -353,7 +356,7 @@ module.exports = {
       priceFeed: "0xF096872672F44d6EBA71458D74fe67F9a77a23B9",
       priceDecimals: 8,
       isStrictStable: true,
-      tokenWeight: 15000,
+      tokenWeight: 21000,
       minProfitBps: 0,
       maxUsdgAmount: 50 * 1000 * 1000,
       bufferAmount: 3 * 1000 * 1000,
