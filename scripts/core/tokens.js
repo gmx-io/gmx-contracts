@@ -188,7 +188,7 @@ module.exports = {
       isShortable: true,
       spreadBasisPoints: 7,
       maxGlobalShortSize: 50 * 1000,
-      maxGlobalLongSize: 50 * 1000
+      maxGlobalLongSize: 350 * 1000
     },
     uni: {
       name: "uni",
@@ -279,7 +279,7 @@ module.exports = {
       priceDecimals: 8,
       fastPricePrecision: 1000,
       isStrictStable: false,
-      tokenWeight: 12500,
+      tokenWeight: 10000,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 *1000,
       bufferAmount: 50000,
@@ -297,7 +297,7 @@ module.exports = {
       priceDecimals: 8,
       fastPricePrecision: 1000,
       isStrictStable: false,
-      tokenWeight: 12500,
+      tokenWeight: 10000,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 * 1000,
       bufferAmount: 3000,
@@ -313,7 +313,7 @@ module.exports = {
       priceDecimals: 8,
       fastPricePrecision: 1000,
       isStrictStable: false,
-      tokenWeight: 20000,
+      tokenWeight: 25000,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 *1000,
       bufferAmount: 100,

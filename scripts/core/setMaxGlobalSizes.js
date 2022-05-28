@@ -10,7 +10,7 @@ async function getArbValues() {
   const positionManager = await contractAt("PositionManager", "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831")
 
   const { btc, eth, link, uni } = tokens
-  const tokenArr = [link, uni]
+  const tokenArr = [link]
 
   return { positionRouter, positionManager, tokenArr }
 }
