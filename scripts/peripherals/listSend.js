@@ -1,5 +1,5 @@
 const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
-const { expandDecimals } = require("../../test/shared/utilities")
+const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 const { LIST } = require("../../data/batchSend/list")
 
 async function main() {
@@ -8,27 +8,36 @@ async function main() {
   const usdcDecimals = 6
   const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a")
   const gmxDecimals = 18
+  const shouldSendTxn = false
 
   const minCount = 0
   let count = 0
+
+  let totalUsdc = bigNumberify(0)
+  let totalGmx = bigNumberify(0)
 
   for (let i = 0; i < list.length; i++) {
     const item = list[i]
     if (item.usdc && parseFloat(item.usdc) !== 0) {
       count++
       const amount = ethers.utils.parseUnits(item.usdc, usdcDecimals)
-      if (count >= minCount) {
+      totalUsdc = totalUsdc.add(amount)
+      if (shouldSendTxn && count >= minCount) {
         await sendTxn(usdc.transfer(item.account, amount), `${count}: usdc.transfer(${item.account}, ${amount})`)
       }
     }
     if (item.gmx && parseFloat(item.gmx) !== 0) {
       count++
       const amount = ethers.utils.parseUnits(item.gmx, gmxDecimals)
-      if (count >= minCount) {
+      totalGmx = totalGmx.add(amount)
+      if (shouldSendTxn && count >= minCount) {
         await sendTxn(gmx.transfer(item.account, amount), `${count}: gmx.transfer(${item.account}, ${amount})`)
       }
     }
   }
+
+  console.log("total USDC", ethers.utils.formatUnits(totalUsdc, 6))
+  console.log("total GMX", ethers.utils.formatUnits(totalGmx, 18))
 }
 
 main()
