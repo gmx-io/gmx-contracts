@@ -36,8 +36,8 @@ async function main() {
     }
   }
 
-  console.log("total USDC", ethers.utils.formatUnits(totalUsdc, 6))
-  console.log("total GMX", ethers.utils.formatUnits(totalGmx, 18))
+  console.log("total USDC", ethers.utils.formatUnits(totalUsdc, usdcDecimals))
+  console.log("total GMX", ethers.utils.formatUnits(totalGmx, gmxDecimals))
 }
 
 main()
