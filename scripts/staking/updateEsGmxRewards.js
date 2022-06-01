@@ -34,12 +34,12 @@ async function main() {
 
   const stakedAmounts = {
     arbitrum: {
-      gmx: toInt("6,048,988"),
-      esGmx: toInt("1,228,643")
+      gmx: toInt("6,095,615"),
+      esGmx: toInt("1,245,966")
     },
     avax: {
-      gmx: toInt("389,265"),
-      esGmx: toInt("160,455")
+      gmx: toInt("400,829"),
+      esGmx: toInt("178,754")
     }
   }
 
