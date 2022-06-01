@@ -29,12 +29,13 @@ async function getValues() {
 
 async function main() {
   const { referralStorage } = await getValues()
+  const timelock = await contractAt("Timelock", await referralStorage.gov())
 
-  const account = "0x1e35A719f1d68da02DEf39Bde510c9cc4efDC84B"
+  const account = "0x00C17D25A8B5E6b0DbAEe82e6c66D61ea9f8c60A"
   const tier = 2 // tier 1, 2, 3
   console.log("account", account)
 
-  await sendTxn(referralStorage.setReferrerTier(account, tier - 1), "referralStorage.setReferrerTier")
+  await sendTxn(timelock.setReferrerTier(referralStorage.address, account, tier - 1), "timelock.setReferrerTier")
 }
 
 main()
