@@ -6,8 +6,8 @@ const tokens = require('./tokens')[network];
 
 async function getArbValues(signer) {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  // const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
-  const vaultPriceFeed = await contractAt("VaultPriceFeed", "0xa18BB1003686d0854EF989BB936211c59EB6e363")
+  const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
+  // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0xa18BB1003686d0854EF989BB936211c59EB6e363")
   const timelock = await contractAt("Timelock", await vaultPriceFeed.gov(), signer)
 
   const { link, uni } = tokens
@@ -18,8 +18,8 @@ async function getArbValues(signer) {
 
 async function getAvaxValues(signer) {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  // const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
-  const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
+  const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
+  // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
   const timelock = await contractAt("Timelock", await vaultPriceFeed.gov(), signer)
 
   const { avax } = tokens

@@ -186,7 +186,7 @@ module.exports = {
       bufferAmount: 100000,
       isStable: false,
       isShortable: true,
-      spreadBasisPoints: 7,
+      spreadBasisPoints: 20,
       maxGlobalShortSize: 50 * 1000,
       maxGlobalLongSize: 350 * 1000
     },
@@ -204,7 +204,7 @@ module.exports = {
       bufferAmount: 20000,
       isStable: false,
       isShortable: true,
-      spreadBasisPoints: 7,
+      spreadBasisPoints: 20,
       maxGlobalShortSize: 50 * 1000,
       maxGlobalLongSize: 50 * 1000
     },
@@ -287,7 +287,7 @@ module.exports = {
       isShortable: true,
       maxGlobalLongSize: 4 * 1000 * 1000,
       maxGlobalShortSize: 4 * 1000 * 1000,
-      spreadBasisPoints: 5
+      spreadBasisPoints: 12
     },
     eth: {
       name: "eth",

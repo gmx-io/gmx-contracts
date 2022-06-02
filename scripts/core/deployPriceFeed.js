@@ -5,6 +5,7 @@ const { toUsd } = require("../../test/shared/units")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+// TODO: call setSpreadBasisPoints for tokens
 async function deployPriceFeedArb() {
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
   const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
