@@ -83,6 +83,7 @@ async function main() {
     "0xfb481D70f8d987c1AE3ADc90B7046e39eb6Ad64B", // kr
     "0x99Aa3D1b3259039E8cB4f0B33d0Cfd736e1Bf49E", // quat
     "0x6091646D0354b03DD1e9697D33A7341d8C93a6F5", // xhiroz
+    "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" // X
   ]
 
   for (let i = 0; i < signers.length; i++) {
