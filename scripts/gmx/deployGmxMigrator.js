@@ -21,7 +21,7 @@ async function main() {
   const gmxPrice = bigNumberify(2 * precision)
 
   const signers = [
-    "0x3D850Acfaa18c58b383fCA69d4d867Dc5Bb697c5", // Ben Simon
+    "0x45e48668F090a3eD1C7961421c60Df4E66f693BD", // Dovey
     "0x881690382102106b00a99E3dB86056D0fC71eee6", // Han Wen
     "0x2e5d207a4c0f7e7c52f6622dcc6eb44bc0fe1a13" // Krunal Amin
   ]
