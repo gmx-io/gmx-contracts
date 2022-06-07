@@ -83,6 +83,7 @@ async function main() {
     "0xfb481D70f8d987c1AE3ADc90B7046e39eb6Ad64B", // kr
     "0x99Aa3D1b3259039E8cB4f0B33d0Cfd736e1Bf49E", // quat
     "0x6091646D0354b03DD1e9697D33A7341d8C93a6F5", // xhiroz
+    "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" // X
   ]
 
   for (let i = 0; i < signers.length; i++) {
@@ -91,7 +92,7 @@ async function main() {
   }
 
   const watchers = signers.concat([
-    "0x3D850Acfaa18c58b383fCA69d4d867Dc5Bb697c5", // Ben Simon
+    "0x45e48668F090a3eD1C7961421c60Df4E66f693BD", // Dovey
     "0x881690382102106b00a99E3dB86056D0fC71eee6", // Han Wen
     "0x2e5d207a4c0f7e7c52f6622dcc6eb44bc0fe1a13" // Krunal Amin
   ])
