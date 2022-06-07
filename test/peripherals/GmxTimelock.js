@@ -223,28 +223,6 @@ describe("GmxTimelock", function () {
     expect(await timelock0.buffer()).eq(3 * 24 * 60 * 60 + 10)
   })
 
-  it("mint", async () => {
-    const gmx = await deployContract("GMX", [])
-    await expect(timelock.connect(user0).mint(gmx.address, 900))
-      .to.be.revertedWith("GmxTimelock: forbidden")
-
-    await expect(timelock.connect(wallet).mint(gmx.address, 900))
-      .to.be.revertedWith("BaseToken: forbidden")
-
-    await gmx.setGov(timelock.address)
-
-    expect(await gmx.isMinter(timelock.address)).eq(false)
-    expect(await gmx.balanceOf(mintReceiver.address)).eq(0)
-
-    await timelock.connect(wallet).mint(gmx.address, 900)
-
-    expect(await gmx.isMinter(timelock.address)).eq(true)
-    expect(await gmx.balanceOf(mintReceiver.address)).eq(900)
-
-    await expect(timelock.connect(wallet).mint(gmx.address, expandDecimals(1001, 18)))
-      .to.be.revertedWith("GmxTimelock: maxTokenSupply exceeded")
-  })
-
   it("setIsAmmEnabled", async () => {
     await expect(timelock.connect(user0).setIsAmmEnabled(vaultPriceFeed.address, false))
       .to.be.revertedWith("GmxTimelock: forbidden")

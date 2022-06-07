@@ -128,10 +128,6 @@ contract GmxTimelock is IGmxTimelock {
         buffer = _buffer;
     }
 
-    function mint(address _token, uint256 _amount) external onlyAdmin {
-        _mint(_token, mintReceiver, _amount);
-    }
-
     function setMaxLeverage(address _vault, uint256 _maxLeverage) external onlyAdmin {
       require(_maxLeverage > MAX_LEVERAGE_VALIDATION, "GmxTimelock: invalid _maxLeverage");
       IVault(_vault).setMaxLeverage(_maxLeverage);
