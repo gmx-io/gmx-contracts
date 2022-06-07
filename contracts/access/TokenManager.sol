@@ -140,6 +140,12 @@ contract TokenManager is ReentrancyGuard {
         _clearAction(action, _nonce);
     }
 
+    function receiveNFTs(address _token, address _sender, uint256[] memory _tokenIds) external nonReentrant onlyAdmin {
+        for (uint256 i = 0 ; i < _tokenIds.length; i++) {
+            IERC721(_token).transferFrom(_sender, address(this), _tokenIds[i]);
+        }
+    }
+
     function signalSetAdmin(address _target, address _admin) external nonReentrant onlySigner {
         actionsNonce++;
         uint256 nonce = actionsNonce;
