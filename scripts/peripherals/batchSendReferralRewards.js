@@ -1,4 +1,4 @@
-const { deployContract, contractAt, sendTxn, processBatch } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn, processBatch, getFrameSigner } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const arbitrumData = require("../../distribution-data-arbitrum.json")
@@ -7,11 +7,11 @@ const avaxData = require("../../distribution-data-avalanche.json")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
 
-const ethPrice = "1939"
-const avaxPrice = "26"
+const ethPrice = "1815"
+const avaxPrice = "25"
 const gmxPrice = "20"
 
-const shouldSendTxn = false
+const shouldSendTxn = true
 
 const { AddressZero } = ethers.constants
 
@@ -126,6 +126,10 @@ async function main() {
   const batchSize = 150
 
   if (shouldSendTxn) {
+    const signer = await getFrameSigner()
+    const nativeTokenForSigner = await contractAt("Token", nativeToken.address, signer)
+    await sendTxn(nativeTokenForSigner.transfer(wallet.address, totalNativeAmount), "nativeTokenForSigner.transfer")
+
     const printBatch = (currentBatch) => {
       for (let i = 0; i < currentBatch.length; i++) {
         const item = currentBatch[i]
