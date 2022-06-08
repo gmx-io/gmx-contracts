@@ -1,4 +1,4 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn, processBatch } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const arbitrumData = require("../../distribution-data-arbitrum.json")
@@ -51,40 +51,36 @@ async function main() {
   const { nativeToken } = tokens
   const nativeTokenContract = await contractAt("Token", nativeToken.address)
 
-  const rebatesData = data.referrers
+  const affiliatesData = data.referrers
   const discountsData = data.referrals
 
-  console.log("rebates", rebatesData.length)
-  console.log("discounts", discountsData.length)
+  console.log("affiliates", affiliatesData.length)
+  console.log("trader discounts", discountsData.length)
 
-  if (rebatesData.length > 150 || discountsData.length > 150) {
-    throw new Error("Batching required")
-  }
+  const affiliateRewardsTypeId = 1
+  const traderDiscountsTypeId = 2
 
-  const rebatesTypeId = 1
-  const discountsTypeId = 2
-
-  let totalRebateAmount = bigNumberify(0)
-  let totalRebateUsd = bigNumberify(0)
+  let totalAffiliateAmount = bigNumberify(0)
+  let totalAffiliateUsd = bigNumberify(0)
   let totalDiscountAmount = bigNumberify(0)
   let totalDiscountUsd = bigNumberify(0)
   let totalEsGmxAmount = bigNumberify(0)
-  const rebateAccounts = []
-  const rebateAmounts = []
+  const affiliateAccounts = []
+  const affiliateAmounts = []
   const discountAccounts = []
   const discountAmounts = []
   const esGmxAccounts = []
   const esGmxAmounts = []
 
-  for (let i = 0; i < rebatesData.length; i++) {
-    const { account, rebateUsd, esgmxRewardsUsd } = rebatesData[i]
+  for (let i = 0; i < affiliatesData.length; i++) {
+    const { account, rebateUsd, esgmxRewardsUsd } = affiliatesData[i]
     if (account === AddressZero) { continue }
 
     const amount = bigNumberify(rebateUsd).mul(expandDecimals(1, 18)).div(expandDecimals(nativeTokenPrice, 30))
-    rebateAccounts.push(account)
-    rebateAmounts.push(amount)
-    totalRebateAmount = totalRebateAmount.add(amount)
-    totalRebateUsd = totalRebateUsd.add(rebateUsd)
+    affiliateAccounts.push(account)
+    affiliateAmounts.push(amount)
+    totalAffiliateAmount = totalAffiliateAmount.add(amount)
+    totalAffiliateUsd = totalAffiliateUsd.add(rebateUsd)
 
     if (esgmxRewardsUsd) {
       const esGmxAmount = bigNumberify(esgmxRewardsUsd).mul(expandDecimals(1, 18)).div(expandDecimals(gmxPrice, 30))
@@ -105,7 +101,7 @@ async function main() {
     totalDiscountUsd = totalDiscountUsd.add(discountUsd)
   }
 
-  rebatesData.sort((a, b) => {
+  affiliatesData.sort((a, b) => {
     if (bigNumberify(a.rebateUsd).gt(b.rebateUsd)) {
       return -1;
     }
@@ -116,24 +112,59 @@ async function main() {
     return 0;
   })
 
-  console.log("top referrer", rebatesData[0].account, rebatesData[0].rebateUsd)
+  console.log("top affiliate", affiliatesData[0].account, affiliatesData[0].rebateUsd)
 
-  const totalNativeAmount = totalRebateAmount.add(totalDiscountAmount)
-  console.log(`total rebates (${nativeToken.name})`, ethers.utils.formatUnits(totalRebateAmount, 18))
-  console.log("total rebates (USD)", ethers.utils.formatUnits(totalRebateUsd, 30))
-  console.log(`total discounts (${nativeToken.name})`, ethers.utils.formatUnits(totalDiscountAmount, 18))
-  console.log("total discounts (USD)", ethers.utils.formatUnits(totalDiscountUsd, 30))
+  const totalNativeAmount = totalAffiliateAmount.add(totalDiscountAmount)
+  console.log(`total affiliate rewards (${nativeToken.name})`, ethers.utils.formatUnits(totalAffiliateAmount, 18))
+  console.log("total affiliate rewards (USD)", ethers.utils.formatUnits(totalAffiliateUsd, 30))
+  console.log(`total trader rebates (${nativeToken.name})`, ethers.utils.formatUnits(totalDiscountAmount, 18))
+  console.log("total trader rebates (USD)", ethers.utils.formatUnits(totalDiscountUsd, 30))
   console.log(`total ${nativeToken.name}`, ethers.utils.formatUnits(totalNativeAmount, 18))
-  console.log(`total USD`, ethers.utils.formatUnits(totalRebateUsd.add(totalDiscountUsd), 30))
+  console.log(`total USD`, ethers.utils.formatUnits(totalAffiliateUsd.add(totalDiscountUsd), 30))
   console.log(`total esGmx`, ethers.utils.formatUnits(totalEsGmxAmount, 18))
 
+  const batchSize = 150
+
   if (shouldSendTxn) {
+    const printBatch = (currentBatch) => {
+      for (let i = 0; i < currentBatch.length; i++) {
+        const item = currentBatch[i]
+        const account = item[0]
+        const amount = item[1]
+        console.log(account, ethers.utils.formatUnits(amount, 18))
+      }
+    }
+
     await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
-    await sendTxn(batchSender.sendAndEmit(nativeToken.address, rebateAccounts, rebateAmounts, rebatesTypeId), "batchSender.sendAndEmit(nativeToken, rebates)")
-    await sendTxn(batchSender.sendAndEmit(nativeToken.address, discountAccounts, discountAmounts, discountsTypeId), "batchSender.sendAndEmit(nativeToken, discounts)")
+
+    await processBatch([affiliateAccounts, affiliateAmounts], batchSize, async (currentBatch) => {
+      printBatch(currentBatch)
+
+      const accounts = currentBatch.map((item) => item[0])
+      const amounts = currentBatch.map((item) => item[1])
+
+      await sendTxn(batchSender.sendAndEmit(nativeToken.address, accounts, amounts, affiliateRewardsTypeId), "batchSender.sendAndEmit(nativeToken, affiliate rewards)")
+    })
+
+    await processBatch([discountAccounts, discountAmounts], batchSize, async (currentBatch) => {
+      printBatch(currentBatch)
+
+      const accounts = currentBatch.map((item) => item[0])
+      const amounts = currentBatch.map((item) => item[1])
+
+      await sendTxn(batchSender.sendAndEmit(nativeToken.address, accounts, amounts, traderDiscountsTypeId), "batchSender.sendAndEmit(nativeToken, trader rebates)")
+    })
 
     await sendTxn(esGmx.approve(batchSender.address, totalEsGmxAmount), "esGmx.approve")
-    await sendTxn(batchSender.sendAndEmit(esGmx.address, esGmxAccounts, esGmxAmounts, rebatesTypeId), "batchSender.sendAndEmit(nativeToken, esGmx)")
+
+    await processBatch([esGmxAccounts, esGmxAmounts], batchSize, async (currentBatch) => {
+      printBatch(currentBatch)
+
+      const accounts = currentBatch.map((item) => item[0])
+      const amounts = currentBatch.map((item) => item[1])
+
+      await sendTxn(batchSender.sendAndEmit(esGmx.address, accounts, amounts, affiliateRewardsTypeId), "batchSender.sendAndEmit(nativeToken, esGmx affiliate rewards)")
+    })
   }
 }
 

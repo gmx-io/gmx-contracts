@@ -107,6 +107,34 @@ function writeTmpAddresses(json) {
   fs.writeFileSync(tmpAddressesFilepath, JSON.stringify(tmpAddresses))
 }
 
+// batchLists is an array of lists
+async function processBatch(batchLists, batchSize, handler) {
+  let currentBatch = []
+  const referenceList = batchLists[0]
+
+  for (let i = 0; i < referenceList.length; i++) {
+    const item = []
+
+    for (let j = 0; j < batchLists.length; j++) {
+      const list = batchLists[j]
+      item.push(list[i])
+    }
+
+    currentBatch.push(item)
+
+    if (currentBatch.length === batchSize) {
+      console.log("handling currentBatch", i, currentBatch.length, referenceList.length)
+      await handler(currentBatch)
+      currentBatch = []
+    }
+  }
+
+  if (currentBatch.length > 0) {
+    console.log("handling final batch", currentBatch.length, referenceList.length)
+    await handler(currentBatch)
+  }
+}
+
 module.exports = {
   readCsv,
   getFrameSigner,
@@ -115,5 +143,6 @@ module.exports = {
   contractAt,
   writeTmpAddresses,
   readTmpAddresses,
-  callWithRetries
+  callWithRetries,
+  processBatch
 }
