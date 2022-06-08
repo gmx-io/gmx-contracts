@@ -307,6 +307,38 @@ describe("TokenManager", function () {
     expect(await nft0.ownerOf(nftId1)).eq(user1.address)
   })
 
+  it("receiveNFTs", async () => {
+    const nftId0 = 21
+    const nftId1 = 22
+
+    await nft0.mint(tokenManager.address, nftId0)
+    await nft0.mint(tokenManager.address, nftId1)
+
+    const tokenManager2 = await deployContract("TokenManager", [2])
+    await tokenManager2.initialize([signer0.address, signer1.address, signer2.address])
+
+    await tokenManager.connect(wallet).signalApproveNFTs(nft0.address, tokenManager2.address, [nftId0, nftId1])
+    await tokenManager.connect(signer0).signApproveNFTs(nft0.address, tokenManager2.address, [nftId0, nftId1], 1)
+    await tokenManager.connect(signer2).signApproveNFTs(nft0.address, tokenManager2.address, [nftId0, nftId1], 1)
+
+    await expect(tokenManager2.receiveNFTs(nft0.address, tokenManager.address, [nftId0, nftId1]))
+      .to.be.revertedWith("ERC721: transfer caller is not owner nor approved")
+
+    await tokenManager.connect(wallet).approveNFTs(nft0.address, tokenManager2.address, [nftId0, nftId1], 1)
+
+    expect(await nft0.balanceOf(tokenManager.address)).eq(2)
+    expect(await nft0.balanceOf(tokenManager2.address)).eq(0)
+    expect(await nft0.ownerOf(nftId0)).eq(tokenManager.address)
+    expect(await nft0.ownerOf(nftId1)).eq(tokenManager.address)
+
+    await tokenManager2.receiveNFTs(nft0.address, tokenManager.address, [nftId0, nftId1])
+
+    expect(await nft0.balanceOf(tokenManager.address)).eq(0)
+    expect(await nft0.balanceOf(tokenManager2.address)).eq(2)
+    expect(await nft0.ownerOf(nftId0)).eq(tokenManager2.address)
+    expect(await nft0.ownerOf(nftId1)).eq(tokenManager2.address)
+  })
+
   it("signalSetAdmin", async () => {
     await expect(tokenManager.connect(user0).signalSetAdmin(timelock.address, user1.address))
       .to.be.revertedWith("TokenManager: forbidden")

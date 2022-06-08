@@ -16,7 +16,7 @@ async function getArbValues() {
 
 async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const tokenManager = { address: "0x1BCffF1BDdf755DE10de20771EEd0C71fF370967" }
+  const tokenManager = { address: "0x26137dfA81f9Ac8BACd748f6A298262f11504Da9" }
   const mintReceiver = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
 
   const positionRouter = { address: "0x195256074192170d1530527abC9943759c7167d8" }
@@ -43,7 +43,7 @@ async function main() {
   const rewardManager = { address: ethers.constants.AddressZero }
   const maxTokenSupply = expandDecimals("13250000", 18)
 
-  const { vault, tokenManager, mintReceiver, positionRouter, positionManager } = await getValues(signer)
+  const { vault, tokenManager, mintReceiver, positionRouter, positionManager } = await getValues()
 
   const timelock = await deployContract("Timelock", [
     admin,
