@@ -3,18 +3,34 @@ const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
-async function getArbValues(signer) {
-  const rewardTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4")
-  const tokenDecimals = 18
+const shouldSendTxn = true
 
-  return { tokenDecimals, rewardTracker }
+async function getArbValues(signer) {
+  const gmxRewardTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4")
+  const glpRewardTracker = await contractAt("RewardTracker", "0x1aDDD80E6039594eE970E5872D247bf0414C8903")
+  const tokenDecimals = 18
+  const monthlyEsGmxForGlp = expandDecimals(50 * 1000, 18)
+
+  return { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp }
 }
 
 async function getAvaxValues(signer) {
-  const rewardTracker = await contractAt("RewardTracker", "0x2bD10f8E93B3669b6d42E74eEedC65dd1B0a1342")
+  const gmxRewardTracker = await contractAt("RewardTracker", "0x2bD10f8E93B3669b6d42E74eEedC65dd1B0a1342")
+  const glpRewardTracker = await contractAt("RewardTracker", "0x9e295B5B976a184B14aD8cd72413aD846C299660")
   const tokenDecimals = 18
+  const monthlyEsGmxForGlp = expandDecimals(0, 18)
 
-  return { tokenDecimals, rewardTracker }
+  return { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp }
+}
+
+function getValues() {
+  if (network === "arbitrum") {
+    return getArbValues()
+  }
+
+  if (network === "avax") {
+    return getAvaxValues()
+  }
 }
 
 function toInt(value) {
@@ -22,24 +38,16 @@ function toInt(value) {
 }
 
 async function main() {
-  let tokenDecimals, rewardTracker
-
-  if (network === "arbitrum") {
-    ;({ tokenDecimals, rewardTracker }  = await getArbValues());
-  }
-
-  if (network === "avax") {
-    ;({ tokenDecimals, rewardTracker }  = await getAvaxValues());
-  }
+  const { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp } = await getValues()
 
   const stakedAmounts = {
     arbitrum: {
-      gmx: toInt("6,095,615"),
-      esGmx: toInt("1,245,966")
+      gmx: toInt("6,147,470"),
+      esGmx: toInt("1,277,087")
     },
     avax: {
-      gmx: toInt("400,829"),
-      esGmx: toInt("178,754")
+      gmx: toInt("417,802"),
+      esGmx: toInt("195,478")
     }
   }
 
@@ -52,20 +60,26 @@ async function main() {
   const totalEsGmxRewards = expandDecimals(100000, tokenDecimals)
   const secondsPerMonth = 28 * 24 * 60 * 60
 
-  const rewardDistributorAddress = await rewardTracker.distributor()
-  const rewardDistributor = await contractAt("RewardDistributor", rewardDistributorAddress)
+  const gmxRewardDistributor = await contractAt("RewardDistributor", await gmxRewardTracker.distributor())
 
-  const currentTokensPerInterval = await rewardDistributor.tokensPerInterval()
-  const nextTokensPerInterval = totalEsGmxRewards.mul(stakedAmounts[network].total).div(totalStaked).div(secondsPerMonth)
-  const delta = nextTokensPerInterval.sub(currentTokensPerInterval).mul(10000).div(currentTokensPerInterval)
+  const gmxCurrentTokensPerInterval = await gmxRewardDistributor.tokensPerInterval()
+  const gmxNextTokensPerInterval = totalEsGmxRewards.mul(stakedAmounts[network].total).div(totalStaked).div(secondsPerMonth)
+  const gmxDelta = gmxNextTokensPerInterval.sub(gmxCurrentTokensPerInterval).mul(10000).div(gmxCurrentTokensPerInterval)
 
-  console.log("currentTokensPerInterval", currentTokensPerInterval.toString())
-  console.log("nextTokensPerInterval", nextTokensPerInterval.toString(), `${delta.toNumber() / 100.00}%`)
+  console.log("gmxCurrentTokensPerInterval", gmxCurrentTokensPerInterval.toString())
+  console.log("gmxNextTokensPerInterval", gmxNextTokensPerInterval.toString(), `${gmxDelta.toNumber() / 100.00}%`)
 
-  const shouldUpdate = true
+  const glpRewardDistributor = await contractAt("RewardDistributor", await glpRewardTracker.distributor())
 
-  if (shouldUpdate) {
-    await sendTxn(rewardDistributor.setTokensPerInterval(nextTokensPerInterval), "rewardDistributor.setTokensPerInterval")
+  const glpCurrentTokensPerInterval = await glpRewardDistributor.tokensPerInterval()
+  const glpNextTokensPerInterval = monthlyEsGmxForGlp.div(secondsPerMonth)
+
+  console.log("glpCurrentTokensPerInterval", glpCurrentTokensPerInterval.toString())
+  console.log("glpNextTokensPerInterval", glpNextTokensPerInterval.toString())
+
+  if (shouldSendTxn) {
+    await sendTxn(gmxRewardDistributor.setTokensPerInterval(gmxNextTokensPerInterval), "gmxRewardDistributor.setTokensPerInterval")
+    await sendTxn(glpRewardDistributor.setTokensPerInterval(glpNextTokensPerInterval), "glpRewardDistributor.setTokensPerInterval")
   }
 }
 
