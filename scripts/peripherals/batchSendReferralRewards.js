@@ -11,7 +11,7 @@ const ethPrice = "1815"
 const avaxPrice = "25"
 const gmxPrice = "20"
 
-const shouldSendTxn = true
+const shouldSendTxn = false
 
 const { AddressZero } = ethers.constants
 
