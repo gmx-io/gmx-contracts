@@ -187,7 +187,7 @@ module.exports = {
       isStable: false,
       isShortable: true,
       spreadBasisPoints: 20,
-      maxGlobalShortSize: 50 * 1000,
+      maxGlobalShortSize: 100 * 1000,
       maxGlobalLongSize: 350 * 1000
     },
     uni: {
