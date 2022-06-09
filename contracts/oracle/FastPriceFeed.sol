@@ -49,6 +49,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     mapping (address => bool) public isUpdater;
 
     mapping (address => uint256) public prices;
+    // store last Chainlink price, cumulative Chainlink price delta, cumulative fast price delta
+    // use a single storage slot to save gas costs
+    mapping (address => uint256) public priceData;
 
     mapping (address => bool) public isSigner;
     mapping (address => bool) public disableFastPriceVotes;
@@ -175,8 +178,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
             for (uint256 i = 0; i < _tokens.length; i++) {
                 address token = _tokens[i];
-                prices[token] = _prices[i];
-                _emitPriceEvent(_fastPriceEvents, token,  _prices[i]);
+                _setPrice(token, _prices[i], _fastPriceEvents);
             }
         }
     }
@@ -200,9 +202,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                     address token = tokens[i * 8 + j];
                     uint256 tokenPrecision = tokenPrecisions[i * 8 + j];
                     uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
-                    prices[token] = adjustedPrice;
 
-                    _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
+                    _setPrice(token, adjustedPrice, _fastPriceEvents);
                 }
             }
         }
@@ -314,11 +315,15 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                 address token = tokens[j];
                 uint256 tokenPrecision = tokenPrecisions[j];
                 uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
-                prices[token] = adjustedPrice;
 
-                _emitPriceEvent(_fastPriceEvents, token, adjustedPrice);
+                _setPrice(token, adjustedPrice, _fastPriceEvents);
             }
         }
+    }
+
+    function _setPrice(address _token, uint256 _price, address _fastPriceEvents) private {
+        prices[_token] = _price;
+        _emitPriceEvent(_fastPriceEvents, _token, _price);
     }
 
     function _emitPriceEvent(address _fastPriceEvents, address _token, uint256 _price) private {
