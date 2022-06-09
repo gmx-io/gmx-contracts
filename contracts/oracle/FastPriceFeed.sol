@@ -5,6 +5,7 @@ import "../libraries/math/SafeMath.sol";
 import "./interfaces/ISecondaryPriceFeed.sol";
 import "./interfaces/IFastPriceFeed.sol";
 import "./interfaces/IFastPriceEvents.sol";
+import "../core/interfaces/IVaultPriceFeed.sol";
 import "../core/interfaces/IPositionRouter.sol";
 import "../access/Governable.sol";
 
@@ -15,9 +16,15 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     uint256 public constant PRICE_PRECISION = 10 ** 30;
 
+    uint256 public constant CUMULATIVE_DELTA_PRECISION = 10 * 1000 * 1000;
+
+    uint256 public constant MAX_REF_PRICE = type(uint160).max;
+    uint256 public constant MAX_CUMULATIVE_REF_DELTA = type(uint32).max;
+    uint256 public constant MAX_CUMULATIVE_FAST_DELTA = type(uint32).max;
+
     // uint256(~0) is 256 bits of 1s
     // shift the 1s by (256 - 32) to get (256 - 32) 0s followed by 32 1s
-    uint256 constant public PRICE_BITMASK = uint256(~0) >> (256 - 32);
+    uint256 constant public BITMASK_32 = uint256(~0) >> (256 - 32);
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
@@ -25,6 +32,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     bool public isInitialized;
     bool public isSpreadEnabled = false;
+
+    address public vaultPriceFeed;
     address public fastPriceEvents;
 
     address public tokenManager;
@@ -37,6 +46,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public priceDuration;
     uint256 public minBlockInterval;
     uint256 public maxTimeDeviation;
+
+    uint256 public maxCumulativeDeltaDiff;
+    uint256 public priceDataInterval;
 
     // volatility basis points
     uint256 public volBasisPoints;
@@ -65,6 +77,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     event DisableFastPrice(address signer);
     event EnableFastPrice(address signer);
+    event PriceData(address token, uint256 refPrice, uint256 fastPrice, uint256 cumulativeRefDelta, uint256 cumulativeFastDelta);
 
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
@@ -131,6 +144,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       fastPriceEvents = _fastPriceEvents;
     }
 
+    function setVaultPriceFeed(address _vaultPriceFeed) external onlyGov {
+      vaultPriceFeed = _vaultPriceFeed;
+    }
+
     function setPriceDuration(uint256 _priceDuration) external onlyGov {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
@@ -146,6 +163,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
         maxTimeDeviation = _maxTimeDeviation;
+    }
+
+    function setMaxCumulativeDeltaDiff(uint256 _maxCumulativeDeltaDiff) external onlyGov {
+        maxCumulativeDeltaDiff = _maxCumulativeDeltaDiff;
+    }
+
+    function setPriceDataInterval(uint256 _priceDataInterval) external onlyGov {
+        priceDataInterval = _priceDataInterval;
     }
 
     function setLastUpdatedAt(uint256 _lastUpdatedAt) external onlyGov {
@@ -175,10 +200,11 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         if (shouldUpdate) {
             address _fastPriceEvents = fastPriceEvents;
+            address _vaultPriceFeed = vaultPriceFeed;
 
             for (uint256 i = 0; i < _tokens.length; i++) {
                 address token = _tokens[i];
-                _setPrice(token, _prices[i], _fastPriceEvents);
+                _setPrice(token, _prices[i], _vaultPriceFeed, _fastPriceEvents);
             }
         }
     }
@@ -188,6 +214,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         if (shouldUpdate) {
             address _fastPriceEvents = fastPriceEvents;
+            address _vaultPriceFeed = vaultPriceFeed;
 
             for (uint256 i = 0; i < _priceBitArray.length; i++) {
                 uint256 priceBits = _priceBitArray[i];
@@ -197,13 +224,13 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                     if (index >= tokens.length) { return; }
 
                     uint256 startBit = 32 * j;
-                    uint256 price = (priceBits >> startBit) & PRICE_BITMASK;
+                    uint256 price = (priceBits >> startBit) & BITMASK_32;
 
                     address token = tokens[i * 8 + j];
                     uint256 tokenPrecision = tokenPrecisions[i * 8 + j];
                     uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
 
-                    _setPrice(token, adjustedPrice, _fastPriceEvents);
+                    _setPrice(token, adjustedPrice, _vaultPriceFeed, _fastPriceEvents);
                 }
             }
         }
@@ -249,7 +276,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         // force a spread if it has been turned on or if watchers have flagged an issue with the fast price
         // also force a spread if the fastPrice exceeds the allowed range
-        bool shouldForceSpread = !favorFastPrice() || fastPrice < minPrice || fastPrice > maxPrice;
+        bool shouldForceSpread = !favorFastPrice(_token) || fastPrice < minPrice || fastPrice > maxPrice;
 
         if (shouldForceSpread) {
             // _maximise indicates that this will be used for an operation where it is safer to use the higher price
@@ -287,16 +314,44 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         return fastPrice;
     }
 
-    function favorFastPrice() public view returns (bool) {
+    function favorFastPrice(address _token) public view returns (bool) {
         if (isSpreadEnabled) {
             return false;
         }
 
         if (disableFastPriceVoteCount >= minAuthorizations) {
+            // force a spread if watchers have flagged an issue with the fast price
+            return false;
+        }
+
+        (/* uint256 prevRefPrice */, /* uint256 refTime */, uint256 cumulativeRefDelta, uint256 cumulativeFastDelta) = getPriceData(_token);
+        if (cumulativeFastDelta > cumulativeRefDelta && cumulativeFastDelta.sub(cumulativeRefDelta) > maxCumulativeDeltaDiff) {
+            // force a spread if the cumulative delta for the fast price feed exceeds the cumulative delta
+            // for the Chainlink price feed by the maxCumulativeDeltaDiff allowed
             return false;
         }
 
         return true;
+    }
+
+    function getPriceData(address _token) public view returns (uint256, uint256, uint256, uint256) {
+        uint256 data = priceData[_token];
+        uint256 refPrice = data >> 96; // refPrice is stored in bits 0 - 160, shift bits by (256 - 160 => 96)
+        uint256 refTime = (data >> 64) & BITMASK_32; // refTime is stored in bits 160 - 192, shift bits by (256 - 192 => 64)
+        uint256 cumulativeRefDelta = (data >> 32) & BITMASK_32; // cumulativeRefDelta is stored in bits 192 - 224, shift bits by (256 - 224 => 32)
+        uint256 cumulativeFastDelta = data & BITMASK_32; // cumulativeFastDelta is stored in bits 224 - 256
+
+        return (refPrice, refTime, cumulativeRefDelta, cumulativeFastDelta);
+    }
+
+    function _storePriceData(address _token, uint256 _refPrice, uint256 _cumulativeRefDelta, uint256 _cumulativeFastDelta) private {
+        require(_refPrice < MAX_REF_PRICE, "FastPriceFeed: invalid refPrice");
+        // skip validation of block.timestamp, it should only be out of range after the year 2100
+        require(_cumulativeRefDelta < MAX_CUMULATIVE_REF_DELTA, "FastPriceFeed: invalid cumulativeRefDelta");
+        require(_cumulativeFastDelta < MAX_CUMULATIVE_FAST_DELTA, "FastPriceFeed: invalid cumulativeFastDelta");
+
+        uint256 data = (_refPrice << 96) & (block.timestamp << 64) & (_cumulativeRefDelta << 32) & (_cumulativeFastDelta);
+        priceData[_token] = data;
     }
 
     function _setPricesWithBits(uint256 _priceBits, uint256 _timestamp) private {
@@ -304,24 +359,49 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         if (shouldUpdate) {
             address _fastPriceEvents = fastPriceEvents;
+            address _vaultPriceFeed = vaultPriceFeed;
 
             for (uint256 j = 0; j < 8; j++) {
                 uint256 index = j;
                 if (index >= tokens.length) { return; }
 
                 uint256 startBit = 32 * j;
-                uint256 price = (_priceBits >> startBit) & PRICE_BITMASK;
+                uint256 price = (_priceBits >> startBit) & BITMASK_32;
 
                 address token = tokens[j];
                 uint256 tokenPrecision = tokenPrecisions[j];
                 uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
 
-                _setPrice(token, adjustedPrice, _fastPriceEvents);
+                _setPrice(token, adjustedPrice, _vaultPriceFeed, _fastPriceEvents);
             }
         }
     }
 
-    function _setPrice(address _token, uint256 _price, address _fastPriceEvents) private {
+    function _setPrice(address _token, uint256 _price, address _vaultPriceFeed, address _fastPriceEvents) private {
+        if (_vaultPriceFeed != address(0)) {
+            uint256 refPrice = IVaultPriceFeed(_vaultPriceFeed).getLatestPrimaryPrice(_token);
+            uint256 fastPrice = prices[_token];
+
+            (uint256 prevRefPrice, uint256 refTime, uint256 cumulativeRefDelta, uint256 cumulativeFastDelta) = getPriceData(_token);
+
+            if (prevRefPrice > 0) {
+                uint256 refDeltaAmount = refPrice > prevRefPrice ? refPrice.sub(prevRefPrice) : prevRefPrice.sub(refPrice);
+                uint256 fastDeltaAmount = fastPrice > _price ? fastPrice.sub(_price) : _price.sub(fastPrice);
+
+                // reset cumulative delta values if it is a new time window
+                if (refTime.div(priceDataInterval) != block.timestamp.div(priceDataInterval)) {
+                    cumulativeRefDelta = 0;
+                    cumulativeFastDelta = 0;
+                }
+
+                cumulativeRefDelta = cumulativeRefDelta.add(refDeltaAmount.mul(CUMULATIVE_DELTA_PRECISION).div(refPrice));
+                cumulativeFastDelta = cumulativeFastDelta.add(fastDeltaAmount.mul(CUMULATIVE_DELTA_PRECISION).div(fastPrice));
+            }
+
+            _storePriceData(_token, refPrice, cumulativeRefDelta, cumulativeFastDelta);
+            emit PriceData(_token, refPrice, fastPrice, cumulativeRefDelta, cumulativeFastDelta);
+        }
+
         prices[_token] = _price;
         _emitPriceEvent(_fastPriceEvents, _token, _price);
     }

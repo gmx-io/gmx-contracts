@@ -272,6 +272,20 @@ contract VaultPriceFeed is IVaultPriceFeed {
         return _primaryPrice;
     }
 
+    function getLatestPrimaryPrice(address _token) public override view returns (uint256) {
+        address priceFeedAddress = priceFeeds[_token];
+        require(priceFeedAddress != address(0), "VaultPriceFeed: invalid price feed");
+
+        IPriceFeed priceFeed = IPriceFeed(priceFeedAddress);
+
+        int256 price = priceFeed.latestAnswer();
+        require(price > 0, "VaultPriceFeed: invalid price");
+
+        // normalise price precision
+        uint256 _priceDecimals = priceDecimals[_token];
+        return uint256(price).mul(PRICE_PRECISION).div(10 ** _priceDecimals);
+    }
+
     function getPrimaryPrice(address _token, bool _maximise) public override view returns (uint256) {
         address priceFeedAddress = priceFeeds[_token];
         require(priceFeedAddress != address(0), "VaultPriceFeed: invalid price feed");

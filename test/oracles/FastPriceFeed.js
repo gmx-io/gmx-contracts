@@ -578,7 +578,8 @@ describe("FastPriceFeed", function () {
 
     expect(await fastPriceFeed.lastUpdatedAt()).eq(0)
 
-    await fastPriceFeed.connect(user0).setPricesWithBits(priceBits, blockTime)
+    const tx0 = await fastPriceFeed.connect(user0).setPricesWithBits(priceBits, blockTime)
+    await reportGasUsed(provider, tx0, "tx0 setPricesWithBits gas used")
 
     expect(await fastPriceFeed.prices(token1.address)).eq(getExpandedPrice(price1, 1000))
     expect(await fastPriceFeed.prices(token2.address)).eq(getExpandedPrice(price2, 1000))
@@ -605,7 +606,8 @@ describe("FastPriceFeed", function () {
       price1, price2, price3, price4,
       price5, price6, price7])
 
-    await fastPriceFeed.connect(user0).setPricesWithBits(priceBits, blockTime)
+    const tx1 = await fastPriceFeed.connect(user0).setPricesWithBits(priceBits, blockTime)
+    await reportGasUsed(provider, tx1, "tx1 setPricesWithBits gas used")
 
     const p1 = await fastPriceFeed.prices(token1.address)
     expect(ethers.utils.formatUnits(p1, 30)).eq("2009991.111")
