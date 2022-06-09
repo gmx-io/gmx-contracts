@@ -158,10 +158,10 @@ describe("FastPriceFeed", function () {
     await fastPriceFeed.setGov(user0.address)
 
     expect(await fastPriceFeed.isSpreadEnabled()).eq(false)
-    expect(await fastPriceFeed.favorFastPrice()).eq(true)
+    expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(true)
     await fastPriceFeed.connect(user0).setIsSpreadEnabled(true)
     expect(await fastPriceFeed.isSpreadEnabled()).eq(true)
-    expect(await fastPriceFeed.favorFastPrice()).eq(false)
+    expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(false)
   })
 
   it("setMaxTimeDeviation", async () => {
@@ -258,26 +258,26 @@ describe("FastPriceFeed", function () {
     await expect(fastPriceFeed.connect(user1).disableFastPrice())
       .to.be.revertedWith("FastPriceFeed: forbidden")
 
-    expect(await fastPriceFeed.favorFastPrice()).eq(true)
+    expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(true)
     expect(await fastPriceFeed.disableFastPriceVotes(signer0.address)).eq(false)
     expect(await fastPriceFeed.disableFastPriceVoteCount()).eq(0)
 
     await fastPriceFeed.connect(signer0).disableFastPrice()
 
-    expect(await fastPriceFeed.favorFastPrice()).eq(true)
+    expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(true)
     expect(await fastPriceFeed.disableFastPriceVotes(signer0.address)).eq(true)
     expect(await fastPriceFeed.disableFastPriceVoteCount()).eq(1)
 
     await expect(fastPriceFeed.connect(signer0).disableFastPrice())
       .to.be.revertedWith("FastPriceFeed: already voted")
 
-    expect(await fastPriceFeed.favorFastPrice()).eq(true)
+    expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(true)
     expect(await fastPriceFeed.disableFastPriceVotes(signer1.address)).eq(false)
     expect(await fastPriceFeed.disableFastPriceVoteCount()).eq(1)
 
     await fastPriceFeed.connect(signer1).disableFastPrice()
 
-    expect(await fastPriceFeed.favorFastPrice()).eq(false)
+    expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(false)
     expect(await fastPriceFeed.disableFastPriceVotes(signer1.address)).eq(true)
     expect(await fastPriceFeed.disableFastPriceVoteCount()).eq(2)
 
@@ -286,7 +286,7 @@ describe("FastPriceFeed", function () {
 
     await fastPriceFeed.connect(signer1).enableFastPrice()
 
-    expect(await fastPriceFeed.favorFastPrice()).eq(true)
+    expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(true)
     expect(await fastPriceFeed.disableFastPriceVotes(signer1.address)).eq(false)
     expect(await fastPriceFeed.disableFastPriceVoteCount()).eq(1)
 
