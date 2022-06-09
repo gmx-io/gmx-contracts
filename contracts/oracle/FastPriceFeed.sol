@@ -242,37 +242,48 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         uint256 fastPrice = prices[_token];
         if (fastPrice == 0) { return _refPrice; }
 
+        // regardless of the fastPrice value the price returned cannot exceed a range of (_refPrice - maxDeviation%) to (_refPrice + maxDeviation%)
         uint256 maxPrice = _refPrice.mul(BASIS_POINTS_DIVISOR.add(maxDeviationBasisPoints)).div(BASIS_POINTS_DIVISOR);
         uint256 minPrice = _refPrice.mul(BASIS_POINTS_DIVISOR.sub(maxDeviationBasisPoints)).div(BASIS_POINTS_DIVISOR);
 
-        if (favorFastPrice()) {
-            if (fastPrice >= minPrice && fastPrice <= maxPrice) {
-                if (_maximise) {
-                    if (_refPrice > fastPrice) {
-                        uint256 volPrice = fastPrice.mul(BASIS_POINTS_DIVISOR.add(volBasisPoints)).div(BASIS_POINTS_DIVISOR);
-                        // the volPrice should not be more than _refPrice
-                        return volPrice > _refPrice ? _refPrice : volPrice;
-                    }
-                    return fastPrice;
-                }
+        // force a spread if it has been turned on or if watchers have flagged an issue with the fast price
+        // also force a spread if the fastPrice exceeds the allowed range
+        bool shouldForceSpread = !favorFastPrice() || fastPrice < minPrice || fastPrice > maxPrice;
 
-                if (_refPrice < fastPrice) {
-                    uint256 volPrice = fastPrice.mul(BASIS_POINTS_DIVISOR.sub(volBasisPoints)).div(BASIS_POINTS_DIVISOR);
-                    // the volPrice should not be less than _refPrice
-                    return volPrice < _refPrice ? _refPrice : volPrice;
-                }
-
-                return fastPrice;
+        if (shouldForceSpread) {
+            // _maximise indicates that this will be used for an operation where it is safer to use the higher price
+            if (_maximise) {
+                // return the _refPrice if it is the higher price
+                if (_refPrice > fastPrice) { return _refPrice; }
+                // use the maxPrice if the fastPrice exceeds the max allowed value
+                return fastPrice > maxPrice ? maxPrice : fastPrice;
             }
+
+            // return the _refPrice if it is the lower price
+            if (_refPrice < fastPrice) { return _refPrice; }
+            // use the minPrice if the fastPrice is below the min allowed value
+            return fastPrice < minPrice ? minPrice : fastPrice;
         }
 
         if (_maximise) {
-            if (_refPrice > fastPrice) { return _refPrice; }
-            return fastPrice > maxPrice ? maxPrice : fastPrice;
+            if (_refPrice > fastPrice) {
+                uint256 volPrice = fastPrice.mul(BASIS_POINTS_DIVISOR.add(volBasisPoints)).div(BASIS_POINTS_DIVISOR);
+                // if the _refPrice is more than the fastPrice, adjust the price upwards based on volBasisPoints
+                // from the fastPrice towards the _refPrice, the volPrice should not be more than _refPrice
+                return volPrice > _refPrice ? _refPrice : volPrice;
+            }
+
+            return fastPrice;
         }
 
-        if (_refPrice < fastPrice) { return _refPrice; }
-        return fastPrice < minPrice ? minPrice : fastPrice;
+        if (_refPrice < fastPrice) {
+            uint256 volPrice = fastPrice.mul(BASIS_POINTS_DIVISOR.sub(volBasisPoints)).div(BASIS_POINTS_DIVISOR);
+            // if the _refPrice is less than the fastPrice, adjust the price downwards based on volBasisPoints
+            // from the fastPrice towards the _refPrice, the volPrice should not be less than _refPrice
+            return volPrice < _refPrice ? _refPrice : volPrice;
+        }
+
+        return fastPrice;
     }
 
     function favorFastPrice() public view returns (bool) {
