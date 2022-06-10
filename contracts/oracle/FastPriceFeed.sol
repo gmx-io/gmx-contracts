@@ -52,6 +52,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public override lastUpdatedBlock;
 
     uint256 public priceDuration;
+    uint256 public maxPriceUpdateDelay;
     uint256 public minBlockInterval;
     uint256 public maxTimeDeviation;
 
@@ -62,6 +63,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public volBasisPoints;
     // max deviation from primary price
     uint256 public maxDeviationBasisPoints;
+    // max deviation from primary price, beyond which an error would be thrown
+    uint256 public maxDeviationBasisPointsBeforeError;
 
     uint256 public minAuthorizations;
     uint256 public disableFastPriceVoteCount = 0;
@@ -105,6 +108,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _priceDuration,
       uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
+      uint256 _maxDeviationBasisPointsBeforeError,
       address _fastPriceEvents,
       address _tokenManager,
       address _positionRouter
@@ -113,6 +117,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         priceDuration = _priceDuration;
         minBlockInterval = _minBlockInterval;
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
+        maxDeviationBasisPointsBeforeError = _maxDeviationBasisPointsBeforeError;
         fastPriceEvents = _fastPriceEvents;
         tokenManager = _tokenManager;
         positionRouter = _positionRouter;
@@ -160,6 +165,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         priceDuration = _priceDuration;
     }
 
+    function setMaxPriceUpdateDelay(uint256 _maxPriceUpdateDelay) external onlyGov {
+        maxPriceUpdateDelay = _maxPriceUpdateDelay;
+    }
+
     function setMinBlockInterval(uint256 _minBlockInterval) external onlyGov {
         minBlockInterval = _minBlockInterval;
     }
@@ -190,6 +199,10 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external onlyGov {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
+    }
+
+    function setMaxDeviationBasisPointsBeforeError(uint256 _maxDeviationBasisPointsBeforeError) external onlyGov {
+        maxDeviationBasisPointsBeforeError = _maxDeviationBasisPointsBeforeError;
     }
 
     function setMinAuthorizations(uint256 _minAuthorizations) external onlyTokenManager {
@@ -272,10 +285,16 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
+        if (block.timestamp > lastUpdatedAt.add(maxPriceUpdateDelay)) { revert("Prices are stale"); }
         if (block.timestamp > lastUpdatedAt.add(priceDuration)) { return _refPrice; }
 
         uint256 fastPrice = prices[_token];
         if (fastPrice == 0) { return _refPrice; }
+
+        uint256 diff = _refPrice > fastPrice ? _refPrice.sub(fastPrice) : fastPrice.sub(_refPrice);
+        if (diff.mul(BASIS_POINTS_DIVISOR).div(_refPrice) > maxDeviationBasisPointsBeforeError) {
+            revert("Price deviation is too large");
+        }
 
         // regardless of the fastPrice value the price returned cannot exceed a range of (_refPrice - maxDeviation%) to (_refPrice + maxDeviation%)
         uint256 maxPrice = _refPrice.mul(BASIS_POINTS_DIVISOR.add(maxDeviationBasisPoints)).div(BASIS_POINTS_DIVISOR);
