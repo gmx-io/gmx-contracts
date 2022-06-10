@@ -14,6 +14,14 @@ pragma solidity 0.6.12;
 contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     using SafeMath for uint256;
 
+    // fit data in a uint256 slot to save gas costs
+    struct PriceDataItem {
+        uint160 refPrice; // Chainlink price
+        uint32 refTime; // last updated at time
+        uint32 cumulativeRefDelta; // cumulative Chainlink price delta
+        uint32 cumulativeFastDelta; // cumulative fast price delta
+    }
+
     uint256 public constant PRICE_PRECISION = 10 ** 30;
 
     uint256 public constant CUMULATIVE_DELTA_PRECISION = 10 * 1000 * 1000;
@@ -61,9 +69,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     mapping (address => bool) public isUpdater;
 
     mapping (address => uint256) public prices;
-    // store last Chainlink price, cumulative Chainlink price delta, cumulative fast price delta
-    // use a single storage slot to save gas costs
-    mapping (address => uint256) public priceData;
+    mapping (address => PriceDataItem) public priceData;
 
     mapping (address => bool) public isSigner;
     mapping (address => bool) public disableFastPriceVotes;
@@ -78,6 +84,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     event DisableFastPrice(address signer);
     event EnableFastPrice(address signer);
     event PriceData(address token, uint256 refPrice, uint256 fastPrice, uint256 cumulativeRefDelta, uint256 cumulativeFastDelta);
+    event MaxCumulativeDeltaDiffExceeded(address token, uint256 refPrice, uint256 fastPrice, uint256 cumulativeRefDelta, uint256 cumulativeFastDelta);
 
     modifier onlySigner() {
         require(isSigner[msg.sender], "FastPriceFeed: forbidden");
@@ -335,23 +342,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function getPriceData(address _token) public view returns (uint256, uint256, uint256, uint256) {
-        uint256 data = priceData[_token];
-        uint256 refPrice = data >> 96; // refPrice is stored in bits 0 - 160, shift bits by (256 - 160 => 96)
-        uint256 refTime = (data >> 64) & BITMASK_32; // refTime is stored in bits 160 - 192, shift bits by (256 - 192 => 64)
-        uint256 cumulativeRefDelta = (data >> 32) & BITMASK_32; // cumulativeRefDelta is stored in bits 192 - 224, shift bits by (256 - 224 => 32)
-        uint256 cumulativeFastDelta = data & BITMASK_32; // cumulativeFastDelta is stored in bits 224 - 256
-
-        return (refPrice, refTime, cumulativeRefDelta, cumulativeFastDelta);
-    }
-
-    function _storePriceData(address _token, uint256 _refPrice, uint256 _cumulativeRefDelta, uint256 _cumulativeFastDelta) private {
-        require(_refPrice < MAX_REF_PRICE, "FastPriceFeed: invalid refPrice");
-        // skip validation of block.timestamp, it should only be out of range after the year 2100
-        require(_cumulativeRefDelta < MAX_CUMULATIVE_REF_DELTA, "FastPriceFeed: invalid cumulativeRefDelta");
-        require(_cumulativeFastDelta < MAX_CUMULATIVE_FAST_DELTA, "FastPriceFeed: invalid cumulativeFastDelta");
-
-        uint256 data = (_refPrice << 96) & (block.timestamp << 64) & (_cumulativeRefDelta << 32) & (_cumulativeFastDelta);
-        priceData[_token] = data;
+        PriceDataItem memory data = priceData[_token];
+        return (uint256(data.refPrice), uint256(data.refTime), uint256(data.cumulativeRefDelta), uint256(data.cumulativeFastDelta));
     }
 
     function _setPricesWithBits(uint256 _priceBits, uint256 _timestamp) private {
@@ -398,12 +390,30 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                 cumulativeFastDelta = cumulativeFastDelta.add(fastDeltaAmount.mul(CUMULATIVE_DELTA_PRECISION).div(fastPrice));
             }
 
-            _storePriceData(_token, refPrice, cumulativeRefDelta, cumulativeFastDelta);
+            if (cumulativeFastDelta > cumulativeRefDelta && cumulativeFastDelta.sub(cumulativeRefDelta) > maxCumulativeDeltaDiff) {
+                emit MaxCumulativeDeltaDiffExceeded(_token, refPrice, fastPrice, cumulativeRefDelta, cumulativeFastDelta);
+            }
+
+            _setPriceData(_token, refPrice, cumulativeRefDelta, cumulativeFastDelta);
             emit PriceData(_token, refPrice, fastPrice, cumulativeRefDelta, cumulativeFastDelta);
         }
 
         prices[_token] = _price;
         _emitPriceEvent(_fastPriceEvents, _token, _price);
+    }
+
+    function _setPriceData(address _token, uint256 _refPrice, uint256 _cumulativeRefDelta, uint256 _cumulativeFastDelta) private {
+        require(_refPrice < MAX_REF_PRICE, "FastPriceFeed: invalid refPrice");
+        // skip validation of block.timestamp, it should only be out of range after the year 2100
+        require(_cumulativeRefDelta < MAX_CUMULATIVE_REF_DELTA, "FastPriceFeed: invalid cumulativeRefDelta");
+        require(_cumulativeFastDelta < MAX_CUMULATIVE_FAST_DELTA, "FastPriceFeed: invalid cumulativeFastDelta");
+
+        priceData[_token] = PriceDataItem(
+            uint160(_refPrice),
+            uint32(block.timestamp),
+            uint32(_cumulativeRefDelta),
+            uint32(_cumulativeFastDelta)
+        );
     }
 
     function _emitPriceEvent(address _fastPriceEvents, address _token, uint256 _price) private {

@@ -281,9 +281,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
         int256 price = priceFeed.latestAnswer();
         require(price > 0, "VaultPriceFeed: invalid price");
 
-        // normalise price precision
-        uint256 _priceDecimals = priceDecimals[_token];
-        return uint256(price).mul(PRICE_PRECISION).div(10 ** _priceDecimals);
+        return uint256(price);
     }
 
     function getPrimaryPrice(address _token, bool _maximise) public override view returns (uint256) {
