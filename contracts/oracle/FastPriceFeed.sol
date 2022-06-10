@@ -106,6 +106,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     constructor(
       uint256 _priceDuration,
+      uint256 _maxPriceUpdateDelay,
       uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
       uint256 _maxDeviationBasisPointsBeforeError,
@@ -115,6 +116,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
+        maxPriceUpdateDelay = _maxPriceUpdateDelay;
         minBlockInterval = _minBlockInterval;
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
         maxDeviationBasisPointsBeforeError = _maxDeviationBasisPointsBeforeError;
@@ -285,7 +287,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
-        if (block.timestamp > lastUpdatedAt.add(maxPriceUpdateDelay)) { revert("Prices are stale"); }
+        if (lastUpdatedAt > 0 && block.timestamp > lastUpdatedAt.add(maxPriceUpdateDelay)) { revert("Prices are stale"); }
         if (block.timestamp > lastUpdatedAt.add(priceDuration)) { return _refPrice; }
 
         uint256 fastPrice = prices[_token];
