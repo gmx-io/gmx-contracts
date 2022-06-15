@@ -168,7 +168,7 @@ module.exports = {
       tokenWeight: 33000,
       minProfitBps: 0,
       maxUsdgAmount: 120 * 1000 * 1000,
-      bufferAmount: 60 * 1000 * 1000,
+      bufferAmount: 50 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },
@@ -282,7 +282,7 @@ module.exports = {
       tokenWeight: 12500,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 *1000,
-      bufferAmount: 240000,
+      bufferAmount: 100000,
       isStable: false,
       isShortable: true,
       maxGlobalLongSize: 4 * 1000 * 1000,
@@ -316,7 +316,7 @@ module.exports = {
       tokenWeight: 25000,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 *1000,
-      bufferAmount: 100,
+      bufferAmount: 250,
       isStable: false,
       isShortable: true,
       maxGlobalShortSize: 5 * 1000 * 1000
@@ -345,7 +345,7 @@ module.exports = {
       tokenWeight: 33000,
       minProfitBps: 0,
       maxUsdgAmount: 70 * 1000 * 1000,
-      bufferAmount: 30 * 1000 * 1000,
+      bufferAmount: 25 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },
@@ -359,7 +359,7 @@ module.exports = {
       tokenWeight: 16000,
       minProfitBps: 0,
       maxUsdgAmount: 50 * 1000 * 1000,
-      bufferAmount: 8 * 1000 * 1000,
+      bufferAmount: 5 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },

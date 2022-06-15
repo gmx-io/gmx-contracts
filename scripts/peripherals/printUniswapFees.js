@@ -66,7 +66,7 @@ async function main() {
     }
 
     const collectResult = await uniPositionManager.callStatic.collect(params, { from: owner })
-    console.log(`${nftId},${ethers.utils.formatUnits(collectResult.amount0, 18)}`)
+    console.log(`NFT_${nftId},${ethers.utils.formatUnits(collectResult.amount0, 18)}`)
   }
 }
 
