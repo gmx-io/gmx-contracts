@@ -51,8 +51,7 @@ describe("FastPriceFeed", function () {
       5 * 60, // _priceDuration
       120 * 60, // _maxPriceUpdateDelay
       2, // _minBlockInterval
-      250, // _maxDeviationBasisPoints
-      5000, // _maxDeviationBasisPointsBeforeError
+      250, // _allowedDeviationBasisPoints
       fastPriceEvents.address, // _fastPriceEvents
       tokenManager.address, // _tokenManager
       positionRouter.address // _positionRouter
