@@ -54,6 +54,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public priceDuration;
     uint256 public maxPriceUpdateDelay;
     uint256 public spreadBasisPointsIfInactive;
+    uint256 public spreadBasisPointsIfChainError;
     uint256 public minBlockInterval;
     uint256 public maxTimeDeviation;
 
@@ -275,7 +276,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     // under regular operation, the fastPrice (prices[token]) is returned and there is no spread returned from this function,
     // though VaultPriceFeed might apply its own spread
     //
-    // if the fastPrice has not been updated within priceDuration then it is ignored and only _refPrice is used
+    // if the fastPrice has not been updated within priceDuration then it is ignored and only _refPrice with a spread is used
+    // in case the fastPrice has not been updated for maxPriceUpdateDelay then the _refPrice with a larger spread is used
     //
     // there will be a spread from the _refPrice to the fastPrice in the following cases:
     // - in case isSpreadEnabled is set to true
@@ -283,6 +285,14 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     // - in case watchers flag an issue
     // - in case the cumulativeFastDelta exceeds the cumulativeRefDelta by the maxCumulativeDeltaDiff
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
+        if (block.timestamp > lastUpdatedAt.add(maxPriceUpdateDelay)) {
+            if (_maximise) {
+                return _refPrice.mul(BASIS_POINTS_DIVISOR.add(spreadBasisPointsIfChainError)).div(BASIS_POINTS_DIVISOR);
+            }
+
+            return _refPrice.mul(BASIS_POINTS_DIVISOR.sub(spreadBasisPointsIfChainError)).div(BASIS_POINTS_DIVISOR);
+        }
+
         if (block.timestamp > lastUpdatedAt.add(priceDuration)) {
             if (_maximise) {
                 return _refPrice.mul(BASIS_POINTS_DIVISOR.add(spreadBasisPointsIfInactive)).div(BASIS_POINTS_DIVISOR);
