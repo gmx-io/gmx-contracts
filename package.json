@@ -1,8 +1,10 @@
 {
-  "name": "gambit-contracts",
+  "name": "gmx-contracts",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "files": [
+    "contracts/**/*.sol"
+  ],
   "scripts": {
     "test": "npx hardhat test",
     "compile": "hardhat compile",
