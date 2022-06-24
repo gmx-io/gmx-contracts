@@ -77,7 +77,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         uint256 index,
         uint256 blockNumber,
         uint256 blockTime,
-        uint256 gasPrice
+        uint256 gasPrice,
+        uint256 keysLength
     );
 
     event ExecuteIncreasePosition(
@@ -121,7 +122,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         uint256 executionFee,
         uint256 index,
         uint256 blockNumber,
-        uint256 blockTime
+        uint256 blockTime,
+        uint256 keysLength
     );
 
     event ExecuteDecreasePosition(
@@ -648,7 +650,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             index,
             block.number,
             block.timestamp,
-            tx.gasprice
+            tx.gasprice,
+            increasePositionRequestKeys.length
         );
     }
 
@@ -702,7 +705,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             _executionFee,
             index,
             block.number,
-            block.timestamp
+            block.timestamp,
+            decreasePositionRequestKeys.length
         );
     }
 }
