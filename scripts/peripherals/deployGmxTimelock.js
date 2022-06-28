@@ -22,7 +22,7 @@ async function runForArbitrum() {
     tokenManager.address,
     mintReceiver.address,
     maxTokenSupply
-  ])
+  ], "GmxTimelock", { gasLimit: 100000000 })
 }
 
 async function runForAvax() {
