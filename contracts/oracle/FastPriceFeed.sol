@@ -70,7 +70,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     mapping (address => uint256) public prices;
     mapping (address => PriceDataItem) public priceData;
-    mapping (address => uint256) maxCumulativeDeltaDiffs;
+    mapping (address => uint256) public maxCumulativeDeltaDiffs;
 
     mapping (address => bool) public isSigner;
     mapping (address => bool) public disableFastPriceVotes;
@@ -276,8 +276,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     // under regular operation, the fastPrice (prices[token]) is returned and there is no spread returned from this function,
     // though VaultPriceFeed might apply its own spread
     //
-    // if the fastPrice has not been updated within priceDuration then it is ignored and only _refPrice with a spread is used
-    // in case the fastPrice has not been updated for maxPriceUpdateDelay then the _refPrice with a larger spread is used
+    // if the fastPrice has not been updated within priceDuration then it is ignored and only _refPrice with a spread is used (spread: spreadBasisPointsIfInactive)
+    // in case the fastPrice has not been updated for maxPriceUpdateDelay then the _refPrice with a larger spread is used (spread: spreadBasisPointsIfChainError)
     //
     // there will be a spread from the _refPrice to the fastPrice in the following cases:
     // - in case isSpreadEnabled is set to true
@@ -370,30 +370,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                 _setPrice(token, adjustedPrice, _vaultPriceFeed, _fastPriceEvents);
             }
         }
-    }
-
-    function _getPrice(address _token, uint256 _refPrice, bool _maximise) private view returns (uint256) {
-        uint256 fastPrice = prices[_token];
-        if (fastPrice == 0) { return _refPrice; }
-
-        uint256 diffBasisPoints = _refPrice > fastPrice ? _refPrice.sub(fastPrice) : fastPrice.sub(_refPrice);
-        diffBasisPoints = diffBasisPoints.mul(BASIS_POINTS_DIVISOR).div(_refPrice);
-
-        // create a spread between the _refPrice and the fastPrice if the allowedDeviationBasisPoints is exceeded
-        // or if watchers have flagged an issue with the fast price
-        bool hasSpread = !favorFastPrice(_token) || diffBasisPoints > allowedDeviationBasisPoints;
-
-        if (hasSpread) {
-            // return the higher of the two prices
-            if (_maximise) {
-                return _refPrice > fastPrice ? _refPrice : fastPrice;
-            }
-
-            // return the lower of the two prices
-            return _refPrice < fastPrice ? _refPrice : fastPrice;
-        }
-
-        return fastPrice;
     }
 
     function _setPrice(address _token, uint256 _price, address _vaultPriceFeed, address _fastPriceEvents) private {
