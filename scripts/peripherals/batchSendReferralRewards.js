@@ -11,7 +11,7 @@ const ethPrice = "1150"
 const avaxPrice = "18"
 const gmxPrice = "19"
 
-const shouldSendTxn = false
+const shouldSendTxn = true
 
 const { AddressZero } = ethers.constants
 
@@ -135,7 +135,7 @@ async function main() {
   if (shouldSendTxn) {
     const signer = await getFrameSigner()
     const nativeTokenForSigner = await contractAt("Token", nativeToken.address, signer)
-    await sendTxn(nativeTokenForSigner.transfer(wallet.address, totalNativeAmount), "nativeTokenForSigner.transfer")
+    await sendTxn(nativeTokenForSigner.transfer(wallet.address, totalNativeAmount, { gasLimit: 500000 }), "nativeTokenForSigner.transfer")
 
     const printBatch = (currentBatch) => {
       for (let i = 0; i < currentBatch.length; i++) {
@@ -146,7 +146,7 @@ async function main() {
       }
     }
 
-    await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
+    await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount, { gasLimit: 500000 }), "nativeToken.approve")
 
     await processBatch([affiliateAccounts, affiliateAmounts], batchSize, async (currentBatch) => {
       printBatch(currentBatch)
@@ -166,7 +166,7 @@ async function main() {
       await sendTxn(batchSender.sendAndEmit(nativeToken.address, accounts, amounts, traderDiscountsTypeId), "batchSender.sendAndEmit(nativeToken, trader rebates)")
     })
 
-    await sendTxn(esGmx.approve(batchSender.address, totalEsGmxAmount), "esGmx.approve")
+    await sendTxn(esGmx.approve(batchSender.address, totalEsGmxAmount, { gasLimit: 500000 }), "esGmx.approve")
 
     await processBatch([esGmxAccounts, esGmxAmounts], batchSize, async (currentBatch) => {
       printBatch(currentBatch)
