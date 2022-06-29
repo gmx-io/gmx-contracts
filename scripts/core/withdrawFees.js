@@ -59,7 +59,7 @@ async function withdrawFeesArb() {
       throw new Error("vaultAmount > vault.balance")
     }
 
-    await sendTxn(gov.withdrawFees(vault.address, token.address, receiver.address), `gov.withdrawFees ${i}, ${tokenArr[i].name}`)
+    await sendTxn(gov.withdrawFees(vault.address, token.address, receiver.address, { gasLimit: 500000 }), `gov.withdrawFees ${i}, ${tokenArr[i].name}`)
   }
 }
 
