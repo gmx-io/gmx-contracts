@@ -6,7 +6,7 @@ const tokens = require('./tokens')[network];
 
 async function getArbValues() {
   const positionRouter = await contractAt("PositionRouter", "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba")
-  const minExecutionFee = "0.007"
+  const minExecutionFee = "0.0003"
 
   return { positionRouter, minExecutionFee }
 }
