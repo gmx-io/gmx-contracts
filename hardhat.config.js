@@ -66,7 +66,7 @@ module.exports = {
     },
     arbitrum: {
       url: ARBITRUM_URL,
-      gasPrice: 200000000000,
+      gasPrice: 30000000000,
       chainId: 42161,
       accounts: [ARBITRUM_DEPLOY_KEY]
     },
