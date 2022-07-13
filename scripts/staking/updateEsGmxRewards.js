@@ -8,11 +8,11 @@ const shouldSendTxn = true
 const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("25,000"), 18)
 const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("25,000"), 18)
 
-const stakedGmxOnArb = toInt("6,232,903")
-const stakedGmxOnAvax = toInt("467,042")
+const stakedGmxOnArb = toInt("6,223,123")
+const stakedGmxOnAvax = toInt("496,501")
 
-const stakedEsGmxOnArb = toInt("1,383,008")
-const stakedEsGmxOnAvax = toInt("209,149")
+const stakedEsGmxOnArb = toInt("1,412,357")
+const stakedEsGmxOnAvax = toInt("210,502")
 
 async function getArbValues(signer) {
   const gmxRewardTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4")
