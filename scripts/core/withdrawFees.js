@@ -46,7 +46,7 @@ async function withdrawFeesArb() {
   const gov = await contractAt("Timelock", await vault.gov(), signer)
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
 
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
+  const tokenArr = [btc, eth, usdc, link, uni, usdt, frax, dai]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = await contractAt("Token", tokenArr[i].address)
@@ -71,7 +71,7 @@ async function withdrawFeesAvax() {
   const gov = await contractAt("Timelock", await vault.gov(), signer)
   const { avax, btc, eth, mim, usdce, usdc } = tokens
 
-  const tokenArr = [avax, btc, eth, mim, usdce, usdc]
+  const tokenArr = [avax, btc, eth, usdce, usdc]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = await contractAt("Token", tokenArr[i].address)

@@ -10,7 +10,6 @@ import "../core/interfaces/IVault.sol";
 import "../core/interfaces/IVaultUtils.sol";
 import "../core/interfaces/IVaultPriceFeed.sol";
 import "../oracle/interfaces/IFastPriceFeed.sol";
-import "../core/interfaces/IRouter.sol";
 import "../referrals/interfaces/IReferralStorage.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../tokens/interfaces/IBaseToken.sol";
@@ -42,7 +41,6 @@ contract Timelock is ITimelock {
     bool public shouldToggleIsLeverageEnabled;
 
     mapping (bytes32 => uint256) public pendingActions;
-    mapping (address => bool) public excludedTokens;
 
     mapping (address => bool) public isHandler;
 
@@ -53,7 +51,6 @@ contract Timelock is ITimelock {
     event SignalSetGov(address target, address gov, bytes32 action);
     event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
-    event SignalAddPlugin(address router, address plugin, bytes32 action);
     event SignalSetPriceFeedWatcher(address fastPriceFeed, address account, bool isActive);
     event SignalRedeemUsdg(address vault, address token, uint256 amount);
     event SignalVaultSetTokenConfig(
@@ -290,6 +287,12 @@ contract Timelock is ITimelock {
         IVault(_vault).setUsdgAmount(_token, _usdgAmount);
     }
 
+    function setUsdgAmounts(address _vault, address[] memory _tokens, uint256[] memory _usdgAmounts) external onlyAdminOrHandler {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            IVault(_vault).setUsdgAmount(_tokens[i], _usdgAmounts[i]);
+        }
+    }
+
     function setMaxGlobalShortSize(address _vault, address _token, uint256 _amount) external onlyAdmin {
         IVault(_vault).setMaxGlobalShortSize(_token, _amount);
     }
@@ -322,14 +325,6 @@ contract Timelock is ITimelock {
         IVaultPriceFeed(_priceFeed).setSpreadBasisPoints(_token, _spreadBasisPoints);
     }
 
-    function setSpreadThresholdBasisPoints(address _priceFeed, uint256 _spreadThresholdBasisPoints) external onlyAdminOrHandler {
-        IVaultPriceFeed(_priceFeed).setSpreadThresholdBasisPoints(_spreadThresholdBasisPoints);
-    }
-
-    function setFavorPrimaryPrice(address _priceFeed, bool _favorPrimaryPrice) external onlyAdminOrHandler {
-        IVaultPriceFeed(_priceFeed).setFavorPrimaryPrice(_favorPrimaryPrice);
-    }
-
     function setPriceSampleSpace(address _priceFeed,uint256 _priceSampleSpace) external onlyAdminOrHandler {
         require(_priceSampleSpace <= 5, "Invalid _priceSampleSpace");
         IVaultPriceFeed(_priceFeed).setPriceSampleSpace(_priceSampleSpace);
@@ -359,13 +354,19 @@ contract Timelock is ITimelock {
         IVault(_vault).setVaultUtils(_vaultUtils);
     }
 
-    function setMaxGasPrice(address _vault,uint256 _maxGasPrice) external onlyAdmin {
+    function setMaxGasPrice(address _vault, uint256 _maxGasPrice) external onlyAdmin {
         require(_maxGasPrice > 5000000000, "Invalid _maxGasPrice");
         IVault(_vault).setMaxGasPrice(_maxGasPrice);
     }
 
-    function withdrawFees(address _vault,address _token, address _receiver) external onlyAdmin {
+    function withdrawFees(address _vault, address _token, address _receiver) external onlyAdmin {
         IVault(_vault).withdrawFees(_token, _receiver);
+    }
+
+    function batchWithdrawFees(address _vault, address[] memory _tokens) external onlyAdmin {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            IVault(_vault).withdrawFees(_tokens[i], admin);
+        }
     }
 
     function setInPrivateLiquidationMode(address _vault, bool _inPrivateLiquidationMode) external onlyAdmin {
@@ -376,16 +377,7 @@ contract Timelock is ITimelock {
         IVault(_vault).setLiquidator(_liquidator, _isActive);
     }
 
-    function addExcludedToken(address _token) external onlyAdmin {
-        excludedTokens[_token] = true;
-    }
-
     function setInPrivateTransferMode(address _token, bool _inPrivateTransferMode) external onlyAdmin {
-        if (excludedTokens[_token]) {
-            // excludedTokens can only have their transfers enabled
-            require(_inPrivateTransferMode == false, "Timelock: invalid _inPrivateTransferMode");
-        }
-
         IBaseToken(_token).setInPrivateTransferMode(_inPrivateTransferMode);
     }
 
@@ -492,19 +484,6 @@ contract Timelock is ITimelock {
         _validateAction(action);
         _clearAction(action);
         IVault(_vault).setPriceFeed(_priceFeed);
-    }
-
-    function signalAddPlugin(address _router, address _plugin) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("addPlugin", _router, _plugin));
-        _setPendingAction(action);
-        emit SignalAddPlugin(_router, _plugin, action);
-    }
-
-    function addPlugin(address _router, address _plugin) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("addPlugin", _router, _plugin));
-        _validateAction(action);
-        _clearAction(action);
-        IRouter(_router).addPlugin(_plugin);
     }
 
     function signalSetPriceFeedWatcher(address _fastPriceFeed, address _account, bool _isActive) external onlyAdmin {

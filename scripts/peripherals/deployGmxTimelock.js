@@ -3,13 +3,15 @@ const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
+const { AddressZero } = ethers.constants
+
 async function runForArbitrum() {
   const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
-  const rewardManager = { address: ethers.constants.AddressZero }
+  const rewardManager = { address: AddressZero }
   const buffer = 24 * 60 * 60
   const longBuffer = 7 * 24 * 60 * 60
-  const tokenManager = { address: "0xD83D2Ff29Bf856A52a997dc621e58262452b2DE2" }
-  const mintReceiver = { address: "0x50F22389C10FcC3bA9B1AB9BCDafE40448a357FB" }
+  const tokenManager = { address: "0xddDc546e07f1374A07b270b7d863371e575EA96A" }
+  const mintReceiver = { address: AddressZero }
   const maxTokenSupply = expandDecimals("13250000", 18)
 
   const timelock = await deployContract("GmxTimelock", [
@@ -20,7 +22,7 @@ async function runForArbitrum() {
     tokenManager.address,
     mintReceiver.address,
     maxTokenSupply
-  ])
+  ], "GmxTimelock", { gasLimit: 100000000 })
 }
 
 async function runForAvax() {
@@ -28,8 +30,8 @@ async function runForAvax() {
   const rewardManager = { address: ethers.constants.AddressZero }
   const buffer = 24 * 60 * 60
   const longBuffer = 7 * 24 * 60 * 60
-  const tokenManager = { address: "0x26137dfA81f9Ac8BACd748f6A298262f11504Da9" }
-  const mintReceiver = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
+  const tokenManager = { address: "0x8b25Ba1cAEAFaB8e9926fabCfB6123782e3B4BC2" }
+  const mintReceiver = { address: AddressZero }
   const maxTokenSupply = expandDecimals("13250000", 18)
 
   const timelock = await deployContract("GmxTimelock", [

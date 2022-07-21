@@ -31,7 +31,7 @@ async function main() {
   const { referralStorage } = await getValues()
   const timelock = await contractAt("Timelock", await referralStorage.gov())
 
-  const account = "0x99655CA16C742b46A4a05AFAf0f7798C336Fd279"
+  const account = "0x89c3836eedA5C468792C186E961CE64A470059ED"
   const tier = 2 // tier 1, 2, 3
   console.log("account", account)
 
@@ -42,6 +42,7 @@ async function main() {
     throw new Error("Current tier is more than 1")
   }
 
+  console.log("updating to tier", tier)
   await sendTxn(timelock.setReferrerTier(referralStorage.address, account, tier - 1), "timelock.setReferrerTier")
 }
 
