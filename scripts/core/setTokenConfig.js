@@ -11,7 +11,7 @@ async function getArbValues(signer) {
   const reader = await contractAt("Reader", "0x2b43c90D1B727cEe1Df34925bcd5Ace52Ec37694")
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [btc, usdc]
+  const tokenArr = [frax]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, eth.address, 1, tokenArr.map(t => t.address))
 
@@ -24,7 +24,7 @@ async function getAvaxValues(signer) {
   const reader = await contractAt("Reader", "0x2eFEE1950ededC65De687b40Fd30a7B5f4544aBd")
 
   const { avax, eth, btc, mim, usdce, usdc } = tokens
-  const tokenArr = [usdce, usdc]
+  const tokenArr = [avax, eth, btc, usdce, usdc]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, avax.address, 1, tokenArr.map(t => t.address))
 
@@ -86,9 +86,9 @@ async function main() {
     totalUsdgAmount = totalUsdgAmount.add(usdgAmount)
 
     const adjustedMaxUsdgAmount = expandDecimals(tokenItem.maxUsdgAmount, 18)
-    if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
-      usdgAmount = adjustedMaxUsdgAmount
-    }
+    // if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
+    //   usdgAmount = adjustedMaxUsdgAmount
+    // }
 
     if (shouldSendTxn) {
       await sendTxn(timelock.setTokenConfig(

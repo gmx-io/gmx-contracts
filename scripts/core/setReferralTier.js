@@ -31,7 +31,7 @@ async function main() {
   const { referralStorage } = await getValues()
   const timelock = await contractAt("Timelock", await referralStorage.gov())
 
-  const account = "0x89c3836eedA5C468792C186E961CE64A470059ED"
+  const account = "0x5cACae1b51d643CD1bc976cCa9B5E05837a6Bb35"
   const tier = 2 // tier 1, 2, 3
   console.log("account", account)
 
