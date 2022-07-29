@@ -249,10 +249,28 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         _setPricesWithBits(_priceBits, _timestamp);
     }
 
-    function setPricesWithBitsAndExecute(uint256 _priceBits, uint256 _timestamp, uint256 _endIndexForIncreasePositions, uint256 _endIndexForDecreasePositions) external onlyUpdater {
+    function setPricesWithBitsAndExecute(
+        uint256 _priceBits,
+        uint256 _timestamp,
+        uint256 _endIndexForIncreasePositions,
+        uint256 _endIndexForDecreasePositions,
+        uint256 _maxIncreasePositions,
+        uint256 _maxDecreasePositions
+    ) external onlyUpdater {
         _setPricesWithBits(_priceBits, _timestamp);
 
         IPositionRouter _positionRouter = IPositionRouter(positionRouter);
+        uint256 maxEndIndexForIncrease = _positionRouter.increasePositionRequestKeysStart().add(_maxIncreasePositions);
+        uint256 maxEndIndexForDecrease = _positionRouter.increasePositionRequestKeysStart().add(_maxDecreasePositions);
+
+        if (_endIndexForIncreasePositions > maxEndIndexForIncrease) {
+            _endIndexForIncreasePositions = maxEndIndexForIncrease;
+        }
+
+        if (_endIndexForDecreasePositions > maxEndIndexForDecrease) {
+            _endIndexForDecreasePositions = maxEndIndexForDecrease;
+        }
+
         _positionRouter.executeIncreasePositions(_endIndexForIncreasePositions, payable(msg.sender));
         _positionRouter.executeDecreasePositions(_endIndexForDecreasePositions, payable(msg.sender));
     }
