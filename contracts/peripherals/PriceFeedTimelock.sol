@@ -22,10 +22,7 @@ import "../libraries/token/IERC20.sol";
 contract PriceFeedTimelock {
     using SafeMath for uint256;
 
-    uint256 public constant PRICE_PRECISION = 10 ** 30;
     uint256 public constant MAX_BUFFER = 5 days;
-    uint256 public constant MAX_FUNDING_RATE_FACTOR = 200; // 0.02%
-    uint256 public constant MAX_LEVERAGE_VALIDATION = 500000; // 50x
 
     uint256 public buffer;
     address public admin;
@@ -37,7 +34,6 @@ contract PriceFeedTimelock {
 
     uint256 public marginFeeBasisPoints;
     uint256 public maxMarginFeeBasisPoints;
-    bool public shouldToggleIsLeverageEnabled;
 
     mapping (bytes32 => uint256) public pendingActions;
 
@@ -46,22 +42,8 @@ contract PriceFeedTimelock {
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
     event SignalWithdrawToken(address target, address token, address receiver, uint256 amount, bytes32 action);
-    event SignalMint(address token, address receiver, uint256 amount, bytes32 action);
     event SignalSetGov(address target, address gov, bytes32 action);
-    event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
-    event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
     event SignalSetPriceFeedWatcher(address fastPriceFeed, address account, bool isActive);
-    event SignalRedeemUsdg(address vault, address token, uint256 amount);
-    event SignalVaultSetTokenConfig(
-        address vault,
-        address token,
-        uint256 tokenDecimals,
-        uint256 tokenWeight,
-        uint256 minProfitBps,
-        uint256 maxUsdgAmount,
-        bool isStable,
-        bool isShortable
-    );
     event SignalPriceFeedSetTokenConfig(
         address vaultPriceFeed,
         address token,
