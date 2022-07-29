@@ -28,16 +28,11 @@ contract PriceFeedTimelock {
     address public admin;
 
     address public tokenManager;
-    address public rewardManager;
-    address public mintReceiver;
-    uint256 public maxTokenSupply;
-
-    uint256 public marginFeeBasisPoints;
-    uint256 public maxMarginFeeBasisPoints;
 
     mapping (bytes32 => uint256) public pendingActions;
 
     mapping (address => bool) public isHandler;
+    mapping (address => bool) public isKeeper;
 
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
@@ -58,8 +53,13 @@ contract PriceFeedTimelock {
         _;
     }
 
-    modifier onlyAdminOrHandler() {
+    modifier onlyHandlerAndAbove() {
         require(msg.sender == admin || isHandler[msg.sender], "Timelock: forbidden");
+        _;
+    }
+
+    modifier onlyKeeperAndAbove() {
+        require(msg.sender == admin || isHandler[msg.sender] || isKeeper[msg.sender], "Timelock: forbidden");
         _;
     }
 
@@ -68,31 +68,15 @@ contract PriceFeedTimelock {
         _;
     }
 
-    modifier onlyRewardManager() {
-        require(msg.sender == rewardManager, "Timelock: forbidden");
-        _;
-    }
-
     constructor(
         address _admin,
         uint256 _buffer,
-        address _rewardManager,
-        address _tokenManager,
-        address _mintReceiver,
-        uint256 _maxTokenSupply,
-        uint256 _marginFeeBasisPoints,
-        uint256 _maxMarginFeeBasisPoints
+        address _tokenManager
     ) public {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         admin = _admin;
         buffer = _buffer;
-        rewardManager = _rewardManager;
         tokenManager = _tokenManager;
-        mintReceiver = _mintReceiver;
-        maxTokenSupply = _maxTokenSupply;
-
-        marginFeeBasisPoints = _marginFeeBasisPoints;
-        maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
     }
 
     function setAdmin(address _admin) external onlyTokenManager {
@@ -108,6 +92,10 @@ contract PriceFeedTimelock {
         isHandler[_handler] = _isActive;
     }
 
+    function setKeeper(address _keeper, bool _isActive) external onlyAdmin {
+        isKeeper[_keeper] = _isActive;
+    }
+
     function setBuffer(uint256 _buffer) external onlyAdmin {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         require(_buffer > buffer, "Timelock: buffer cannot be decreased");
@@ -118,27 +106,27 @@ contract PriceFeedTimelock {
         IVaultPriceFeed(_priceFeed).setIsAmmEnabled(_isEnabled);
     }
 
-    function setIsSecondaryPriceEnabled(address _priceFeed, bool _isEnabled) external onlyAdminOrHandler {
+    function setIsSecondaryPriceEnabled(address _priceFeed, bool _isEnabled) external onlyHandlerAndAbove {
         IVaultPriceFeed(_priceFeed).setIsSecondaryPriceEnabled(_isEnabled);
     }
 
-    function setMaxStrictPriceDeviation(address _priceFeed, uint256 _maxStrictPriceDeviation) external onlyAdminOrHandler {
+    function setMaxStrictPriceDeviation(address _priceFeed, uint256 _maxStrictPriceDeviation) external onlyHandlerAndAbove {
         IVaultPriceFeed(_priceFeed).setMaxStrictPriceDeviation(_maxStrictPriceDeviation);
     }
 
-    function setUseV2Pricing(address _priceFeed, bool _useV2Pricing) external onlyAdminOrHandler {
+    function setUseV2Pricing(address _priceFeed, bool _useV2Pricing) external onlyHandlerAndAbove {
         IVaultPriceFeed(_priceFeed).setUseV2Pricing(_useV2Pricing);
     }
 
-    function setAdjustment(address _priceFeed, address _token, bool _isAdditive, uint256 _adjustmentBps) external onlyAdminOrHandler {
+    function setAdjustment(address _priceFeed, address _token, bool _isAdditive, uint256 _adjustmentBps) external onlyKeeperAndAbove {
         IVaultPriceFeed(_priceFeed).setAdjustment(_token, _isAdditive, _adjustmentBps);
     }
 
-    function setSpreadBasisPoints(address _priceFeed, address _token, uint256 _spreadBasisPoints) external onlyAdminOrHandler {
+    function setSpreadBasisPoints(address _priceFeed, address _token, uint256 _spreadBasisPoints) external onlyKeeperAndAbove {
         IVaultPriceFeed(_priceFeed).setSpreadBasisPoints(_token, _spreadBasisPoints);
     }
 
-    function setPriceSampleSpace(address _priceFeed,uint256 _priceSampleSpace) external onlyAdminOrHandler {
+    function setPriceSampleSpace(address _priceFeed,uint256 _priceSampleSpace) external onlyHandlerAndAbove {
         require(_priceSampleSpace <= 5, "Invalid _priceSampleSpace");
         IVaultPriceFeed(_priceFeed).setPriceSampleSpace(_priceSampleSpace);
     }

@@ -8,6 +8,7 @@ import "./interfaces/IHandlerTarget.sol";
 import "../access/interfaces/IAdmin.sol";
 import "../core/interfaces/IVault.sol";
 import "../core/interfaces/IVaultUtils.sol";
+import "../core/interfaces/IGlpManager.sol";
 import "../referrals/interfaces/IReferralStorage.sol";
 import "../tokens/interfaces/IYieldToken.sol";
 import "../tokens/interfaces/IBaseToken.sol";
@@ -30,8 +31,8 @@ contract Timelock is ITimelock {
     address public admin;
 
     address public tokenManager;
-    address public rewardManager;
     address public mintReceiver;
+    address public glpManager;
     uint256 public maxTokenSupply;
 
     uint256 public marginFeeBasisPoints;
@@ -41,6 +42,7 @@ contract Timelock is ITimelock {
     mapping (bytes32 => uint256) public pendingActions;
 
     mapping (address => bool) public isHandler;
+    mapping (address => bool) public isKeeper;
 
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
@@ -67,8 +69,13 @@ contract Timelock is ITimelock {
         _;
     }
 
-    modifier onlyAdminOrHandler() {
+    modifier onlyHandlerAndAbove() {
         require(msg.sender == admin || isHandler[msg.sender], "Timelock: forbidden");
+        _;
+    }
+
+    modifier onlyKeeperAndAbove() {
+        require(msg.sender == admin || isHandler[msg.sender] || isKeeper[msg.sender], "Timelock: forbidden");
         _;
     }
 
@@ -77,17 +84,12 @@ contract Timelock is ITimelock {
         _;
     }
 
-    modifier onlyRewardManager() {
-        require(msg.sender == rewardManager, "Timelock: forbidden");
-        _;
-    }
-
     constructor(
         address _admin,
         uint256 _buffer,
-        address _rewardManager,
         address _tokenManager,
         address _mintReceiver,
+        address _glpManager,
         uint256 _maxTokenSupply,
         uint256 _marginFeeBasisPoints,
         uint256 _maxMarginFeeBasisPoints
@@ -95,9 +97,9 @@ contract Timelock is ITimelock {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         admin = _admin;
         buffer = _buffer;
-        rewardManager = _rewardManager;
         tokenManager = _tokenManager;
         mintReceiver = _mintReceiver;
+        glpManager = _glpManager;
         maxTokenSupply = _maxTokenSupply;
 
         marginFeeBasisPoints = _marginFeeBasisPoints;
@@ -117,6 +119,10 @@ contract Timelock is ITimelock {
         isHandler[_handler] = _isActive;
     }
 
+    function setKeeper(address _keeper, bool _isActive) external onlyAdmin {
+        isKeeper[_keeper] = _isActive;
+    }
+
     function setBuffer(uint256 _buffer) external onlyAdmin {
         require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
         require(_buffer > buffer, "Timelock: buffer cannot be decreased");
@@ -132,17 +138,17 @@ contract Timelock is ITimelock {
       IVault(_vault).setMaxLeverage(_maxLeverage);
     }
 
-    function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyAdminOrHandler {
+    function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyKeeperAndAbove {
         require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _fundingRateFactor");
         require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _stableFundingRateFactor");
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
-    function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyAdminOrHandler {
+    function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyKeeperAndAbove {
         shouldToggleIsLeverageEnabled = _shouldToggleIsLeverageEnabled;
     }
 
-    function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyAdminOrHandler {
+    function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyKeeperAndAbove {
         marginFeeBasisPoints = _marginFeeBasisPoints;
         maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
     }
@@ -154,7 +160,7 @@ contract Timelock is ITimelock {
         uint256 _mintBurnFeeBasisPoints,
         uint256 _swapFeeBasisPoints,
         uint256 _stableSwapFeeBasisPoints
-    ) external onlyAdminOrHandler {
+    ) external onlyKeeperAndAbove {
         IVault vault = IVault(_vault);
 
         vault.setFees(
@@ -184,7 +190,7 @@ contract Timelock is ITimelock {
         uint256 _liquidationFeeUsd,
         uint256 _minProfitTime,
         bool _hasDynamicFees
-    ) external onlyAdminOrHandler {
+    ) external onlyKeeperAndAbove {
         marginFeeBasisPoints = _marginFeeBasisPoints;
 
         IVault(_vault).setFees(
@@ -200,7 +206,7 @@ contract Timelock is ITimelock {
         );
     }
 
-    function enableLeverage(address _vault) external override onlyAdminOrHandler {
+    function enableLeverage(address _vault) external override onlyKeeperAndAbove {
         IVault vault = IVault(_vault);
 
         if (shouldToggleIsLeverageEnabled) {
@@ -220,7 +226,7 @@ contract Timelock is ITimelock {
         );
     }
 
-    function disableLeverage(address _vault) external override onlyAdminOrHandler {
+    function disableLeverage(address _vault) external override onlyKeeperAndAbove {
         IVault vault = IVault(_vault);
 
         if (shouldToggleIsLeverageEnabled) {
@@ -240,7 +246,7 @@ contract Timelock is ITimelock {
         );
     }
 
-    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyAdminOrHandler {
+    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyKeeperAndAbove {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 
@@ -252,7 +258,7 @@ contract Timelock is ITimelock {
         uint256 _maxUsdgAmount,
         uint256 _bufferAmount,
         uint256 _usdgAmount
-    ) external onlyAdminOrHandler {
+    ) external onlyKeeperAndAbove {
         require(_minProfitBps <= 500, "Timelock: invalid _minProfitBps");
 
         IVault vault = IVault(_vault);
@@ -277,10 +283,30 @@ contract Timelock is ITimelock {
         IVault(_vault).setUsdgAmount(_token, _usdgAmount);
     }
 
-    function setUsdgAmounts(address _vault, address[] memory _tokens, uint256[] memory _usdgAmounts) external onlyAdminOrHandler {
+    function setUsdgAmounts(address _vault, address[] memory _tokens, uint256[] memory _usdgAmounts) external onlyKeeperAndAbove {
         for (uint256 i = 0; i < _tokens.length; i++) {
             IVault(_vault).setUsdgAmount(_tokens[i], _usdgAmounts[i]);
         }
+    }
+
+    function updateUsdgSupply(uint256 maxChange) external onlyKeeperAndAbove {
+        address usdg = IGlpManager(glpManager).usdg();
+        uint256 balance = IERC20(usdg).balanceOf(glpManager);
+        uint256 aumInUsdg = IGlpManager(glpManager).getAumInUsdg(true);
+
+        IUSDG(usdg).addVault(address(this));
+
+        if (balance > aumInUsdg) {
+            uint256 mintAmount = balance.sub(aumInUsdg);
+            require(mintAmount < maxChange, "Timelock: maxChange exceeded");
+            IUSDG(usdg).mint(glpManager, mintAmount);
+        } else {
+            uint256 burnAmount = aumInUsdg.sub(balance);
+            require(burnAmount < maxChange, "Timelock: maxChange exceeded");
+            IUSDG(usdg).burn(glpManager, burnAmount);
+        }
+
+        IUSDG(usdg).removeVault(address(this));
     }
 
     function setMaxGlobalShortSize(address _vault, address _token, uint256 _amount) external onlyAdmin {
@@ -291,19 +317,19 @@ contract Timelock is ITimelock {
         IYieldToken(_token).removeAdmin(_account);
     }
 
-    function setIsSwapEnabled(address _vault, bool _isSwapEnabled) external onlyAdminOrHandler {
+    function setIsSwapEnabled(address _vault, bool _isSwapEnabled) external onlyKeeperAndAbove {
         IVault(_vault).setIsSwapEnabled(_isSwapEnabled);
     }
 
-    function setTier(address _referralStorage, uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external onlyAdminOrHandler {
+    function setTier(address _referralStorage, uint256 _tierId, uint256 _totalRebate, uint256 _discountShare) external onlyKeeperAndAbove {
         IReferralStorage(_referralStorage).setTier(_tierId, _totalRebate, _discountShare);
     }
 
-    function setReferrerTier(address _referralStorage, address _referrer, uint256 _tierId) external onlyAdminOrHandler {
+    function setReferrerTier(address _referralStorage, address _referrer, uint256 _tierId) external onlyKeeperAndAbove {
         IReferralStorage(_referralStorage).setReferrerTier(_referrer, _tierId);
     }
 
-    function govSetCodeOwner(address _referralStorage, bytes32 _code, address _newAccount) external onlyAdminOrHandler {
+    function govSetCodeOwner(address _referralStorage, bytes32 _code, address _newAccount) external onlyKeeperAndAbove {
         IReferralStorage(_referralStorage).govSetCodeOwner(_code, _newAccount);
     }
 
@@ -338,15 +364,7 @@ contract Timelock is ITimelock {
         IBaseToken(_token).setInPrivateTransferMode(_inPrivateTransferMode);
     }
 
-    function managedSetHandler(address _target, address _handler, bool _isActive) external override onlyRewardManager {
-        IHandlerTarget(_target).setHandler(_handler, _isActive);
-    }
-
-    function managedSetMinter(address _target, address _minter, bool _isActive) external override onlyRewardManager {
-        IMintable(_target).setMinter(_minter, _isActive);
-    }
-
-    function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyAdmin {
+    function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyKeeperAndAbove {
         require(_accounts.length == _amounts.length, "Timelock: invalid lengths");
 
         if (!IHandlerTarget(_vester).isHandler(address(this))) {

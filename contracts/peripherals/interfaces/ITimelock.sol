@@ -8,6 +8,4 @@ interface ITimelock {
     function disableLeverage(address _vault) external;
     function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external;
     function signalSetGov(address _target, address _gov) external;
-    function managedSetHandler(address _target, address _handler, bool _isActive) external;
-    function managedSetMinter(address _target, address _minter, bool _isActive) external;
 }
