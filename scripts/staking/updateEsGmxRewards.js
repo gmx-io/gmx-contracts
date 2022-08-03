@@ -5,14 +5,14 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 const shouldSendTxn = true
 
-const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("25,000"), 18)
-const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("25,000"), 18)
+const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("0"), 18)
+const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("18,883"), 18)
 
-const stakedGmxOnArb = toInt("6,302,703")
-const stakedGmxOnAvax = toInt("499,099")
+const stakedGmxOnArb = toInt("6,317,382")
+const stakedGmxOnAvax = toInt("488,799")
 
-const stakedEsGmxOnArb = toInt("1,467,501")
-const stakedEsGmxOnAvax = toInt("220,724")
+const stakedEsGmxOnArb = toInt("1,479,177")
+const stakedEsGmxOnAvax = toInt("220,335")
 
 async function getArbValues(signer) {
   const gmxRewardTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4")
