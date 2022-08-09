@@ -131,6 +131,10 @@ contract PriceFeedTimelock {
         IVaultPriceFeed(_priceFeed).setPriceSampleSpace(_priceSampleSpace);
     }
 
+    function setVaultPriceFeed(address _fastPriceFeed, address _vaultPriceFeed) external onlyHandlerAndAbove {
+        IFastPriceFeed(_fastPriceFeed).setVaultPriceFeed(_vaultPriceFeed);
+    }
+
     function setMaxPriceUpdateDelay(address _fastPriceFeed, uint256 _maxPriceUpdateDelay) external onlyHandlerAndAbove {
         IFastPriceFeed(_fastPriceFeed).setMaxPriceUpdateDelay(_maxPriceUpdateDelay);
     }

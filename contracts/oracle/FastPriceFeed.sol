@@ -154,7 +154,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       fastPriceEvents = _fastPriceEvents;
     }
 
-    function setVaultPriceFeed(address _vaultPriceFeed) external onlyGov {
+    function setVaultPriceFeed(address _vaultPriceFeed) external override onlyGov {
       vaultPriceFeed = _vaultPriceFeed;
     }
 
@@ -411,7 +411,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
                     cumulativeFastDelta = 0;
                 }
 
-                cumulativeRefDelta = cumulativeRefDelta.add(refDeltaAmount.mul(CUMULATIVE_DELTA_PRECISION).div(refPrice));
+                cumulativeRefDelta = cumulativeRefDelta.add(refDeltaAmount.mul(CUMULATIVE_DELTA_PRECISION).div(prevRefPrice));
                 cumulativeFastDelta = cumulativeFastDelta.add(fastDeltaAmount.mul(CUMULATIVE_DELTA_PRECISION).div(fastPrice));
             }
 

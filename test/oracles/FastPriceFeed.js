@@ -20,15 +20,26 @@ describe("FastPriceFeed", function () {
 
   const [wallet, tokenManager, mintReceiver, user0, user1, user2, user3, signer0, signer1, updater0, updater1] = provider.getWallets()
   let bnb
+  let bnbPriceFeed
   let btc
+  let btcPriceFeed
   let eth
+  let ethPriceFeed
+  let vaultPriceFeed
   let fastPriceEvents
   let fastPriceFeed
 
   beforeEach(async () => {
+    vaultPriceFeed = await deployContract("VaultPriceFeed", [])
+
     bnb = await deployContract("Token", [])
+    bnbPriceFeed = await deployContract("PriceFeed", [])
+
     btc = await deployContract("Token", [])
+    btcPriceFeed = await deployContract("PriceFeed", [])
+
     eth = await deployContract("Token", [])
+    ethPriceFeed = await deployContract("PriceFeed", [])
 
     vault = await deployContract("Vault", [])
     timelock = await deployContract("Timelock", [
@@ -60,6 +71,10 @@ describe("FastPriceFeed", function () {
     await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
 
     await vault.setGov(timelock.address)
+
+    await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
+    await vaultPriceFeed.setTokenConfig(btc.address, btcPriceFeed.address, 8, false)
+    await vaultPriceFeed.setTokenConfig(eth.address, ethPriceFeed.address, 8, false)
   })
 
   it("inits", async () => {
@@ -648,5 +663,63 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.prices(token6.address)).eq(getExpandedPrice(price6, 1000))
     expect(await fastPriceFeed.prices(token7.address)).eq(getExpandedPrice(price7, 1000))
     expect(await fastPriceFeed.prices(token8.address)).eq(getExpandedPrice(price8, 100))
+  })
+
+  it("price data check", async () => {
+    await fastPriceFeed.connect(wallet).setUpdater(user0.address, true)
+    await fastPriceFeed.setMaxTimeDeviation(20000)
+    await fastPriceFeed.setMinBlockInterval(0)
+    await fastPriceFeed.setPriceDataInterval(300)
+    await fastPriceFeed.setMaxCumulativeDeltaDiff([bnb.address, eth.address], [7 * 10 * 1000 * 1000 / 100, 7 * 10 * 1000 * 1000 / 100])
+
+    let blockTime = await getBlockTime(provider)
+    const tx0 = await fastPriceFeed.connect(user0).setPrices([bnb.address], [500], blockTime)
+    await reportGasUsed(provider, tx0, "tx0 setPrices gas used")
+
+    expect(await fastPriceFeed.vaultPriceFeed()).eq(AddressZero)
+    await fastPriceFeed.setVaultPriceFeed(vaultPriceFeed.address)
+    expect(await fastPriceFeed.vaultPriceFeed()).eq(vaultPriceFeed.address)
+
+    let priceData = await fastPriceFeed.getPriceData(bnb.address)
+    expect(await priceData[0]).eq(0)
+    expect(await priceData[1]).eq(0)
+    expect(await priceData[2]).eq(0)
+    expect(await priceData[3]).eq(0)
+
+    await bnbPriceFeed.setLatestAnswer(600)
+
+    blockTime = await getBlockTime(provider)
+    const tx1 = await fastPriceFeed.connect(user0).setPrices([bnb.address], [550], blockTime)
+    await reportGasUsed(provider, tx1, "tx1 setPrices gas used")
+
+    priceData = await fastPriceFeed.getPriceData(bnb.address)
+    expect(await priceData[0]).eq(600)
+    expect(await priceData[1]).gt(blockTime - 10)
+    expect(await priceData[1]).lt(blockTime + 10)
+    expect(await priceData[2]).eq(0)
+    expect(await priceData[3]).eq(0)
+    expect(await fastPriceFeed.favorFastPrice(bnb.address)).eq(true)
+    expect(await fastPriceFeed.favorFastPrice(eth.address)).eq(true)
+
+    const tx2 = await fastPriceFeed.connect(user0).setPrices([bnb.address], [580], blockTime + 1)
+    await reportGasUsed(provider, tx2, "tx2 setPrices gas used")
+
+    priceData = await fastPriceFeed.getPriceData(bnb.address)
+    expect(await priceData[0]).eq(600)
+    expect(await priceData[2]).eq(0)
+    expect(await priceData[3]).eq(545454) // 545454 / (10 * 1000 * 1000) => ~5.45%, (30 / 550)
+    expect(await fastPriceFeed.favorFastPrice(bnb.address)).eq(true)
+    expect(await fastPriceFeed.favorFastPrice(eth.address)).eq(true)
+
+    await bnbPriceFeed.setLatestAnswer(590)
+    const tx3 = await fastPriceFeed.connect(user0).setPrices([bnb.address], [560], blockTime + 2)
+    await reportGasUsed(provider, tx3, "tx3 setPrices gas used")
+
+    priceData = await fastPriceFeed.getPriceData(bnb.address)
+    expect(await priceData[0]).eq(590)
+    expect(await priceData[2]).eq(166666) // 166666 / (10 * 1000 * 1000) => ~1.66%, (10 / 600) 
+    expect(await priceData[3]).eq(890281) // 890281 / (10 * 1000 * 1000) => ~8.90%, (30 / 550 + 20 / 580)
+    expect(await fastPriceFeed.favorFastPrice(bnb.address)).eq(false)
+    expect(await fastPriceFeed.favorFastPrice(eth.address)).eq(true)
   })
 })
