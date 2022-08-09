@@ -10,7 +10,7 @@ interface IFastPriceFeed {
     function setMaxPriceUpdateDelay(uint256 _maxPriceUpdateDelay) external;
     function setMinBlockInterval(uint256 _minBlockInterval) external;
     function setIsSpreadEnabled(bool _isSpreadEnabled) external;
-    function setAllowedDeviationBasisPoints(uint256 _allowedDeviationBasisPoints) external;
+    function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external;
     function setMaxCumulativeDeltaDiff(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external;
     function setPriceDataInterval(uint256 _priceDataInterval) external;
 }

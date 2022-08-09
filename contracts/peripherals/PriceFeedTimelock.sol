@@ -143,8 +143,8 @@ contract PriceFeedTimelock {
         IFastPriceFeed(_fastPriceFeed).setIsSpreadEnabled(_isSpreadEnabled);
     }
 
-    function setAllowedDeviationBasisPoints(address _fastPriceFeed, uint256 _allowedDeviationBasisPoints) external onlyAdmin {
-        IFastPriceFeed(_fastPriceFeed).setAllowedDeviationBasisPoints(_allowedDeviationBasisPoints);
+    function setMaxDeviationBasisPoints(address _fastPriceFeed, uint256 _maxDeviationBasisPoints) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setMaxDeviationBasisPoints(_maxDeviationBasisPoints);
     }
 
     function setMaxCumulativeDeltaDiff(address _fastPriceFeed, address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external onlyAdmin {

@@ -61,7 +61,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public priceDataInterval;
 
     // allowed deviation from primary price
-    uint256 public allowedDeviationBasisPoints;
+    uint256 public maxDeviationBasisPoints;
 
     uint256 public minAuthorizations;
     uint256 public disableFastPriceVoteCount = 0;
@@ -106,7 +106,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _priceDuration,
       uint256 _maxPriceUpdateDelay,
       uint256 _minBlockInterval,
-      uint256 _allowedDeviationBasisPoints,
+      uint256 _maxDeviationBasisPoints,
       address _fastPriceEvents,
       address _tokenManager,
       address _positionRouter
@@ -115,7 +115,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         priceDuration = _priceDuration;
         maxPriceUpdateDelay = _maxPriceUpdateDelay;
         minBlockInterval = _minBlockInterval;
-        allowedDeviationBasisPoints = _allowedDeviationBasisPoints;
+        maxDeviationBasisPoints = _maxDeviationBasisPoints;
         fastPriceEvents = _fastPriceEvents;
         tokenManager = _tokenManager;
         positionRouter = _positionRouter;
@@ -179,8 +179,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         isSpreadEnabled = _isSpreadEnabled;
     }
 
-    function setAllowedDeviationBasisPoints(uint256 _allowedDeviationBasisPoints) external override onlyGov {
-        allowedDeviationBasisPoints = _allowedDeviationBasisPoints;
+    function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external override onlyGov {
+        maxDeviationBasisPoints = _maxDeviationBasisPoints;
     }
 
     function setMaxCumulativeDeltaDiff(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyGov {
@@ -303,7 +303,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     //
     // there will be a spread from the _refPrice to the fastPrice in the following cases:
     // - in case isSpreadEnabled is set to true
-    // - in case the allowedDeviationBasisPoints between _refPrice and fastPrice is exceeded
+    // - in case the maxDeviationBasisPoints between _refPrice and fastPrice is exceeded
     // - in case watchers flag an issue
     // - in case the cumulativeFastDelta exceeds the cumulativeRefDelta by the maxCumulativeDeltaDiff
     function getPrice(address _token, uint256 _refPrice, bool _maximise) external override view returns (uint256) {
@@ -329,9 +329,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         uint256 diffBasisPoints = _refPrice > fastPrice ? _refPrice.sub(fastPrice) : fastPrice.sub(_refPrice);
         diffBasisPoints = diffBasisPoints.mul(BASIS_POINTS_DIVISOR).div(_refPrice);
 
-        // create a spread between the _refPrice and the fastPrice if the allowedDeviationBasisPoints is exceeded
+        // create a spread between the _refPrice and the fastPrice if the maxDeviationBasisPoints is exceeded
         // or if watchers have flagged an issue with the fast price
-        bool hasSpread = !favorFastPrice(_token) || diffBasisPoints > allowedDeviationBasisPoints;
+        bool hasSpread = !favorFastPrice(_token) || diffBasisPoints > maxDeviationBasisPoints;
 
         if (hasSpread) {
             // return the higher of the two prices

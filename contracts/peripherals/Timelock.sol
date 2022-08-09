@@ -129,10 +129,6 @@ contract Timelock is ITimelock {
         buffer = _buffer;
     }
 
-    function mint(address _token, uint256 _amount) external onlyAdmin {
-        _mint(_token, mintReceiver, _amount);
-    }
-
     function setMaxLeverage(address _vault, uint256 _maxLeverage) external onlyAdmin {
       require(_maxLeverage > MAX_LEVERAGE_VALIDATION, "Timelock: invalid _maxLeverage");
       IVault(_vault).setMaxLeverage(_maxLeverage);
@@ -144,11 +140,11 @@ contract Timelock is ITimelock {
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
-    function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyKeeperAndAbove {
+    function setShouldToggleIsLeverageEnabled(bool _shouldToggleIsLeverageEnabled) external onlyHandlerAndAbove {
         shouldToggleIsLeverageEnabled = _shouldToggleIsLeverageEnabled;
     }
 
-    function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyKeeperAndAbove {
+    function setMarginFeeBasisPoints(uint256 _marginFeeBasisPoints, uint256 _maxMarginFeeBasisPoints) external onlyHandlerAndAbove {
         marginFeeBasisPoints = _marginFeeBasisPoints;
         maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
     }
@@ -206,7 +202,7 @@ contract Timelock is ITimelock {
         );
     }
 
-    function enableLeverage(address _vault) external override onlyKeeperAndAbove {
+    function enableLeverage(address _vault) external override onlyHandlerAndAbove {
         IVault vault = IVault(_vault);
 
         if (shouldToggleIsLeverageEnabled) {
@@ -226,7 +222,7 @@ contract Timelock is ITimelock {
         );
     }
 
-    function disableLeverage(address _vault) external override onlyKeeperAndAbove {
+    function disableLeverage(address _vault) external override onlyHandlerAndAbove {
         IVault vault = IVault(_vault);
 
         if (shouldToggleIsLeverageEnabled) {
@@ -246,7 +242,7 @@ contract Timelock is ITimelock {
         );
     }
 
-    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyKeeperAndAbove {
+    function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyHandlerAndAbove {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
     }
 
