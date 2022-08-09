@@ -32,14 +32,14 @@ describe("TokenManager", function () {
     nft1 = await deployContract("ERC721", ["NFT1", "NFT1"])
 
     timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      user0.address,
-      tokenManager.address,
-      user2.address,
-      expandDecimals(1000, 18),
-      10,
-      100
+      wallet.address, // admin
+      5 * 24 * 60 * 60, // buffer
+      tokenManager.address, // tokenManager
+      user2.address, // mintReceiver
+      user0.address, // glpManager
+      expandDecimals(1000, 18), // maxTokenSupply
+      10, // marginFeeBasisPoints
+      100 // maxMarginFeeBasisPoints
     ])
 
     gmxTimelock = await deployContract("GmxTimelock", [
