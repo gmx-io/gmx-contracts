@@ -289,20 +289,17 @@ contract Timelock is ITimelock {
         }
     }
 
-    function updateUsdgSupply(uint256 maxChange) external onlyKeeperAndAbove {
+    function updateUsdgSupply(uint256 usdgAmount) external onlyKeeperAndAbove {
         address usdg = IGlpManager(glpManager).usdg();
         uint256 balance = IERC20(usdg).balanceOf(glpManager);
-        uint256 aumInUsdg = IGlpManager(glpManager).getAumInUsdg(true);
 
         IUSDG(usdg).addVault(address(this));
 
-        if (balance > aumInUsdg) {
-            uint256 mintAmount = balance.sub(aumInUsdg);
-            require(mintAmount < maxChange, "Timelock: maxChange exceeded");
+        if (usdgAmount > balance) {
+            uint256 mintAmount = usdgAmount.sub(balance);
             IUSDG(usdg).mint(glpManager, mintAmount);
         } else {
-            uint256 burnAmount = aumInUsdg.sub(balance);
-            require(burnAmount < maxChange, "Timelock: maxChange exceeded");
+            uint256 burnAmount = balance.sub(usdgAmount);
             IUSDG(usdg).burn(glpManager, burnAmount);
         }
 
