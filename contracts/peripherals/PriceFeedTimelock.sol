@@ -131,6 +131,30 @@ contract PriceFeedTimelock {
         IVaultPriceFeed(_priceFeed).setPriceSampleSpace(_priceSampleSpace);
     }
 
+    function setMaxPriceUpdateDelay(address _fastPriceFeed, uint256 _maxPriceUpdateDelay) external onlyHandlerAndAbove {
+        IFastPriceFeed(_fastPriceFeed).setMaxPriceUpdateDelay(_maxPriceUpdateDelay);
+    }
+
+    function setMinBlockInterval(address _fastPriceFeed, uint256 _minBlockInterval) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setMinBlockInterval(_minBlockInterval);
+    }
+
+    function setIsSpreadEnabled(address _fastPriceFeed, bool _isSpreadEnabled) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setIsSpreadEnabled(_isSpreadEnabled);
+    }
+
+    function setAllowedDeviationBasisPoints(address _fastPriceFeed, uint256 _allowedDeviationBasisPoints) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setAllowedDeviationBasisPoints(_allowedDeviationBasisPoints);
+    }
+
+    function setMaxCumulativeDeltaDiff(address _fastPriceFeed, address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setMaxCumulativeDeltaDiff(_tokens, _maxCumulativeDeltaDiffs);
+    }
+
+    function setPriceDataInterval(address _fastPriceFeed, uint256 _priceDataInterval) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setPriceDataInterval(_priceDataInterval);
+    }
+
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {
         IERC20(_token).transferFrom(_sender, address(this), _amount);
     }
@@ -185,6 +209,19 @@ contract PriceFeedTimelock {
         _validateAction(action);
         _clearAction(action);
         IFastPriceFeed(_fastPriceFeed).setSigner(_account, _isActive);
+    }
+
+    function signalSetPriceFeedUpdater(address _fastPriceFeed, address _account, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setPriceFeedUpdater", _fastPriceFeed, _account, _isActive));
+        _setPendingAction(action);
+        emit SignalSetPriceFeedWatcher(_fastPriceFeed, _account, _isActive);
+    }
+
+    function setPriceFeedUpdater(address _fastPriceFeed, address _account, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setPriceFeedUpdater", _fastPriceFeed, _account, _isActive));
+        _validateAction(action);
+        _clearAction(action);
+        IFastPriceFeed(_fastPriceFeed).setUpdater(_account, _isActive);
     }
 
     function signalPriceFeedSetTokenConfig(

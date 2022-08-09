@@ -146,7 +146,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         isSigner[_account] = _isActive;
     }
 
-    function setUpdater(address _account, bool _isActive) external onlyGov {
+    function setUpdater(address _account, bool _isActive) external override onlyGov {
         isUpdater[_account] = _isActive;
     }
 
@@ -163,11 +163,15 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         priceDuration = _priceDuration;
     }
 
-    function setMaxPriceUpdateDelay(uint256 _maxPriceUpdateDelay) external onlyGov {
+    function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
+        maxTimeDeviation = _maxTimeDeviation;
+    }
+
+    function setMaxPriceUpdateDelay(uint256 _maxPriceUpdateDelay) external override onlyGov {
         maxPriceUpdateDelay = _maxPriceUpdateDelay;
     }
 
-    function setMinBlockInterval(uint256 _minBlockInterval) external onlyGov {
+    function setMinBlockInterval(uint256 _minBlockInterval) external override onlyGov {
         minBlockInterval = _minBlockInterval;
     }
 
@@ -175,18 +179,18 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         isSpreadEnabled = _isSpreadEnabled;
     }
 
-    function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
-        maxTimeDeviation = _maxTimeDeviation;
+    function setAllowedDeviationBasisPoints(uint256 _allowedDeviationBasisPoints) external override onlyGov {
+        allowedDeviationBasisPoints = _allowedDeviationBasisPoints;
     }
 
-    function setMaxCumulativeDeltaDiff(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external onlyGov {
+    function setMaxCumulativeDeltaDiff(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyGov {
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             maxCumulativeDeltaDiffs[token] = _maxCumulativeDeltaDiffs[i];
         }
     }
 
-    function setPriceDataInterval(uint256 _priceDataInterval) external onlyGov {
+    function setPriceDataInterval(uint256 _priceDataInterval) external override onlyGov {
         priceDataInterval = _priceDataInterval;
     }
 
