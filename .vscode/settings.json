@@ -1,0 +1,3 @@
+{
+    "solidity.defaultCompiler": "localNodeModule"
+}

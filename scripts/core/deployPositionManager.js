@@ -64,6 +64,21 @@ async function getAvaxValues() {
   return { vault, timelock, router, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
 }
 
+async function getArbTestnetValues() {
+  const vault = await contractAt("Vault", "0xBc9BC47A7aB63db1E0030dC7B60DDcDe29CF4Ffb")
+  const timelock = await contractAt("Timelock", await vault.gov())
+  const router = await contractAt("Router", "0xe0d4662cdfa2d71477A7DF367d5541421FAC2547")
+  const weth = await contractAt("WETH", "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681")
+  const orderBook = await contractAt("OrderBook", "0xebD147E5136879520dDaDf1cA8FBa48050EFf016")
+
+  const orderKeeper = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // G
+  const liquidator = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // G
+
+  const partnerContracts = []
+
+  return { vault, timelock, router, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
+}
+
 async function getValues() {
   if (network === "arbitrum") {
     return getArbValues()
@@ -72,18 +87,22 @@ async function getValues() {
   if (network === "avax") {
     return getAvaxValues()
   }
+
+  if (network === "arbitrumTestnet") {
+    return getArbTestnetValues()
+  }
 }
 
 async function main() {
   const { vault, timelock, router, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts } = await getValues()
 
-  // const positionManager = await deployContract("PositionManager", [vault.address, router.address, weth.address, depositFee, orderBook.address])
-  const positionManager = await contractAt("PositionManager", "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831")
-  // await sendTxn(positionManager.setOrderKeeper(orderKeeper.address, true), "positionManager.setOrderKeeper(orderKeeper)")
-  // await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
-  // await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
-  // await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
-  // await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
+  const positionManager = await deployContract("PositionManager", [vault.address, router.address, weth.address, depositFee, orderBook.address])
+  // const positionManager = await contractAt("PositionManager", "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831")
+  await sendTxn(positionManager.setOrderKeeper(orderKeeper.address, true), "positionManager.setOrderKeeper(orderKeeper)")
+  await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
+  await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
+  await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
+  await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
 
   for (let i = 0; i < partnerContracts.length; i++) {
     const partnerContract = partnerContracts[i]

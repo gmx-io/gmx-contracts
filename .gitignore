@@ -11,6 +11,8 @@ data/snapshotBalance
 data/holders
 flattened
 distribution-data*.json
+.DS_Store
+**/.DS_Store
 
 #Hardhat files
 cache

@@ -3,6 +3,17 @@ const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
+async function getArbTestnetValues() {
+  const vault = await contractAt("Vault", "0xBc9BC47A7aB63db1E0030dC7B60DDcDe29CF4Ffb")
+  const tokenManager = { address: "0x8226EC2c1926c9162b6F815153d10018A7ccdf07" }
+  const mintReceiver = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // G
+
+  const positionRouter = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // FAKE
+  const positionManager = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // FAKE
+
+  return { vault, tokenManager, mintReceiver, positionRouter, positionManager }
+}
+
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const tokenManager = { address: "0x7b78CeEa0a89040873277e279C40a08dE59062f5" }
@@ -28,18 +39,16 @@ async function getAvaxValues() {
 async function getValues() {
   if (network === "arbitrum") {
     return getArbValues()
-  }
-
-  if (network === "avax") {
+  } else if (network === "avax") {
     return getAvaxValues()
+  } else if (network === "arbitrumTestnet") {
+    return getArbTestnetValues()
   }
 }
 
 async function main() {
-  const signer = await getFrameSigner()
-
-  const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
-  const buffer = 24 * 60 * 60
+  const admin = "0xFb11f15f206bdA02c224EDC744b0E50E46137046"
+  const buffer = 0
   const rewardManager = { address: ethers.constants.AddressZero }
   const maxTokenSupply = expandDecimals("13250000", 18)
 
@@ -56,26 +65,29 @@ async function main() {
     100 // maxMarginFeeBasisPoints 1%
   ], "Timelock")
 
-  const deployedTimelock = await contractAt("Timelock", timelock.address, signer)
+  const deployedTimelock = await contractAt("Timelock", timelock.address)
 
   await sendTxn(deployedTimelock.setShouldToggleIsLeverageEnabled(true), "deployedTimelock.setShouldToggleIsLeverageEnabled(true)")
   await sendTxn(deployedTimelock.setContractHandler(positionRouter.address, true), "deployedTimelock.setContractHandler(positionRouter)")
   await sendTxn(deployedTimelock.setContractHandler(positionManager.address, true), "deployedTimelock.setContractHandler(positionManager)")
 
-  // // update gov of vault, vaultPriceFeed, fastPriceFeed
-  const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
+  await vault.setGov(deployedTimelock.address)
   const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
-  const vaultPriceFeedGov = await contractAt("Timelock", await vaultPriceFeed.gov(), signer)
-  const fastPriceFeed = await contractAt("FastPriceFeed", await vaultPriceFeed.secondaryPriceFeed())
-  const fastPriceFeedGov = await contractAt("Timelock", await fastPriceFeed.gov(), signer)
+  await vaultPriceFeed.setGov(deployedTimelock.address)
 
-  await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
-  await sendTxn(vaultPriceFeedGov.signalSetGov(vaultPriceFeed.address, deployedTimelock.address), "vaultPriceFeedGov.signalSetGov")
-  await sendTxn(fastPriceFeedGov.signalSetGov(fastPriceFeed.address, deployedTimelock.address), "fastPriceFeedGov.signalSetGov")
+  // // update gov of vault, vaultPriceFeed, fastPriceFeed
+  // const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
+  // const vaultPriceFeedGov = await contractAt("Timelock", await vaultPriceFeed.gov(), signer)
+  // const fastPriceFeed = await contractAt("FastPriceFeed", await vaultPriceFeed.secondaryPriceFeed())
+  // const fastPriceFeedGov = await contractAt("Timelock", await fastPriceFeed.gov(), signer)
 
-  await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
-  await sendTxn(deployedTimelock.signalSetGov(vaultPriceFeed.address, vaultPriceFeedGov.address), "deployedTimelock.signalSetGov(vaultPriceFeed)")
-  await sendTxn(deployedTimelock.signalSetGov(fastPriceFeed.address, fastPriceFeedGov.address), "deployedTimelock.signalSetGov(fastPriceFeed)")
+  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
+  // await sendTxn(vaultPriceFeedGov.signalSetGov(vaultPriceFeed.address, deployedTimelock.address), "vaultPriceFeedGov.signalSetGov")
+  // await sendTxn(fastPriceFeedGov.signalSetGov(fastPriceFeed.address, deployedTimelock.address), "fastPriceFeedGov.signalSetGov")
+
+  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
+  // await sendTxn(deployedTimelock.signalSetGov(vaultPriceFeed.address, vaultPriceFeedGov.address), "deployedTimelock.signalSetGov(vaultPriceFeed)")
+  // await sendTxn(deployedTimelock.signalSetGov(fastPriceFeed.address, fastPriceFeedGov.address), "deployedTimelock.signalSetGov(fastPriceFeed)")
 
   const signers = [
     "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada

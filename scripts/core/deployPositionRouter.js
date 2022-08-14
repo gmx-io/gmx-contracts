@@ -5,6 +5,27 @@ const { toUsd } = require("../../test/shared/units")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+async function deployOnArbTestnet() {
+  const vault = await contractAt("Vault", "0xBc9BC47A7aB63db1E0030dC7B60DDcDe29CF4Ffb")
+  const timelock = await contractAt("Timelock", await vault.gov())
+  const router = await contractAt("Router", "0xe0d4662cdfa2d71477A7DF367d5541421FAC2547")
+  const weth = await contractAt("WETH", "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681")
+  // const referralStorage = await contractAt("ReferralStorage", "0x2249D006A8cCdF4C99Aa6c8B9502a2aeCC923392")
+  const depositFee = "30" // 0.3%
+  const minExecutionFee = "300000000000000" // 0.0003 ETH
+
+  const positionRouter = await deployContract("PositionRouter", [vault.address, router.address, weth.address, depositFee, minExecutionFee], "PositionRouter", { gasLimit: 12500000 })
+  // const positionRouter = await contractAt("PositionRouter", "0x338fF5b9d64484c8890704a76FE7166Ed7d3AEAd")
+
+  // await sendTxn(positionRouter.setReferralStorage(referralStorage.address), "positionRouter.setReferralStorage")
+  // await sendTxn(referralStorage.setHandler(positionRouter.address, true), "referralStorage.setHandler(positionRouter)")
+
+  await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin")
+
+  await sendTxn(positionRouter.setDelayValues(1, 180, 30 * 60), "positionRouter.setDelayValues")
+  await sendTxn(timelock.setContractHandler(positionRouter.address, true), "timelock.setContractHandler(positionRouter)")
+}
+
 async function deployOnArb() {
   const signer = await getFrameSigner()
 
@@ -54,10 +75,11 @@ async function deployOnAvax() {
 async function main() {
   if (network === "avax") {
     await deployOnAvax()
-    return
+  } else if (network === "arbitrumTestnet") {
+    await deployOnArbTestnet()
+  } else {
+    await deployOnArb()
   }
-
-  await deployOnArb()
 }
 
 main()
