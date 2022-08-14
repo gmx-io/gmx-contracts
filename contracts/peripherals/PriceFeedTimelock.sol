@@ -106,15 +106,15 @@ contract PriceFeedTimelock {
         IVaultPriceFeed(_priceFeed).setIsAmmEnabled(_isEnabled);
     }
 
-    function setIsSecondaryPriceEnabled(address _priceFeed, bool _isEnabled) external onlyHandlerAndAbove {
+    function setIsSecondaryPriceEnabled(address _priceFeed, bool _isEnabled) external onlyAdmin {
         IVaultPriceFeed(_priceFeed).setIsSecondaryPriceEnabled(_isEnabled);
     }
 
-    function setMaxStrictPriceDeviation(address _priceFeed, uint256 _maxStrictPriceDeviation) external onlyHandlerAndAbove {
+    function setMaxStrictPriceDeviation(address _priceFeed, uint256 _maxStrictPriceDeviation) external onlyAdmin {
         IVaultPriceFeed(_priceFeed).setMaxStrictPriceDeviation(_maxStrictPriceDeviation);
     }
 
-    function setUseV2Pricing(address _priceFeed, bool _useV2Pricing) external onlyHandlerAndAbove {
+    function setUseV2Pricing(address _priceFeed, bool _useV2Pricing) external onlyAdmin {
         IVaultPriceFeed(_priceFeed).setUseV2Pricing(_useV2Pricing);
     }
 
@@ -131,12 +131,24 @@ contract PriceFeedTimelock {
         IVaultPriceFeed(_priceFeed).setPriceSampleSpace(_priceSampleSpace);
     }
 
-    function setVaultPriceFeed(address _fastPriceFeed, address _vaultPriceFeed) external onlyHandlerAndAbove {
+    function setVaultPriceFeed(address _fastPriceFeed, address _vaultPriceFeed) external onlyAdmin {
         IFastPriceFeed(_fastPriceFeed).setVaultPriceFeed(_vaultPriceFeed);
+    }
+
+    function setPriceDuration(address _fastPriceFeed, uint256 _priceDuration) external onlyHandlerAndAbove {
+        IFastPriceFeed(_fastPriceFeed).setPriceDuration(_priceDuration);
     }
 
     function setMaxPriceUpdateDelay(address _fastPriceFeed, uint256 _maxPriceUpdateDelay) external onlyHandlerAndAbove {
         IFastPriceFeed(_fastPriceFeed).setMaxPriceUpdateDelay(_maxPriceUpdateDelay);
+    }
+
+    function setSpreadBasisPointsIfInactive(address _fastPriceFeed, uint256 _spreadBasisPointsIfInactive) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setSpreadBasisPointsIfInactive(_spreadBasisPointsIfInactive);
+    }
+
+    function setSpreadBasisPointsIfChainError(address _fastPriceFeed, uint256 _spreadBasisPointsIfChainError) external onlyAdmin {
+        IFastPriceFeed(_fastPriceFeed).setSpreadBasisPointsIfChainError(_spreadBasisPointsIfChainError);
     }
 
     function setMinBlockInterval(address _fastPriceFeed, uint256 _minBlockInterval) external onlyAdmin {

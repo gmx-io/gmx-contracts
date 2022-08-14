@@ -162,7 +162,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxTimeDeviation = _maxTimeDeviation;
     }
 
-    function setPriceDuration(uint256 _priceDuration) external onlyGov {
+    function setPriceDuration(uint256 _priceDuration) external override onlyGov {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
     }
@@ -171,11 +171,11 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxPriceUpdateDelay = _maxPriceUpdateDelay;
     }
 
-    function setSpreadBasisPointsIfInactive(uint256 _spreadBasisPointsIfInactive) external onlyGov {
+    function setSpreadBasisPointsIfInactive(uint256 _spreadBasisPointsIfInactive) external override onlyGov {
         spreadBasisPointsIfInactive = _spreadBasisPointsIfInactive;
     }
 
-    function setSpreadBasisPointsIfChainError(uint256 _spreadBasisPointsIfChainError) external onlyGov {
+    function setSpreadBasisPointsIfChainError(uint256 _spreadBasisPointsIfChainError) external override onlyGov {
         spreadBasisPointsIfChainError = _spreadBasisPointsIfChainError;
     }
 
