@@ -158,17 +158,25 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       vaultPriceFeed = _vaultPriceFeed;
     }
 
+    function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
+        maxTimeDeviation = _maxTimeDeviation;
+    }
+
     function setPriceDuration(uint256 _priceDuration) external onlyGov {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
         priceDuration = _priceDuration;
     }
 
-    function setMaxTimeDeviation(uint256 _maxTimeDeviation) external onlyGov {
-        maxTimeDeviation = _maxTimeDeviation;
-    }
-
     function setMaxPriceUpdateDelay(uint256 _maxPriceUpdateDelay) external override onlyGov {
         maxPriceUpdateDelay = _maxPriceUpdateDelay;
+    }
+
+    function setSpreadBasisPointsIfInactive(uint256 _spreadBasisPointsIfInactive) external onlyGov {
+        spreadBasisPointsIfInactive = _spreadBasisPointsIfInactive;
+    }
+
+    function setSpreadBasisPointsIfChainError(uint256 _spreadBasisPointsIfChainError) external onlyGov {
+        spreadBasisPointsIfChainError = _spreadBasisPointsIfChainError;
     }
 
     function setMinBlockInterval(uint256 _minBlockInterval) external override onlyGov {
@@ -454,8 +462,9 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             require(block.number.sub(lastUpdatedBlock) >= minBlockInterval, "FastPriceFeed: minBlockInterval not yet passed");
         }
 
-        require(_timestamp > block.timestamp.sub(maxTimeDeviation), "FastPriceFeed: _timestamp below allowed range");
-        require(_timestamp < block.timestamp.add(maxTimeDeviation), "FastPriceFeed: _timestamp exceeds allowed range");
+        uint256 _maxTimeDeviation = maxTimeDeviation;
+        require(_timestamp > block.timestamp.sub(_maxTimeDeviation), "FastPriceFeed: _timestamp below allowed range");
+        require(_timestamp < block.timestamp.add(_maxTimeDeviation), "FastPriceFeed: _timestamp exceeds allowed range");
 
         // do not update prices if _timestamp is before the current lastUpdatedAt value
         if (_timestamp < lastUpdatedAt) {
