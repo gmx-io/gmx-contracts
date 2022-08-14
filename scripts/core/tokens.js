@@ -156,7 +156,7 @@ module.exports = {
       bufferAmount: 30000,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 20 * 1000 * 1000,
+      maxGlobalShortSize: 30 * 1000 * 1000,
     },
     usdc: {
       name: "usdc",
@@ -285,7 +285,7 @@ module.exports = {
       bufferAmount: 300000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 4 * 1000 * 1000,
+      maxGlobalLongSize: 5 * 1000 * 1000,
       maxGlobalShortSize: 3 * 1000 * 1000,
       spreadBasisPoints: 7
     },
@@ -303,7 +303,7 @@ module.exports = {
       bufferAmount: 6000,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 5 * 1000 * 1000
+      maxGlobalShortSize: 7 * 1000 * 1000
     },
     btc: {
       name: "btc",
@@ -319,7 +319,7 @@ module.exports = {
       bufferAmount: 350,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 5 * 1000 * 1000
+      maxGlobalShortSize: 7 * 1000 * 1000
     },
     mim: {
       name: "mim",
