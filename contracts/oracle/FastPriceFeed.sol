@@ -191,7 +191,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
     }
 
-    function setMaxCumulativeDeltaDiff(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyGov {
+    function setMaxCumulativeDeltaDiffs(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyGov {
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             maxCumulativeDeltaDiffs[token] = _maxCumulativeDeltaDiffs[i];

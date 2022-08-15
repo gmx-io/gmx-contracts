@@ -247,8 +247,8 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(100)
   })
 
-  it("setMaxCumulativeDeltaDiff", async () => {
-    await expect(fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiff([btc.address, eth.address], [300, 500]))
+  it("setMaxCumulativeDeltaDiffs", async () => {
+    await expect(fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiffs([btc.address, eth.address], [300, 500]))
       .to.be.revertedWith("Governable: forbidden")
 
     await fastPriceFeed.setGov(user0.address)
@@ -256,7 +256,7 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(0)
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(eth.address)).eq(0)
 
-    await fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiff([btc.address, eth.address], [300, 500])
+    await fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiffs([btc.address, eth.address], [300, 500])
 
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(300)
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(eth.address)).eq(500)
@@ -740,7 +740,7 @@ describe("FastPriceFeed", function () {
     await fastPriceFeed.setMaxTimeDeviation(20000)
     await fastPriceFeed.setMinBlockInterval(0)
     await fastPriceFeed.setPriceDataInterval(300)
-    await fastPriceFeed.setMaxCumulativeDeltaDiff([bnb.address, eth.address], [7 * 10 * 1000 * 1000 / 100, 7 * 10 * 1000 * 1000 / 100])
+    await fastPriceFeed.setMaxCumulativeDeltaDiffs([bnb.address, eth.address], [7 * 10 * 1000 * 1000 / 100, 7 * 10 * 1000 * 1000 / 100])
 
     let blockTime = await getBlockTime(provider)
     const tx0 = await fastPriceFeed.connect(user0).setPrices([bnb.address], [500], blockTime)
