@@ -143,6 +143,28 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.fastPriceEvents()).eq(user1.address)
   })
 
+  it("setVaultPriceFeed", async () => {
+    await expect(fastPriceFeed.connect(user0).setVaultPriceFeed(vaultPriceFeed.address))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await fastPriceFeed.setGov(user0.address)
+
+    expect(await fastPriceFeed.vaultPriceFeed()).eq(AddressZero)
+    await fastPriceFeed.connect(user0).setVaultPriceFeed(vaultPriceFeed.address)
+    expect(await fastPriceFeed.vaultPriceFeed()).eq(vaultPriceFeed.address)
+  })
+
+  it("setMaxTimeDeviation", async () => {
+    await expect(fastPriceFeed.connect(user0).setMaxTimeDeviation(1000))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await fastPriceFeed.setGov(user0.address)
+
+    expect(await fastPriceFeed.maxTimeDeviation()).eq(0)
+    await fastPriceFeed.connect(user0).setMaxTimeDeviation(1000)
+    expect(await fastPriceFeed.maxTimeDeviation()).eq(1000)
+  })
+
   it("setPriceDuration", async () => {
     await expect(fastPriceFeed.connect(user0).setPriceDuration(30 * 60))
       .to.be.revertedWith("Governable: forbidden")
@@ -155,6 +177,39 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.priceDuration()).eq(5 * 60)
     await fastPriceFeed.connect(user0).setPriceDuration(30 * 60)
     expect(await fastPriceFeed.priceDuration()).eq(30 * 60)
+  })
+
+  it("setMaxPriceUpdateDelay", async () => {
+    await expect(fastPriceFeed.connect(user0).setMaxPriceUpdateDelay(50 * 60))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await fastPriceFeed.setGov(user0.address)
+
+    expect(await fastPriceFeed.maxPriceUpdateDelay()).eq(2 * 60 * 60)
+    await fastPriceFeed.connect(user0).setMaxPriceUpdateDelay(50 * 60)
+    expect(await fastPriceFeed.maxPriceUpdateDelay()).eq(50 * 60)
+  })
+
+  it("setSpreadBasisPointsIfInactive", async () => {
+    await expect(fastPriceFeed.connect(user0).setSpreadBasisPointsIfInactive(30))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await fastPriceFeed.setGov(user0.address)
+
+    expect(await fastPriceFeed.spreadBasisPointsIfInactive()).eq(0)
+    await fastPriceFeed.connect(user0).setSpreadBasisPointsIfInactive(30)
+    expect(await fastPriceFeed.spreadBasisPointsIfInactive()).eq(30)
+  })
+
+  it("setSpreadBasisPointsIfChainError", async () => {
+    await expect(fastPriceFeed.connect(user0).setSpreadBasisPointsIfChainError(500))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await fastPriceFeed.setGov(user0.address)
+
+    expect(await fastPriceFeed.spreadBasisPointsIfChainError()).eq(0)
+    await fastPriceFeed.connect(user0).setSpreadBasisPointsIfChainError(500)
+    expect(await fastPriceFeed.spreadBasisPointsIfChainError()).eq(500)
   })
 
   it("setMinBlockInterval", async () => {
@@ -181,15 +236,41 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(false)
   })
 
-  it("setMaxTimeDeviation", async () => {
-    await expect(fastPriceFeed.connect(user0).setMaxTimeDeviation(1000))
+  it("setMaxDeviationBasisPoints", async () => {
+    await expect(fastPriceFeed.connect(user0).setMaxDeviationBasisPoints(100))
       .to.be.revertedWith("Governable: forbidden")
 
     await fastPriceFeed.setGov(user0.address)
 
-    expect(await fastPriceFeed.maxTimeDeviation()).eq(0)
-    await fastPriceFeed.connect(user0).setMaxTimeDeviation(1000)
-    expect(await fastPriceFeed.maxTimeDeviation()).eq(1000)
+    expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(250)
+    await fastPriceFeed.connect(user0).setMaxDeviationBasisPoints(100)
+    expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(100)
+  })
+
+  it("setMaxCumulativeDeltaDiff", async () => {
+    await expect(fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiff([btc.address, eth.address], [300, 500]))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await fastPriceFeed.setGov(user0.address)
+
+    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(0)
+    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(eth.address)).eq(0)
+
+    await fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiff([btc.address, eth.address], [300, 500])
+
+    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(300)
+    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(eth.address)).eq(500)
+  })
+
+  it("setPriceDataInterval", async () => {
+    await expect(fastPriceFeed.connect(user0).setPriceDataInterval(300))
+      .to.be.revertedWith("Governable: forbidden")
+
+    await fastPriceFeed.setGov(user0.address)
+
+    expect(await fastPriceFeed.priceDataInterval()).eq(0)
+    await fastPriceFeed.connect(user0).setPriceDataInterval(300)
+    expect(await fastPriceFeed.priceDataInterval()).eq(300)
   })
 
   it("setLastUpdatedAt", async () => {
@@ -201,17 +282,6 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.lastUpdatedAt()).eq(0)
     await fastPriceFeed.connect(user0).setLastUpdatedAt(700)
     expect(await fastPriceFeed.lastUpdatedAt()).eq(700)
-  })
-
-  it("setMaxDeviationBasisPoints", async () => {
-    await expect(fastPriceFeed.connect(user0).setMaxDeviationBasisPoints(100))
-      .to.be.revertedWith("Governable: forbidden")
-
-    await fastPriceFeed.setGov(user0.address)
-
-    expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(250)
-    await fastPriceFeed.connect(user0).setMaxDeviationBasisPoints(100)
-    expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(100)
   })
 
   it("setMinAuthorizations", async () => {
@@ -717,7 +787,7 @@ describe("FastPriceFeed", function () {
 
     priceData = await fastPriceFeed.getPriceData(bnb.address)
     expect(await priceData[0]).eq(590)
-    expect(await priceData[2]).eq(166666) // 166666 / (10 * 1000 * 1000) => ~1.66%, (10 / 600) 
+    expect(await priceData[2]).eq(166666) // 166666 / (10 * 1000 * 1000) => ~1.66%, (10 / 600)
     expect(await priceData[3]).eq(890281) // 890281 / (10 * 1000 * 1000) => ~8.90%, (30 / 550 + 20 / 580)
     expect(await fastPriceFeed.favorFastPrice(bnb.address)).eq(false)
     expect(await fastPriceFeed.favorFastPrice(eth.address)).eq(true)
