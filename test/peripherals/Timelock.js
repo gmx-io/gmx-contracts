@@ -12,8 +12,10 @@ const { AddressZero } = ethers.constants
 
 describe("Timelock", function () {
   const provider = waffle.provider
-  const [wallet, user0, user1, user2, user3, rewardManager, tokenManager, mintReceiver, glpManager, positionRouter] = provider.getWallets()
+  const [wallet, user0, user1, user2, user3, rewardManager, tokenManager, mintReceiver, positionRouter] = provider.getWallets()
   let vault
+  let glpManager
+  let glp
   let vaultUtils
   let vaultPriceFeed
   let usdg
@@ -44,6 +46,9 @@ describe("Timelock", function () {
     usdg = await deployContract("USDG", [vault.address])
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     vaultPriceFeed = await deployContract("VaultPriceFeed", [])
+
+    glp = await deployContract("GLP", [])
+    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
 
     const initVaultResult = await initVault(vault, router, usdg, vaultPriceFeed)
     vaultUtils = initVaultResult.vaultUtils
@@ -220,6 +225,45 @@ describe("Timelock", function () {
     expect(await vault.minProfitBasisPoints(bnb.address)).eq(50)
   })
 
+  it("setUsdgAmounts", async () => {
+    expect(await vault.usdgAmounts(bnb.address)).eq(0)
+    expect(await vault.usdgAmounts(dai.address)).eq(0)
+
+    await expect(timelock.connect(user0).setUsdgAmounts(vault.address, [bnb.address, dai.address], [500, 250]))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).setUsdgAmounts(vault.address, [bnb.address, dai.address], [500, 250])
+
+    expect(await vault.usdgAmounts(bnb.address)).eq(500)
+    expect(await vault.usdgAmounts(dai.address)).eq(250)
+  })
+
+  it("updateUsdgSupply", async () => {
+    await usdg.addVault(wallet.address)
+    await usdg.mint(glpManager.address, 1000)
+
+    expect(await usdg.balanceOf(glpManager.address)).eq(1000)
+    expect(await usdg.totalSupply()).eq(1000)
+
+    await expect(timelock.connect(user0).updateUsdgSupply(500))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.updateUsdgSupply(500))
+      .to.be.revertedWith("YieldToken: forbidden")
+
+    await usdg.setGov(timelock.address)
+
+    await timelock.updateUsdgSupply(500)
+
+    expect(await usdg.balanceOf(glpManager.address)).eq(500)
+    expect(await usdg.totalSupply()).eq(500)
+
+    await timelock.updateUsdgSupply(2000)
+
+    expect(await usdg.balanceOf(glpManager.address)).eq(2000)
+    expect(await usdg.totalSupply()).eq(2000)
+  })
+
   it("setBuffer", async () => {
     const timelock0 = await deployContract("Timelock", [
       user1.address,
@@ -243,28 +287,6 @@ describe("Timelock", function () {
     expect(await timelock0.buffer()).eq(3 * 24 * 60 * 60)
     await timelock0.connect(user1).setBuffer(3 * 24 * 60 * 60 + 10)
     expect(await timelock0.buffer()).eq(3 * 24 * 60 * 60 + 10)
-  })
-
-  it("mint", async () => {
-    const gmx = await deployContract("GMX", [])
-    await expect(timelock.connect(user0).mint(gmx.address, 900))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    await expect(timelock.connect(wallet).mint(gmx.address, 900))
-      .to.be.revertedWith("BaseToken: forbidden")
-
-    await gmx.setGov(timelock.address)
-
-    expect(await gmx.isMinter(timelock.address)).eq(false)
-    expect(await gmx.balanceOf(mintReceiver.address)).eq(0)
-
-    await timelock.connect(wallet).mint(gmx.address, 900)
-
-    expect(await gmx.isMinter(timelock.address)).eq(true)
-    expect(await gmx.balanceOf(mintReceiver.address)).eq(900)
-
-    await expect(timelock.connect(wallet).mint(gmx.address, expandDecimals(1001, 18)))
-      .to.be.revertedWith("Timelock: maxTokenSupply exceeded")
   })
 
   it("setVaultUtils", async () => {
@@ -292,6 +314,15 @@ describe("Timelock", function () {
     expect(await timelock.isHandler(user1.address)).eq(false)
     await timelock.connect(wallet).setContractHandler(user1.address, true)
     expect(await timelock.isHandler(user1.address)).eq(true)
+  })
+
+  it("setKeeper", async() => {
+    await expect(timelock.connect(user0).setKeeper(user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await timelock.isKeeper(user1.address)).eq(false)
+    await timelock.connect(wallet).setKeeper(user1.address, true)
+    expect(await timelock.isKeeper(user1.address)).eq(true)
   })
 
   it("setIsLeverageEnabled", async () => {
