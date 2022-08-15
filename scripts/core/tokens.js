@@ -136,7 +136,7 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 25000,
       minProfitBps: 0,
-      maxUsdgAmount: 50 * 1000 *1000,
+      maxUsdgAmount: 60 * 1000 *1000,
       bufferAmount: 1000,
       isStable: false,
       isShortable: true,
@@ -303,7 +303,7 @@ module.exports = {
       bufferAmount: 6000,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 7 * 1000 * 1000
+      maxGlobalShortSize: 10 * 1000 * 1000
     },
     btc: {
       name: "btc",
@@ -319,7 +319,7 @@ module.exports = {
       bufferAmount: 350,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 7 * 1000 * 1000
+      maxGlobalShortSize: 10 * 1000 * 1000
     },
     mim: {
       name: "mim",
