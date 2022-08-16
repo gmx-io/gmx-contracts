@@ -71,33 +71,50 @@ async function deployPriceFeedArb() {
 }
 
 async function deployPriceFeedAvax() {
-  const { avax, btc, eth, mim, usdce, usdc } = tokens
-  const tokenArr = [avax, btc, eth, mim, usdce, usdc]
-  const fastPriceTokens = [avax, btc, eth]
+  const { avax, btc, btcb, eth, mim, usdce, usdc } = tokens
+  const tokenArr = [avax, btc, btcb, eth, mim, usdce, usdc]
+  const fastPriceTokens = [avax, btc, btcb, eth]
   if (fastPriceTokens.find(t => !t.fastPricePrecision)) {
     throw new Error("Invalid price precision")
   }
 
-  // const signer = await getFrameSigner()
+  if (fastPriceTokens.find(t => !t.maxCumulativeDeltaDiff)) {
+    throw new Error("Invalid price precision")
+  }
 
-  const timelock = { address: "0xfec6FA94aF7BF1Ec917550426F6785aeee898814" }
-  const fastPriceFeedGov = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
+  const signer = await getFrameSigner()
 
-  const updater1 = { address: "0x89a072F18c7D0Bdf568e93553B715BBf5205690e" }
-  const keeper1 = { address: "0x864dB9152169D68299b599331c6bFc77e3F91070" }
-  const updaters = [updater1.address, keeper1.address]
+  const timelock = { address: "0xCa8b5F2fF7B8d452bE8972B44Dc026Be96b97228" }
 
-  const signers = ["0x1D6d107F5960A66f293Ac07EDd08c1ffE79B548a"]
+  const updater1 = { address: "0x6647B6f671E390Fe64c039dd7119E42E93Ccf957" }
+  const updater2 = { address: "0xaC13E972B89001B45A8e07E5b040554096378810" }
+  const keeper1 = { address: "0xa0c6954b241f592a937D778Dc8b994F4518b82a5" }
+  const keeper2 = { address: "0x295f648f091074015d4C26725421b2E73768199F" }
+  const updaters = [updater1.address, updater2.address, keeper1.address, keeper2.address]
+
+  const signers = [
+    "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
+    "0x1D6d107F5960A66f293Ac07EDd08c1ffE79B548a", // G Account 1
+    "0xD7941C4Ca57a511F21853Bbc7FBF8149d5eCb398", // G Account 2
+    "0xfb481D70f8d987c1AE3ADc90B7046e39eb6Ad64B", // kr
+    "0x99Aa3D1b3259039E8cB4f0B33d0Cfd736e1Bf49E", // quat
+    "0x6091646D0354b03DD1e9697D33A7341d8C93a6F5", // xhiroz
+    "0x45e48668F090a3eD1C7961421c60Df4E66f693BD", // Dovey
+    "0x881690382102106b00a99E3dB86056D0fC71eee6", // Han Wen
+    "0x2e5d207a4c0f7e7c52f6622dcc6eb44bc0fe1a13" // Krunal Amin
+  ]
   const tokenManager = { address: "0x7F98d265Ba2609c1534D12cF6b0976505Ad7F653" }
 
   const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
 
-  const fastPriceEvents = await deployContract("FastPriceEvents", [])
+  // const fastPriceEvents = await deployContract("FastPriceEvents", [])
+  const fastPriceEvents = await contractAt("FastPriceEvents", "0x02b7023D43bc52bFf8a0C54A9F2ecec053523Bf6", signer)
 
   const secondaryPriceFeed = await deployContract("FastPriceFeed", [
     5 * 60, // _priceDuration
+    60 * 60, // _maxPriceUpdateDelay
     0, // _minBlockInterval
-    250, // _maxDeviationBasisPoints
+    750, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
     tokenManager.address, // _tokenManager
     positionRouter.address
@@ -128,7 +145,13 @@ async function deployPriceFeedAvax() {
 
   await sendTxn(vaultPriceFeed.setGov(timelock.address), "vaultPriceFeed.setGov")
   await sendTxn(secondaryPriceFeed.setTokens(fastPriceTokens.map(t => t.address), fastPriceTokens.map(t => t.fastPricePrecision)), "secondaryPriceFeed.setTokens")
-  await sendTxn(secondaryPriceFeed.setGov(fastPriceFeedGov.address), "secondaryPriceFeed.setGov")
+  await sendTxn(secondaryPriceFeed.setVaultPriceFeed(vaultPriceFeed.address), "secondaryPriceFeed.setVaultPriceFeed")
+  await sendTxn(secondaryPriceFeed.setMaxTimeDeviation(60 * 60), "secondaryPriceFeed.setMaxTimeDeviation")
+  await sendTxn(secondaryPriceFeed.setSpreadBasisPointsIfInactive(50), "secondaryPriceFeed.setSpreadBasisPointsIfInactive")
+  await sendTxn(secondaryPriceFeed.setSpreadBasisPointsIfChainError(500), "secondaryPriceFeed.setSpreadBasisPointsIfChainError")
+  await sendTxn(secondaryPriceFeed.setMaxCumulativeDeltaDiffs(fastPriceTokens.map(t => t.address), fastPriceTokens.map(t => t.maxCumulativeDeltaDiff)), "secondaryPriceFeed.setMaxCumulativeDeltaDiffs")
+  await sendTxn(secondaryPriceFeed.setPriceDataInterval(5 * 60), "secondaryPriceFeed.setPriceDataInterval")
+  await sendTxn(secondaryPriceFeed.setGov(timelock.address), "secondaryPriceFeed.setGov")
 }
 
 async function main() {
