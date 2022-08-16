@@ -11,7 +11,7 @@ use(solidity)
 describe("PositionRouter", function () {
   const { AddressZero, HashZero } = ethers.constants
   const provider = waffle.provider
-  const [wallet, positionKeeper, minter, user0, user1, user2, user3, user4, user5, tokenManager, mintReceiver] = provider.getWallets()
+  const [wallet, positionKeeper, minter, user0, user1, user2, user3, user4, user5, tokenManager, mintReceiver, signer0, signer1, updater0, updater1] = provider.getWallets()
   const depositFee = 50
   const minExecutionFee = 4000
   let vault
@@ -34,6 +34,8 @@ describe("PositionRouter", function () {
   let distributor0
   let yieldTracker0
   let reader
+  let fastPriceFeed
+  let fastPriceEvents
 
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
@@ -101,6 +103,22 @@ describe("PositionRouter", function () {
 
     await vault.setIsLeverageEnabled(false)
     await vault.setGov(timelock.address)
+
+    fastPriceEvents = await deployContract("FastPriceEvents", [])
+    fastPriceFeed = await deployContract("FastPriceFeed", [
+      5 * 60, // _priceDuration
+      120 * 60, // _maxPriceUpdateDelay
+      2, // _minBlockInterval
+      250, // _maxDeviationBasisPoints
+      fastPriceEvents.address, // _fastPriceEvents
+      tokenManager.address, // _tokenManager
+      positionRouter.address // _positionRouter
+    ])
+    await fastPriceFeed.initialize(2, [signer0.address, signer1.address], [updater0.address, updater1.address])
+    await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
+
+    await fastPriceFeed.setVaultPriceFeed(vaultPriceFeed.address)
+    await vaultPriceFeed.setSecondaryPriceFeed(fastPriceFeed.address)
   })
 
   it("inits", async () => {
@@ -2268,5 +2286,43 @@ describe("PositionRouter", function () {
     expect(queueLengths[1]).eq(7) // increasePositionRequestKeys.length
     expect(queueLengths[2]).eq(7) // decreasePositionRequestKeysStart
     expect(queueLengths[3]).eq(7) // decreasePositionRequestKeys.length
+
+    await dai.mint(user0.address, expandDecimals(1800, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(1800, 18))
+
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode]), { value: 4000 })
+
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 0, 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 0, 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 0, 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 0, 4000, false]), { value: 4000 })
+    await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([user0.address, toUsd(290), 0, 4000, false]), { value: 4000 })
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(7) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(10) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(7) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(12) // decreasePositionRequestKeys.length
+
+    await fastPriceFeed.setMaxTimeDeviation(1000)
+    await positionRouter.setPositionKeeper(fastPriceFeed.address, true)
+
+    const blockTime = await getBlockTime(provider)
+    await fastPriceFeed.connect(updater0).setPricesWithBitsAndExecute(
+      0, // _priceBits
+      blockTime, // _timestamp
+      9, // _endIndexForIncreasePositions
+      10, // _endIndexForDecreasePositions
+      1, // _maxIncreasePositions
+      2 // _maxDecreasePositions
+    )
+
+    queueLengths = await positionRouter.getRequestQueueLengths()
+    expect(queueLengths[0]).eq(8) // increasePositionRequestKeysStart
+    expect(queueLengths[1]).eq(10) // increasePositionRequestKeys.length
+    expect(queueLengths[2]).eq(9) // decreasePositionRequestKeysStart
+    expect(queueLengths[3]).eq(12) // decreasePositionRequestKeys.length
   })
 })

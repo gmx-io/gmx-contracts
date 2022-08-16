@@ -418,6 +418,41 @@ describe("FastPriceFeed", function () {
     await fastPriceFeed.connect(updater1).setPrices([bnb.address], [790], blockTime)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(790)
     expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(790)
+
+    await increaseTime(provider, 500 + 310)
+    await mineBlock(provider)
+
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(800)
+
+    expect(await fastPriceFeed.spreadBasisPointsIfInactive()).eq(0)
+    await fastPriceFeed.setSpreadBasisPointsIfInactive(50)
+
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(804)
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(796)
+
+    await increaseTime(provider, 120 * 60)
+    await mineBlock(provider)
+
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(800)
+
+    expect(await fastPriceFeed.spreadBasisPointsIfChainError()).eq(0)
+    await fastPriceFeed.setSpreadBasisPointsIfChainError(500)
+
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(840)
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(760)
+
+    blockTime = await getBlockTime(provider)
+    await fastPriceFeed.connect(updater1).setPrices([bnb.address], [790], blockTime)
+
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(790)
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(790)
+
+    await fastPriceFeed.setIsSpreadEnabled(true)
+
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, true)).eq(800)
+    expect(await fastPriceFeed.getPrice(bnb.address, 800, false)).eq(790)
   })
 
   it("setTokens", async () => {
@@ -791,5 +826,24 @@ describe("FastPriceFeed", function () {
     expect(await priceData[3]).eq(890281) // 890281 / (10 * 1000 * 1000) => ~8.90%, (30 / 550 + 20 / 580)
     expect(await fastPriceFeed.favorFastPrice(bnb.address)).eq(false)
     expect(await fastPriceFeed.favorFastPrice(eth.address)).eq(true)
+
+    await increaseTime(provider, 1000)
+    await mineBlock(provider)
+
+    await bnbPriceFeed.setLatestAnswer(580)
+
+    await fastPriceFeed.connect(user0).setPrices([bnb.address], [570], blockTime + 3)
+    priceData = await fastPriceFeed.getPriceData(bnb.address)
+    expect(await priceData[0]).eq(580)
+    expect(await priceData[2]).eq(169491) // 169491 / (10 * 1000 * 1000) => 1.69%, (10 / 590)
+    expect(await priceData[3]).eq(178571) // 178571 / (10 * 1000 * 1000) => ~1.78%, (10 / 560)
+    expect(await fastPriceFeed.favorFastPrice(bnb.address)).eq(true)
+
+    await fastPriceFeed.connect(user0).setPrices([bnb.address], [5700], blockTime + 4)
+    priceData = await fastPriceFeed.getPriceData(bnb.address)
+    expect(await priceData[0]).eq(580)
+    expect(await priceData[2]).eq(169491) // 169491 / (10 * 1000 * 1000) => 1.69%, (10 / 590)
+    expect(await priceData[3]).eq(90178571) // 90178571 / (10 * 1000 * 1000) => ~901.78%, ((5700 - 570) / 570 + 10 / 560)
+    expect(await fastPriceFeed.favorFastPrice(bnb.address)).eq(false)
   })
 })
