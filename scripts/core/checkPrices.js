@@ -44,10 +44,10 @@ async function checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr) {
       console.log("\n3.")
       console.log(`delta1: ${ethers.utils.formatUnits(deltaBps1, 4)}`)
       console.log(`delta2: ${ethers.utils.formatUnits(deltaBps2, 4)}`)
-      if (parseFloat(ethers.utils.formatUnits(deltaBps1, 4)) > 0.7) {
+      if (parseFloat(ethers.utils.formatUnits(deltaBps1, 4)) > 7) {
         throw new Error("delta1 exceeds threshold")
       }
-      if (parseFloat(ethers.utils.formatUnits(deltaBps2, 4)) > 0.7) {
+      if (parseFloat(ethers.utils.formatUnits(deltaBps2, 4)) > 7) {
         throw new Error("delta2 exceeds threshold")
       }
     }
@@ -66,9 +66,10 @@ async function checkPricesArb() {
 }
 
 async function checkPricesAvax() {
-  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x131238112aa25c0D8CD237a6c384d1A86D2BB152")
+  // const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x205646B93B9D8070e15bc113449586875Ed7288E")
+  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
   // let vaultPriceFeed2
-  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
+  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x205646B93B9D8070e15bc113449586875Ed7288E")
 
   const { avax, eth, btc, mim, usdce, usdc } = tokens
   const tokenArr = [avax, btc, eth, mim, usdce, usdc]
