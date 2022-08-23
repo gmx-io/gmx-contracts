@@ -6,8 +6,8 @@ const tokens = require('./tokens')[network];
 
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
-  // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0xa18BB1003686d0854EF989BB936211c59EB6e363")
+  // const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
+  const vaultPriceFeed = await contractAt("VaultPriceFeed", "0xfe661cbf27Da0656B7A1151a761ff194849C387A")
   const timelock = await contractAt("PriceFeedTimelock", await vaultPriceFeed.gov())
 
   const { link, uni } = tokens
