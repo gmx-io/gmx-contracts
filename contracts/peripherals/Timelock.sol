@@ -339,7 +339,7 @@ contract Timelock is ITimelock {
         IVault(_vault).withdrawFees(_token, _receiver);
     }
 
-    function batchWithdrawFees(address _vault, address[] memory _tokens) external onlyAdmin {
+    function batchWithdrawFees(address _vault, address[] memory _tokens) external onlyKeeperAndAbove {
         for (uint256 i = 0; i < _tokens.length; i++) {
             IVault(_vault).withdrawFees(_tokens[i], admin);
         }
@@ -566,6 +566,7 @@ contract Timelock is ITimelock {
     }
 
     function _setPendingAction(bytes32 _action) private {
+        require(pendingActions[_action] == 0, "Timelock: action already signalled");
         pendingActions[_action] = block.timestamp.add(buffer);
         emit SignalPendingAction(_action);
     }

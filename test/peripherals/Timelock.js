@@ -423,6 +423,9 @@ describe("Timelock", function () {
 
     await timelock.connect(wallet).signalApprove(dai.address, user1.address, expandDecimals(100, 18))
 
+    await expect(timelock.connect(wallet).signalApprove(dai.address, user1.address, expandDecimals(100, 18)))
+      .to.be.revertedWith("Timelock: action already signalled")
+
     await expect(timelock.connect(wallet).approve(dai.address, user1.address, expandDecimals(100, 18)))
       .to.be.revertedWith("Timelock: action time not yet passed")
 
