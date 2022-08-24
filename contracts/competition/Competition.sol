@@ -20,6 +20,7 @@ contract Competition
 
     address[] private leaders;
     mapping(address => Team) private teams;
+    mapping(string => bool) private teamNames;
     mapping(address => address) private membersToTeam;
     mapping(address => mapping(address => bool)) private requests;
 
@@ -32,13 +33,13 @@ contract Competition
 
     modifier isNotLeader()
     {
-        require(leaders[msg.sender] == address(0), "Team leaders are not allowed.");
+        require(teams[msg.sender].leader == address(0), "Team leaders are not allowed.");
         _;
     }
 
     modifier isNotMember()
     {
-        require(membersToTeam[msg.sender] == address, "Team members are not allowed.");
+        require(membersToTeam[msg.sender] == address(0), "Team members are not allowed.");
         _;
     }
 
@@ -59,6 +60,9 @@ contract Competition
 
     function registerTeam (string calldata name, bytes32 referral) external registrationIsOpen isNotLeader
     {
+        require(referralStorage.codeOwners(referral) != address(0), "Referral code does not exist.");
+        require(teamNames[name] == false, "Team name already registered.");
+
         Team storage team;
 
         team.leader = msg.sender;
@@ -67,7 +71,8 @@ contract Competition
         team.members.push(msg.sender);
 
         teams[msg.sender] = team;
-        leaders[msg.sender] = true;
+        leaders.push(msg.sender);
+        teamNames[name] = true;
     }
 
     function createJoinRequest (address leaderAddress) external registrationIsOpen isNotLeader isNotMember
@@ -85,22 +90,49 @@ contract Competition
         require(requests[msg.sender][memberAddress] == false, "This member did not apply.");
         require(membersToTeam[memberAddress] == address(0), "This member already joined a team.");
 
+        referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
         teams[msg.sender].members.push(msg.sender);
         membersToTeam[memberAddress] = msg.sender;
     }
 
-    function getLeaders() external view returns (address[])
+    function getLeaders() external view returns (address[] memory)
     {
-        return leaders.length;
+        address[] memory res;
+
+        for (uint i = 0; i < leaders.length; i++) {
+            res[i] = leaders[i];
+        }
+
+        return res;
     }
 
-    function getTeam(address leaderAddr) external view returns (Team)
+    function getTeam(address leaderAddr) external view returns (address leader, string memory name, bytes32 referral)
     {
-        return teams[leaderAddr];
+        Team memory team = teams[leaderAddr];
+        return (team.leader, team.name, team.referral);
     }
 
     function getMemberTeam(address memberAddr) external view returns (address)
     {
         return membersToTeam[memberAddr];
+    }
+
+    function getTeamMembers(address leaderAddr) external view returns (address[] memory)
+    {
+        return teams[leaderAddr].members;
+    }
+
+    function getTeamJoinRequests(address leaderAddr) external view returns (address[] memory)
+    {
+        address[] memory res;
+
+        for (uint i = 0; i < teams[leaderAddr].joinRequests.length; i++) {
+            address jr = teams[leaderAddr].joinRequests[i];
+            if (membersToTeam[jr] == address(0)) {
+                res[i] = jr;
+            }
+        }
+
+        return res;
     }
 }

@@ -38,6 +38,8 @@ async function main() {
   await deployContract("Competition", [
     startTime,
     endTime,
+    startTime,
+    endTime,
     referralStorage.address,
   ]);
 }
