@@ -1,20 +1,27 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
-const { expandDecimals } = require("../../test/shared/utilities")
+const { deployContract, contractAt, sendTxn, signers } = require("../shared/helpers")
+const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 const shouldSendTxn = true
 
 const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("0"), 18)
-const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("13600"), 18)
+const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("13500"), 18)
 
-const stakedGmxOnArb = toInt("6,280,481")
-const stakedGmxOnAvax = toInt("439,542")
+async function getStakedAmounts() {
+  const arbStakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", signers.arbitrum)
+  const arbStakedGmxAndEsGmx =await arbStakedGmxTracker.totalSupply()
 
-const stakedEsGmxOnArb = toInt("1,475,857")
-const stakedEsGmxOnAvax = toInt("229,178")
+  const avaxStakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", signers.avax)
+  const avaxStakedGmxAndEsGmx =await avaxStakedGmxTracker.totalSupply()
 
-async function getArbValues(signer) {
+  return {
+    arbStakedGmxAndEsGmx,
+    avaxStakedGmxAndEsGmx
+  }
+}
+
+async function getArbValues() {
   const gmxRewardTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4")
   const glpRewardTracker = await contractAt("RewardTracker", "0x1aDDD80E6039594eE970E5872D247bf0414C8903")
   const tokenDecimals = 18
@@ -23,7 +30,7 @@ async function getArbValues(signer) {
   return { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp }
 }
 
-async function getAvaxValues(signer) {
+async function getAvaxValues() {
   const gmxRewardTracker = await contractAt("RewardTracker", "0x2bD10f8E93B3669b6d42E74eEedC65dd1B0a1342")
   const glpRewardTracker = await contractAt("RewardTracker", "0x9e295B5B976a184B14aD8cd72413aD846C299660")
   const tokenDecimals = 18
@@ -47,23 +54,22 @@ function toInt(value) {
 }
 
 async function main() {
+  const { arbStakedGmxAndEsGmx, avaxStakedGmxAndEsGmx } = await getStakedAmounts()
   const { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp } = await getValues()
 
   const stakedAmounts = {
     arbitrum: {
-      gmx: stakedGmxOnArb,
-      esGmx: stakedEsGmxOnArb
+      total: arbStakedGmxAndEsGmx
     },
     avax: {
-      gmx: stakedGmxOnAvax,
-      esGmx: stakedEsGmxOnAvax
+      total: avaxStakedGmxAndEsGmx
     }
   }
 
-  let totalStaked = 0
+  let totalStaked = bigNumberify(0)
+
   for (const net in stakedAmounts) {
-    stakedAmounts[net].total = stakedAmounts[net].gmx + stakedAmounts[net].esGmx
-    totalStaked += stakedAmounts[net].total
+    totalStaked = totalStaked.add(stakedAmounts[net].total)
   }
 
   const totalEsGmxRewards = expandDecimals(100000, tokenDecimals)
