@@ -1,15 +1,11 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
 
 import "../referrals/interfaces/IReferralStorage.sol";
+import "../access/Governable.sol";
 
-contract Competition
+contract Competition is Governable
 {
-    uint public start;
-    uint public end;
-    uint public registrationStart;
-    uint public registrationEnd;
-    IReferralStorage private referralStorage;
-
     struct Team {
         address leader;
         string name;
@@ -18,6 +14,11 @@ contract Competition
         address[] joinRequests;
     }
 
+    uint public start;
+    uint public end;
+    uint public registrationStart;
+    uint public registrationEnd;
+    IReferralStorage private referralStorage;
     address[] private leaders;
     mapping(address => Team) private teams;
     mapping(string => bool) private teamNames;
@@ -26,14 +27,7 @@ contract Competition
 
     modifier registrationIsOpen()
     {
-        require(block.timestamp >= registrationStart, "Registration is not opened yet.");
-        require(block.timestamp < registrationEnd, "Registration is closed.");
-        _;
-    }
-
-    modifier isNotLeader()
-    {
-        require(teams[msg.sender].leader == address(0), "Team leaders are not allowed.");
+        require(block.timestamp >= registrationStart && block.timestamp < registrationEnd, "Registration is closed.");
         _;
     }
 
@@ -43,23 +37,21 @@ contract Competition
         _;
     }
 
-    constructor (
-        uint _start,
-        uint _end,
-        uint _registrationStart,
-        uint _registrationEnd,
-        IReferralStorage _referralStorage
-    ) public
-    {
-        start = _start;
-        end = _end;
-        registrationStart = _registrationStart;
-        registrationEnd = _registrationEnd;
-        referralStorage = _referralStorage;
+    constructor(
+        uint start_,
+        uint end_,
+        uint registrationStart_,
+        uint registrationEnd_,
+        IReferralStorage referralStorage_
+    ) public {
+        start = start_;
+        end = end_;
+        registrationStart = registrationStart_;
+        registrationEnd = registrationEnd_;
+        referralStorage = referralStorage_;
     }
 
-    function registerTeam (string calldata name, bytes32 referral) external registrationIsOpen isNotLeader
-    {
+    function registerTeam(string calldata name, bytes32 referral) external registrationIsOpen {
         require(referralStorage.codeOwners(referral) != address(0), "Referral code does not exist.");
         require(teamNames[name] == false, "Team name already registered.");
 
@@ -75,8 +67,7 @@ contract Competition
         teamNames[name] = true;
     }
 
-    function createJoinRequest (address leaderAddress) external registrationIsOpen isNotLeader isNotMember
-    {
+    function createJoinRequest(address leaderAddress) external registrationIsOpen isNotMember {
         require(membersToTeam[msg.sender] == address(0), "You can't join multiple teams.");
         require(teams[msg.sender].leader != address(0), "The team does not exist.");
         require(requests[leaderAddress][msg.sender] == false, "You already applied for this team.");
@@ -85,8 +76,7 @@ contract Competition
         requests[leaderAddress][msg.sender] = true;
     }
 
-    function approveJoinRequest (address memberAddress) external registrationIsOpen isNotMember
-    {
+    function approveJoinRequest(address memberAddress) external registrationIsOpen isNotMember {
         require(requests[msg.sender][memberAddress] == false, "This member did not apply.");
         require(membersToTeam[memberAddress] == address(0), "This member already joined a team.");
 
@@ -95,35 +85,26 @@ contract Competition
         membersToTeam[memberAddress] = msg.sender;
     }
 
-    function getLeaders() external view returns (address[] memory)
-    {
+    function getLeaders(uint start_, uint offset) external view returns (address[] memory) {
         address[] memory res;
 
-        for (uint i = 0; i < leaders.length; i++) {
+        for (uint i = start_; i < leaders.length && i < start_ + offset; i++) {
             res[i] = leaders[i];
         }
 
         return res;
     }
 
-    function getTeam(address leaderAddr) external view returns (address leader, string memory name, bytes32 referral)
-    {
+    function getTeam(address leaderAddr) external view returns (address leader, string memory name, bytes32 referral) {
         Team memory team = teams[leaderAddr];
         return (team.leader, team.name, team.referral);
     }
 
-    function getMemberTeam(address memberAddr) external view returns (address)
-    {
-        return membersToTeam[memberAddr];
-    }
-
-    function getTeamMembers(address leaderAddr) external view returns (address[] memory)
-    {
+    function getTeamMembers(address leaderAddr) external view returns (address[] memory) {
         return teams[leaderAddr].members;
     }
 
-    function getTeamJoinRequests(address leaderAddr) external view returns (address[] memory)
-    {
+    function getTeamJoinRequests(address leaderAddr) external view returns (address[] memory) {
         address[] memory res;
 
         for (uint i = 0; i < teams[leaderAddr].joinRequests.length; i++) {
@@ -134,5 +115,21 @@ contract Competition
         }
 
         return res;
+    }
+
+    function setStart(uint start_) external onlyGov {
+        start = start_;
+    }
+
+    function setEnd(uint end_) external onlyGov {
+        end = end_;
+    }
+
+    function setRegistrationStart(uint registrationStart_) external onlyGov {
+        registrationStart = registrationStart_;
+    }
+
+    function setRegistrationEnd(uint registrationEnd_) external onlyGov {
+        registrationEnd = registrationEnd_;
     }
 }
