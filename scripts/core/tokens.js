@@ -292,7 +292,7 @@ module.exports = {
       isShortable: true,
       maxGlobalLongSize: 6 * 1000 * 1000,
       maxGlobalShortSize: 3 * 1000 * 1000,
-      spreadBasisPoints: 7
+      spreadBasisPoints: 0
     },
     eth: {
       name: "eth",
