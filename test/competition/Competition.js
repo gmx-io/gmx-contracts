@@ -16,6 +16,7 @@ describe("Competition", function () {
   const [wallet, user0, user1, user2] = provider.getWallets()
   let competition
   let referralStorage
+  let code = keccak256("0xFF")
 
   beforeEach(async () => {
     const ts = await getBlockTime(provider)
@@ -28,6 +29,8 @@ describe("Competition", function () {
       ts + 60, // registrationEnd
       referralStorage.address
     ]);
+
+    await referralStorage.registerCode(code)
   })
 
   it("allows owner to set times", async () => {
@@ -45,22 +48,16 @@ describe("Competition", function () {
   })
 
   it("disable people to register teams before registration time", async () => {
-    const code = keccak256("0xFF")
-    await referralStorage.connect(user0).registerCode(code)
     await competition.connect(wallet).setRegistrationStart((await getBlockTime(provider)) + 10)
     await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
 
   it("disable people to register teams after registration time", async () => {
-    const code = keccak256("0xFF")
-    await referralStorage.connect(user0).registerCode(code)
     await competition.connect(wallet).setRegistrationEnd((await getBlockTime(provider)) - 10)
     await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
 
   it("allows people to register teams in times", async () => {
-    const code = keccak256("0xFF")
-    await referralStorage.connect(user0).registerCode(code)
     try {
       await competition.connect(user0).registerTeam("1", code)
     } catch (e) {
@@ -68,21 +65,58 @@ describe("Competition", function () {
     }
   })
 
-  it("disabled people to register multiple teams", async () => {
-    const code = keccak256("0xFF")
-    await referralStorage.connect(user0).registerCode(code)
+  it("disable people to register multiple teams", async () => {
     await competition.connect(user0).registerTeam("1", code)
-    await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Team members are not allowed.")
+    await expect(competition.connect(user0).registerTeam("2", code)).to.be.revertedWith("Team members are not allowed.")
   })
 
-  it("disabled people to register a team with non existing referral code", async () => {
-    const code = keccak256("0xFF")
-    await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Referral code does not exist.")
+  it("disable people to register a team with non existing referral code", async () => {
+    await expect(competition.connect(user0).registerTeam("1", keccak256("0xFE"))).to.be.revertedWith("Referral code does not exist.")
   })
 
-  it("disabled multiple teams with the same name", async () => {
-    const code = keccak256("0xFF")
+  it("disable multiple teams with the same name", async () => {
     await competition.connect(user0).registerTeam("1", code)
     await expect(competition.connect(user1).registerTeam("1", code)).to.be.revertedWith("Team name already registered.")
+  })
+
+  it("allows people to create join requests", async () => {
+    await competition.connect(user0).registerTeam("1", code)
+    await competition.connect(user1).registerTeam("2", code)
+    await competition.connect(user2).createJoinRequest(user0.address)
+    await competition.connect(user2).createJoinRequest(user1.address)
+  })
+
+  it("disable team members to create join requests", async () => {
+    await competition.connect(user0).registerTeam("1", code)
+    await competition.connect(user1).registerTeam("2", code)
+    await expect(competition.connect(user0).createJoinRequest(user1.address)).to.be.revertedWith("Team members are not allowed.")
+  })
+
+  it("allows team leaders to accept requests", async () => {
+    await competition.connect(user0).registerTeam("1", code)
+    await competition.connect(user1).createJoinRequest(user0.address)
+    try {
+      await competition.connect(user0).approveJoinRequest(user1.address)
+
+    const members = await competition.getTeamMembers(user0.address)
+    console.log(members)
+    } catch (e) {
+      console.log(e)
+    }
+  })
+
+  it("disallow leaders to accept non existant join request", async () => {
+    await referralStorage.connect(user0).registerCode(code)
+    await competition.connect(user0).registerTeam("1", code)
+    await expect(competition.connect(user0).approveJoinRequest(user1.address)).to.be.revertedWith("This member did not apply.")
+  })
+
+  it("disallow leaders to accept members that already joines another team", async () => {
+    await referralStorage.connect(user0).registerCode(code)
+    await competition.connect(user0).registerTeam("1", code)
+    await competition.connect(user1).registerTeam("2", code)
+    await competition.connect(user2).createJoinRequest(user0.address)
+    await competition.connect(user0).approveJoinRequest(user2.address)
+    await expect(competition.connect(user1).approveJoinRequest(user2.address)).to.be.revertedWith("This member already joined a team.")
   })
 });

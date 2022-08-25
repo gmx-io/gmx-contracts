@@ -18,12 +18,12 @@ contract Competition is Governable
     uint public end;
     uint public registrationStart;
     uint public registrationEnd;
-    IReferralStorage private referralStorage;
-    address[] private leaders;
-    mapping(address => Team) private teams;
-    mapping(string => bool) private teamNames;
-    mapping(address => address) private membersToTeam;
-    mapping(address => mapping(address => bool)) private requests;
+    IReferralStorage public referralStorage;
+    address[] public leaders;
+    mapping(address => Team) public teams;
+    mapping(string => bool) public teamNames;
+    mapping(address => address) public membersToTeam;
+    mapping(address => mapping(address => bool)) public requests;
 
     modifier registrationIsOpen()
     {
@@ -51,33 +51,32 @@ contract Competition is Governable
         referralStorage = referralStorage_;
     }
 
-    function registerTeam(string calldata name, bytes32 referral) external registrationIsOpen {
+    function registerTeam(string calldata name, bytes32 referral) external registrationIsOpen isNotMember {
         require(referralStorage.codeOwners(referral) != address(0), "Referral code does not exist.");
         require(teamNames[name] == false, "Team name already registered.");
 
-        Team storage team;
-
+        Team storage team = teams[msg.sender];
         team.leader = msg.sender;
         team.name = name;
         team.referral = referral;
         team.members.push(msg.sender);
 
-        teams[msg.sender] = team;
         leaders.push(msg.sender);
         teamNames[name] = true;
+        membersToTeam[msg.sender] = msg.sender;
     }
 
     function createJoinRequest(address leaderAddress) external registrationIsOpen isNotMember {
         require(membersToTeam[msg.sender] == address(0), "You can't join multiple teams.");
-        require(teams[msg.sender].leader != address(0), "The team does not exist.");
+        require(teams[leaderAddress].leader != address(0), "The team does not exist.");
         require(requests[leaderAddress][msg.sender] == false, "You already applied for this team.");
 
         teams[leaderAddress].joinRequests.push(msg.sender);
         requests[leaderAddress][msg.sender] = true;
     }
 
-    function approveJoinRequest(address memberAddress) external registrationIsOpen isNotMember {
-        require(requests[msg.sender][memberAddress] == false, "This member did not apply.");
+    function approveJoinRequest(address memberAddress) external registrationIsOpen {
+        require(requests[msg.sender][memberAddress] == true, "This member did not apply.");
         require(membersToTeam[memberAddress] == address(0), "This member already joined a team.");
 
         referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
