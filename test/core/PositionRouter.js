@@ -2310,6 +2310,16 @@ describe("PositionRouter", function () {
     await positionRouter.setPositionKeeper(fastPriceFeed.address, true)
 
     const blockTime = await getBlockTime(provider)
+
+    await expect(fastPriceFeed.connect(user0).setPricesWithBitsAndExecute(
+      0, // _priceBits
+      blockTime, // _timestamp
+      9, // _endIndexForIncreasePositions
+      10, // _endIndexForDecreasePositions
+      1, // _maxIncreasePositions
+      2 // _maxDecreasePositions
+    )).to.be.revertedWith("FastPriceFeed: forbidden")
+
     await fastPriceFeed.connect(updater0).setPricesWithBitsAndExecute(
       0, // _priceBits
       blockTime, // _timestamp

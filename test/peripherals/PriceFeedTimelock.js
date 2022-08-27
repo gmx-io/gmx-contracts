@@ -518,7 +518,7 @@ describe("PriceFeedTimelock", function () {
     expect(await fastPriceFeed.isSigner(user1.address)).eq(true)
   })
 
-  it("setPriceFeedWatcher", async () => {
+  it("setPriceFeedUpdater", async () => {
     await timelock.setContractHandler(user0.address, true)
 
     await expect(timelock.connect(user0).setPriceFeedUpdater(fastPriceFeed.address, user1.address, true))
