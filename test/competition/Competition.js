@@ -118,4 +118,15 @@ describe("Competition", function () {
     await competition.connect(wallet).setRegistrationEnd((await getBlockTime(provider)) - 10)
     await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
+
+  it("allow leaders to kick members", async () => {
+    await competition.connect(user0).registerTeam("1", code)
+    await competition.connect(user1).createJoinRequest(user0.address)
+    await competition.connect(user0).approveJoinRequest(user1.address)
+    let members = await competition.getTeamMembers(user0.address)
+    expect(members).to.include(user1.address)
+    await competition.connect(user0).removeMember(user1.address)
+    members = await competition.getTeamMembers(user0.address)
+    expect(members).to.not.include(user1.address)
+  })
 });

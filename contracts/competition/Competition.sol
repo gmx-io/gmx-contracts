@@ -104,6 +104,18 @@ contract Competition is Governable
         requests[msg.sender] = address(0);
     }
 
+    function removeMember(address memberAddress) external registrationIsOpen {
+        require(membersToTeam[memberAddress] == msg.sender, "This member is not in your team");
+        membersToTeam[memberAddress] = address(0);
+
+        for (uint i = 0; i < teams[msg.sender].members.length; i++) {
+            if (teams[msg.sender].members[i] == memberAddress) {
+                delete teams[msg.sender].members[i];
+                break;
+            }
+        }
+    }
+
     function getLeaders(uint start_, uint offset) external view returns (address[] memory) {
         address[] memory res;
 
