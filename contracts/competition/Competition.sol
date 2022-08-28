@@ -23,7 +23,13 @@ contract Competition is Governable
     mapping(address => Team) public teams;
     mapping(string => bool) public teamNames;
     mapping(address => address) public membersToTeam;
-    mapping(address => mapping(address => bool)) public requests;
+    mapping(address => address) public requests;
+
+    event TeamRegistered(address leader, string name, bytes32 referral);
+    event JoinRequestCreated(address member, address leader);
+    event JoinRequestCanceled(address member, address leader);
+    event JoinRequestApproved(address member, address leader);
+    event TimesChanged(uint start, uint end, uint registrationStart, uint registrationEnd);
 
     modifier registrationIsOpen()
     {
@@ -49,6 +55,8 @@ contract Competition is Governable
         registrationStart = registrationStart_;
         registrationEnd = registrationEnd_;
         referralStorage = referralStorage_;
+
+        emit TimesChanged(start, end, registrationStart, registrationEnd);
     }
 
     function registerTeam(string calldata name, bytes32 referral) external registrationIsOpen isNotMember {
@@ -64,24 +72,36 @@ contract Competition is Governable
         leaders.push(msg.sender);
         teamNames[name] = true;
         membersToTeam[msg.sender] = msg.sender;
+
+        emit TeamRegistered(msg.sender, name, referral);
     }
 
     function createJoinRequest(address leaderAddress) external registrationIsOpen isNotMember {
         require(membersToTeam[msg.sender] == address(0), "You can't join multiple teams.");
         require(teams[leaderAddress].leader != address(0), "The team does not exist.");
-        require(requests[leaderAddress][msg.sender] == false, "You already applied for this team.");
+        require(requests[msg.sender] == address(0), "You already have an active join request.");
 
         teams[leaderAddress].joinRequests.push(msg.sender);
-        requests[leaderAddress][msg.sender] = true;
+        requests[msg.sender] = leaderAddress;
+
+        emit JoinRequestCreated(msg.sender, leaderAddress);
     }
 
     function approveJoinRequest(address memberAddress) external registrationIsOpen {
-        require(requests[msg.sender][memberAddress] == true, "This member did not apply.");
+        require(requests[memberAddress] == msg.sender, "This member did not apply.");
         require(membersToTeam[memberAddress] == address(0), "This member already joined a team.");
 
-        referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
-        teams[msg.sender].members.push(msg.sender);
+        // referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
+        teams[msg.sender].members.push(memberAddress);
         membersToTeam[memberAddress] = msg.sender;
+        requests[memberAddress] = address(0);
+
+        emit JoinRequestApproved(memberAddress, msg.sender);
+    }
+
+    function cancelJoinRequest(address leaderAddress) external registrationIsOpen {
+        require(requests[msg.sender] == leaderAddress, "You already have an active join request.");
+        requests[msg.sender] = address(0);
     }
 
     function getLeaders(uint start_, uint offset) external view returns (address[] memory) {
