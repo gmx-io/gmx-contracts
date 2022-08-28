@@ -128,5 +128,6 @@ describe("Competition", function () {
     await competition.connect(user0).removeMember(user1.address)
     members = await competition.getTeamMembers(user0.address)
     expect(members).to.not.include(user1.address)
+    await competition.connect(user1).createJoinRequest(user0.address)
   })
 });
