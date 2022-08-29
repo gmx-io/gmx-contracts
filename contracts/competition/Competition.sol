@@ -27,7 +27,7 @@ contract Competition is Governable
 
     event TeamRegistered(address leader, string name, bytes32 referral);
     event JoinRequestCreated(address member, address leader);
-    event JoinRequestCanceled(address member, address leader);
+    event JoinRequestCanceled(address member);
     event JoinRequestApproved(address member, address leader);
     event TimesChanged(uint start, uint end, uint registrationStart, uint registrationEnd);
 
@@ -99,9 +99,9 @@ contract Competition is Governable
         emit JoinRequestApproved(memberAddress, msg.sender);
     }
 
-    function cancelJoinRequest(address leaderAddress) external registrationIsOpen {
-        require(requests[msg.sender] == leaderAddress, "You already have an active join request.");
+    function cancelJoinRequest() external registrationIsOpen {
         requests[msg.sender] = address(0);
+        emit JoinRequestCanceled(msg.sender);
     }
 
     function removeMember(address memberAddress) external registrationIsOpen {

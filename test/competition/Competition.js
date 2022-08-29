@@ -86,7 +86,7 @@ describe("Competition", function () {
   it("allow people to cancel join requests", async () => {
     await competition.connect(user0).registerTeam("1", code)
     await competition.connect(user1).createJoinRequest(user0.address)
-    await competition.connect(user1).cancelJoinRequest(user0.address)
+    await competition.connect(user1).cancelJoinRequest()
     await expect(competition.connect(user0).approveJoinRequest(user1.address)).to.be.revertedWith("This member did not apply.")
   })
 
