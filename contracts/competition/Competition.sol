@@ -126,12 +126,12 @@ contract Competition is Governable {
         emit JoinRequestCanceled(competitionIndex, msg.sender);
     }
 
-    function removeMember(uint competitionIndex, address memberAddress) external registrationIsOpen(competitionIndex) {
+    function removeMember(uint competitionIndex, address leaderAddress, address memberAddress) external registrationIsOpen(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
-        require(competition.memberTeams[memberAddress] == msg.sender, "Competition: This member is not in your team");
+        require(competition.memberTeams[memberAddress] == msg.sender || memberAddress == msg.sender, "Competition: You are not allowed to remove this member.");
 
-        address[] memory oldMembers = competition.teams[msg.sender].members;
+        address[] memory oldMembers = competition.teams[leaderAddress].members;
         address[] memory newMembers = new address[](oldMembers.length - 1);
         for (uint i = 0; i < oldMembers.length; i++) {
             if (oldMembers[i] != memberAddress) {
@@ -139,10 +139,10 @@ contract Competition is Governable {
             }
         }
 
-        competition.teams[msg.sender].members = newMembers;
+        competition.teams[leaderAddress].members = newMembers;
         competition.memberTeams[memberAddress] = address(0);
 
-        emit MemberRemoved(competitionIndex, msg.sender, memberAddress);
+        emit MemberRemoved(competitionIndex, leaderAddress, memberAddress);
     }
 
     function getTeam(uint competitionIndex, address leaderAddress) external view returns (address, string memory, bytes32) {
@@ -163,6 +163,10 @@ contract Competition is Governable {
 
     function getJoinRequest(uint competitionIndex, address memberAddress) external view returns (address) {
         return competitions[competitionIndex].joinRequests[memberAddress];
+    }
+
+    function validateName(uint competitionIndex, string calldata name) external view returns (bool) {
+        return !competitions[competitionIndex].teamNames[name];
     }
 
     function _validateCompetitionParameters(uint start, uint end, uint maxTeamSize) internal {

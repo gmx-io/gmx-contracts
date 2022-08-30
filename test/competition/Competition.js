@@ -131,10 +131,19 @@ describe("Competition", function () {
     await contract.connect(user0).approveJoinRequest(0, user1.address)
     let members = await getTeamMembers(0, user0.address)
     expect(members).to.include(user1.address)
-    await contract.connect(user0).removeMember(0, user1.address)
+    await contract.connect(user0).removeMember(0, user0.address, user1.address)
     members = await getTeamMembers(0, user0.address)
     expect(members).to.not.include(user1.address)
     await contract.connect(user1).createJoinRequest(0, user0.address)
+  })
+
+  it("allow members to kick themselves", async () => {
+    await contract.connect(user0).createTeam(0, "1", code)
+    await contract.connect(user1).createJoinRequest(0, user0.address)
+    await contract.connect(user0).approveJoinRequest(0, user1.address)
+    await contract.connect(user1).removeMember(0, user0.address, user1.address)
+    members = await getTeamMembers(0, user0.address)
+    expect(members).to.not.include(user1.address)
   })
 
   it("allow owner to change competition", async () => {

@@ -32,16 +32,7 @@ async function main() {
   const { positionRouter } = await getValues()
   const referralStorage = await contractAt("ReferralStorage", await positionRouter.referralStorage())
 
-  const startTime = Math.round(Date.now() / 1000)
-  const endTime = startTime + 100000000000
-
-  await deployContract("Competition", [
-    startTime,
-    endTime,
-    startTime,
-    endTime,
-    referralStorage.address,
-  ]);
+  await deployContract("Competition", [ referralStorage.address ]);
 }
 
 main()
