@@ -139,7 +139,7 @@ contract Competition is Governable
         emit MemberRemoved(competitionIndex, msg.sender, memberAddress);
     }
 
-    function getCompetition(uint index) external view returns (uint start, uint end, uint maxTeamSize) {
+    function getCompetition(uint index) external view returns (uint, uint, uint) {
         return (
             competitions[index].start,
             competitions[index].end,
@@ -147,12 +147,12 @@ contract Competition is Governable
         );
     }
 
-    function getTeam(uint competitionIndex, address leaderAddr) external view returns (address leader, string memory name, bytes32 referralCode) {
+    function getTeam(uint competitionIndex, address leaderAddr) external view returns (address, string memory, bytes32) {
         Team memory team = competitions[competitionIndex].teams[leaderAddr];
         return (team.leader, team.name, team.referralCode);
     }
 
-    function getTeamMembers(uint competitionIndex, address leaderAddr, uint start, uint offset) external view returns (address[] memory members) {
+    function getTeamMembers(uint competitionIndex, address leaderAddr, uint start, uint offset) external view returns (address[] memory) {
         address[] memory members = competitions[competitionIndex].teams[leaderAddr].members;
         address[] memory result = new address[](offset);
 
@@ -161,5 +161,9 @@ contract Competition is Governable
         }
 
         return result;
+    }
+
+    function getJoinRequest(uint competitionIndex, address memberAddress) external view returns (address) {
+        return competitions[competitionIndex].joinRequests[memberAddress];
     }
 }
