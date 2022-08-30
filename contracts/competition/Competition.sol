@@ -14,13 +14,14 @@ contract Competition is Governable
         address[] joinRequests;
     }
 
-    struct CompetitionDetails {
+    struct Competition {
         uint start;
         uint end;
-        uint maxTeamSize;
     }
 
-    CompetitionDetails public competitionDetails;
+    uint public nextCompetitionIndex = 0;
+    Competition[] public competitions;
+    uint public maxTeamSize = 10;
     IReferralStorage public referralStorage;
     address[] public leaders;
     mapping(address => Team) public teams;
@@ -33,10 +34,19 @@ contract Competition is Governable
     event JoinRequestCanceled(address member);
     event JoinRequestApproved(address member, address leader);
     event MemberRemoved(address leader, address member);
-    event CompetitionDetailsChanged(uint start, uint end, uint maxTeamSize);
+    event CompetitionCreated(uint index, uint start, uint end);
+    event CompetitionUpdated(uint index, uint start, uint end);
 
     modifier registrationIsOpen() {
-        require(block.timestamp < competitionDetails.start, "Registration is closed.");
+        for (uint i = 0; i < competitions.length; i++) {
+            uint start = competitions[i].start;
+            uint end = competitions[i].end;
+
+            if (block.timestamp >= start && block.timestamp < end) {
+                require(false, "Registration is closed.");
+            }
+        }
+
         _;
     }
 
@@ -45,15 +55,30 @@ contract Competition is Governable
         _;
     }
 
-    constructor(
-        uint start,
-        uint end,
-        uint maxTeamSize,
-        IReferralStorage referralStorage_
-    ) public {
-        competitionDetails = CompetitionDetails(start, end, maxTeamSize);
-        referralStorage = referralStorage_;
-        emit CompetitionDetailsChanged(start, end, maxTeamSize);
+    constructor(IReferralStorage _referralStorage) public {
+        referralStorage = _referralStorage;
+    }
+
+    function createCompetition(uint start, uint end) external onlyGov returns (uint) {
+        require(start > block.timestamp, "Start time must be in the future.");
+        require(end > start, "End time must be greater than start time.");
+
+        competitions.push(Competition(start, end));
+
+        emit CompetitionCreated(nextCompetitionIndex, start, end);
+
+        return nextCompetitionIndex++;
+    }
+
+    function updateCompetition(uint index, uint start, uint end) external onlyGov {
+        competitions[index].start = start;
+        competitions[index].end = end;
+
+        emit CompetitionUpdated(index, start, end);
+    }
+
+    function setMaxTeamSize(uint _maxTeamSize) external onlyGov {
+        maxTeamSize = _maxTeamSize;
     }
 
     function registerTeam(string calldata name, bytes32 referral) external registrationIsOpen isNotMember {
@@ -87,7 +112,7 @@ contract Competition is Governable
     function approveJoinRequest(address memberAddress) external registrationIsOpen {
         require(requests[memberAddress] == msg.sender, "This member did not apply.");
         require(membersToTeam[memberAddress] == address(0), "This member already joined a team.");
-        require(teams[msg.sender].members.length < competitionDetails.maxTeamSize, "Team is full.");
+        require(teams[msg.sender].members.length < maxTeamSize, "Team is full.");
 
         // referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
         teams[msg.sender].members.push(memberAddress);
@@ -116,10 +141,10 @@ contract Competition is Governable
         emit MemberRemoved(msg.sender, memberAddress);
     }
 
-    function getLeaders(uint start_, uint offset) external view returns (address[] memory) {
+    function getLeaders(uint start, uint offset) external view returns (address[] memory) {
         address[] memory res;
 
-        for (uint i = start_; i < leaders.length && i < start_ + offset; i++) {
+        for (uint i = start; i < leaders.length && i < start + offset; i++) {
             res[i] = leaders[i];
         }
 
@@ -133,26 +158,5 @@ contract Competition is Governable
 
     function getTeamMembers(address leaderAddr) external view returns (address[] memory) {
         return teams[leaderAddr].members;
-    }
-
-    function getTeamJoinRequests(address leaderAddr) external view returns (address[] memory) {
-        address[] memory res;
-
-        for (uint i = 0; i < teams[leaderAddr].joinRequests.length; i++) {
-            address jr = teams[leaderAddr].joinRequests[i];
-            if (membersToTeam[jr] == address(0)) {
-                res[i] = jr;
-            }
-        }
-
-        return res;
-    }
-
-    function setCompetitionDetails(uint start, uint end, uint maxTeamSize) external onlyGov
-    {
-        competitionDetails.start = start;
-        competitionDetails.end = end;
-        competitionDetails.maxTeamSize = maxTeamSize;
-        emit CompetitionDetailsChanged(start, end, maxTeamSize);
     }
 }

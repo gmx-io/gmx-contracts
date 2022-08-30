@@ -115,6 +115,10 @@ function getPriceBits(prices) {
   return priceBits.toString()
 }
 
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 module.exports = {
   newWallet,
   maxUint256,
@@ -129,5 +133,6 @@ module.exports = {
   getTxnBalances,
   print,
   getPriceBitArray,
-  getPriceBits
+  getPriceBits,
+  sleep
 }
