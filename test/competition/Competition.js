@@ -9,7 +9,7 @@ const { keccak256 } = ethers.utils
 
 describe("Competition", function () {
   const provider = waffle.provider
-  const [wallet, user0, user1, user2] = provider.getWallets()
+  const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let competition
   let referralStorage
   let code = keccak256("0xFF")
@@ -21,6 +21,7 @@ describe("Competition", function () {
     competition = await deployContract("Competition", [
       ts + 10, // start
       ts + 60, // end
+      10,
       referralStorage.address
     ]);
 
@@ -35,6 +36,14 @@ describe("Competition", function () {
   it("disable non owners to set times", async () => {
     await expect(competition.connect(user0).setStart(1)).to.be.revertedWith("Governable: forbidden")
     await expect(competition.connect(user0).setEnd(1)).to.be.revertedWith("Governable: forbidden")
+  })
+
+  it("allows owner to set max members per team", async () => {
+    await competition.setMaxMembersPerTeam(1);
+  })
+
+  it("disable non owners to set max members per team", async () => {
+    await expect(competition.connect(user0).setMaxMembersPerTeam(1)).to.be.revertedWith("Governable: forbidden")
   })
 
   it("disable people to register teams after registration time", async () => {
@@ -113,5 +122,21 @@ describe("Competition", function () {
     members = await competition.getTeamMembers(user0.address)
     expect(members).to.not.include(user1.address)
     await competition.connect(user1).createJoinRequest(user0.address)
+  })
+
+  it("disallow leader to accept join request if team is full", async () => {
+    await competition.connect(user0).registerTeam("1", code)
+
+    await competition.connect(user1).createJoinRequest(user0.address)
+    await competition.connect(user0).approveJoinRequest(user1.address)
+
+    await competition.connect(user2).createJoinRequest(user0.address)
+    await competition.connect(user0).approveJoinRequest(user2.address)
+
+    try {
+      await competition.connect(wallet).setMaxMembersPerTeam(2);
+    await competition.connect(user3).createJoinRequest(user0.address)
+    await competition.connect(user0).approveJoinRequest(user3.address)
+    } catch (e) { console.log(e) }
   })
 });

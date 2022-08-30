@@ -16,6 +16,7 @@ contract Competition is Governable
 
     uint public start;
     uint public end;
+    uint public maxMembersPerTeam;
     IReferralStorage public referralStorage;
     address[] public leaders;
     mapping(address => Team) public teams;
@@ -43,10 +44,12 @@ contract Competition is Governable
     constructor(
         uint start_,
         uint end_,
+        uint maxMembersPerTeam_,
         IReferralStorage referralStorage_
     ) public {
         start = start_;
         end = end_;
+        maxMembersPerTeam = maxMembersPerTeam_;
         referralStorage = referralStorage_;
 
         emit TimesChanged(start, end);
@@ -83,6 +86,7 @@ contract Competition is Governable
     function approveJoinRequest(address memberAddress) external registrationIsOpen {
         require(requests[memberAddress] == msg.sender, "This member did not apply.");
         require(membersToTeam[memberAddress] == address(0), "This member already joined a team.");
+        require(teams[msg.sender].members.length < maxMembersPerTeam, "Team is full.");
 
         // referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
         teams[msg.sender].members.push(memberAddress);
@@ -151,5 +155,9 @@ contract Competition is Governable
     function setEnd(uint end_) external onlyGov {
         end = end_;
         emit TimesChanged(start, end);
+    }
+
+    function setMaxMembersPerTeam(uint maxMembersPerTeam_) external onlyGov {
+        maxMembersPerTeam = maxMembersPerTeam_;
     }
 }
