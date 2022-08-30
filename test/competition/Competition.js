@@ -19,10 +19,8 @@ describe("Competition", function () {
 
     referralStorage = await deployContract("ReferralStorage", [])
     competition = await deployContract("Competition", [
-      ts + 60, // start
-      ts + 120, // end
-      ts - 60, // registrationStart
-      ts + 60, // registrationEnd
+      ts + 10, // start
+      ts + 60, // end
       referralStorage.address
     ]);
 
@@ -32,24 +30,15 @@ describe("Competition", function () {
   it("allows owner to set times", async () => {
     await competition.connect(wallet).setStart(1)
     await competition.connect(wallet).setEnd(1)
-    await competition.connect(wallet).setRegistrationStart(1)
-    await competition.connect(wallet).setRegistrationEnd(1)
   })
 
   it("disable non owners to set times", async () => {
     await expect(competition.connect(user0).setStart(1)).to.be.revertedWith("Governable: forbidden")
     await expect(competition.connect(user0).setEnd(1)).to.be.revertedWith("Governable: forbidden")
-    await expect(competition.connect(user0).setRegistrationStart(1)).to.be.revertedWith("Governable: forbidden")
-    await expect(competition.connect(user0).setRegistrationEnd(1)).to.be.revertedWith("Governable: forbidden")
-  })
-
-  it("disable people to register teams before registration time", async () => {
-    await competition.connect(wallet).setRegistrationStart((await getBlockTime(provider)) + 10)
-    await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
 
   it("disable people to register teams after registration time", async () => {
-    await competition.connect(wallet).setRegistrationEnd((await getBlockTime(provider)) - 10)
+    await competition.connect(wallet).setStart((await getBlockTime(provider)) - 10)
     await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
 
@@ -109,13 +98,8 @@ describe("Competition", function () {
     await expect(competition.connect(user0).approveJoinRequest(user1.address)).to.be.revertedWith("This member did not apply.")
   })
 
-  it("disallow leaders to accept members before registration time", async () => {
-    await competition.connect(wallet).setRegistrationStart((await getBlockTime(provider)) + 10)
-    await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
-  })
-
   it("disallow leaders to accept members after registration time", async () => {
-    await competition.connect(wallet).setRegistrationEnd((await getBlockTime(provider)) - 10)
+    await competition.connect(wallet).setStart((await getBlockTime(provider)) - 10)
     await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
 

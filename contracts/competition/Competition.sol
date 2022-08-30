@@ -16,8 +16,6 @@ contract Competition is Governable
 
     uint public start;
     uint public end;
-    uint public registrationStart;
-    uint public registrationEnd;
     IReferralStorage public referralStorage;
     address[] public leaders;
     mapping(address => Team) public teams;
@@ -29,16 +27,15 @@ contract Competition is Governable
     event JoinRequestCreated(address member, address leader);
     event JoinRequestCanceled(address member);
     event JoinRequestApproved(address member, address leader);
-    event TimesChanged(uint start, uint end, uint registrationStart, uint registrationEnd);
+    event MemberRemoved(address leader, address member);
+    event TimesChanged(uint start, uint end);
 
-    modifier registrationIsOpen()
-    {
-        require(block.timestamp >= registrationStart && block.timestamp < registrationEnd, "Registration is closed.");
+    modifier registrationIsOpen() {
+        require(block.timestamp < start, "Registration is closed.");
         _;
     }
 
-    modifier isNotMember()
-    {
+    modifier isNotMember() {
         require(membersToTeam[msg.sender] == address(0), "Team members are not allowed.");
         _;
     }
@@ -46,17 +43,13 @@ contract Competition is Governable
     constructor(
         uint start_,
         uint end_,
-        uint registrationStart_,
-        uint registrationEnd_,
         IReferralStorage referralStorage_
     ) public {
         start = start_;
         end = end_;
-        registrationStart = registrationStart_;
-        registrationEnd = registrationEnd_;
         referralStorage = referralStorage_;
 
-        emit TimesChanged(start, end, registrationStart, registrationEnd);
+        emit TimesChanged(start, end);
     }
 
     function registerTeam(string calldata name, bytes32 referral) external registrationIsOpen isNotMember {
@@ -114,6 +107,8 @@ contract Competition is Governable
                 break;
             }
         }
+
+        emit MemberRemoved(msg.sender, memberAddress);
     }
 
     function getLeaders(uint start_, uint offset) external view returns (address[] memory) {
@@ -150,17 +145,11 @@ contract Competition is Governable
 
     function setStart(uint start_) external onlyGov {
         start = start_;
+        emit TimesChanged(start, end);
     }
 
     function setEnd(uint end_) external onlyGov {
         end = end_;
-    }
-
-    function setRegistrationStart(uint registrationStart_) external onlyGov {
-        registrationStart = registrationStart_;
-    }
-
-    function setRegistrationEnd(uint registrationEnd_) external onlyGov {
-        registrationEnd = registrationEnd_;
+        emit TimesChanged(start, end);
     }
 }
