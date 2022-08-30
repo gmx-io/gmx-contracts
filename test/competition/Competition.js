@@ -28,26 +28,19 @@ describe("Competition", function () {
     await referralStorage.registerCode(code)
   })
 
-  it("allows owner to set times", async () => {
-    await competition.connect(wallet).setStart(1)
-    await competition.connect(wallet).setEnd(1)
+  it("allows owner to set competition details", async () => {
+    const ts = await getBlockTime(provider)
+    await competition.connect(wallet).setCompetitionDetails(ts, ts + 10, 10)
   })
 
-  it("disable non owners to set times", async () => {
-    await expect(competition.connect(user0).setStart(1)).to.be.revertedWith("Governable: forbidden")
-    await expect(competition.connect(user0).setEnd(1)).to.be.revertedWith("Governable: forbidden")
-  })
-
-  it("allows owner to set max members per team", async () => {
-    await competition.setMaxMembersPerTeam(1);
-  })
-
-  it("disable non owners to set max members per team", async () => {
-    await expect(competition.connect(user0).setMaxMembersPerTeam(1)).to.be.revertedWith("Governable: forbidden")
+  it("disable non owners to set competition details", async () => {
+    const ts = await getBlockTime(provider)
+    await expect(competition.connect(user0).setCompetitionDetails(ts, ts + 10, 10)).to.be.revertedWith("Governable: forbidden")
   })
 
   it("disable people to register teams after registration time", async () => {
-    await competition.connect(wallet).setStart((await getBlockTime(provider)) - 10)
+    const ts = await getBlockTime(provider)
+    await competition.connect(wallet).setCompetitionDetails(ts - 10, ts + 60, 10)
     await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
 
@@ -108,7 +101,8 @@ describe("Competition", function () {
   })
 
   it("disallow leaders to accept members after registration time", async () => {
-    await competition.connect(wallet).setStart((await getBlockTime(provider)) - 10)
+    const ts = await getBlockTime(provider)
+    await competition.connect(wallet).setCompetitionDetails(ts - 10, ts + 60, 10)
     await expect(competition.connect(user0).registerTeam("1", code)).to.be.revertedWith("Registration is closed.")
   })
 
@@ -133,10 +127,9 @@ describe("Competition", function () {
     await competition.connect(user2).createJoinRequest(user0.address)
     await competition.connect(user0).approveJoinRequest(user2.address)
 
-    try {
-      await competition.connect(wallet).setMaxMembersPerTeam(2);
+    const ts = await getBlockTime(provider)
+    await competition.connect(wallet).setCompetitionDetails(ts + 10, ts + 60, 2)
     await competition.connect(user3).createJoinRequest(user0.address)
-    await competition.connect(user0).approveJoinRequest(user3.address)
-    } catch (e) { console.log(e) }
+    await expect(competition.connect(user0).approveJoinRequest(user3.address)).to.be.revertedWith("Team is full.")
   })
 });

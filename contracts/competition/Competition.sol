@@ -14,9 +14,13 @@ contract Competition is Governable
         address[] joinRequests;
     }
 
-    uint public start;
-    uint public end;
-    uint public maxMembersPerTeam;
+    struct CompetitionDetails {
+        uint start;
+        uint end;
+        uint maxTeamSize;
+    }
+
+    CompetitionDetails public competitionDetails;
     IReferralStorage public referralStorage;
     address[] public leaders;
     mapping(address => Team) public teams;
@@ -29,10 +33,10 @@ contract Competition is Governable
     event JoinRequestCanceled(address member);
     event JoinRequestApproved(address member, address leader);
     event MemberRemoved(address leader, address member);
-    event TimesChanged(uint start, uint end);
+    event CompetitionDetailsChanged(uint start, uint end, uint maxTeamSize);
 
     modifier registrationIsOpen() {
-        require(block.timestamp < start, "Registration is closed.");
+        require(block.timestamp < competitionDetails.start, "Registration is closed.");
         _;
     }
 
@@ -42,17 +46,14 @@ contract Competition is Governable
     }
 
     constructor(
-        uint start_,
-        uint end_,
-        uint maxMembersPerTeam_,
+        uint start,
+        uint end,
+        uint maxTeamSize,
         IReferralStorage referralStorage_
     ) public {
-        start = start_;
-        end = end_;
-        maxMembersPerTeam = maxMembersPerTeam_;
+        competitionDetails = CompetitionDetails(start, end, maxTeamSize);
         referralStorage = referralStorage_;
-
-        emit TimesChanged(start, end);
+        emit CompetitionDetailsChanged(start, end, maxTeamSize);
     }
 
     function registerTeam(string calldata name, bytes32 referral) external registrationIsOpen isNotMember {
@@ -86,7 +87,7 @@ contract Competition is Governable
     function approveJoinRequest(address memberAddress) external registrationIsOpen {
         require(requests[memberAddress] == msg.sender, "This member did not apply.");
         require(membersToTeam[memberAddress] == address(0), "This member already joined a team.");
-        require(teams[msg.sender].members.length < maxMembersPerTeam, "Team is full.");
+        require(teams[msg.sender].members.length < competitionDetails.maxTeamSize, "Team is full.");
 
         // referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
         teams[msg.sender].members.push(memberAddress);
@@ -147,17 +148,11 @@ contract Competition is Governable
         return res;
     }
 
-    function setStart(uint start_) external onlyGov {
-        start = start_;
-        emit TimesChanged(start, end);
-    }
-
-    function setEnd(uint end_) external onlyGov {
-        end = end_;
-        emit TimesChanged(start, end);
-    }
-
-    function setMaxMembersPerTeam(uint maxMembersPerTeam_) external onlyGov {
-        maxMembersPerTeam = maxMembersPerTeam_;
+    function setCompetitionDetails(uint start, uint end, uint maxTeamSize) external onlyGov
+    {
+        competitionDetails.start = start;
+        competitionDetails.end = end;
+        competitionDetails.maxTeamSize = maxTeamSize;
+        emit CompetitionDetailsChanged(start, end, maxTeamSize);
     }
 }
