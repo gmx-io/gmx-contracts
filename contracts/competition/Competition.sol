@@ -4,8 +4,7 @@ pragma solidity ^0.6.0;
 import "../referrals/interfaces/IReferralStorage.sol";
 import "../access/Governable.sol";
 
-contract Competition is Governable
-{
+contract Competition is Governable {
     struct Team {
         address leader;
         string name;
@@ -23,8 +22,7 @@ contract Competition is Governable
         mapping(address => address) joinRequests;
     }
 
-    uint public nextCompetitionIndex = 0;
-    mapping(uint => Competition) public competitions;
+    Competition[] public competitions;
     IReferralStorage public referralStorage;
 
     event TeamCreated(uint index, address leader, string name, bytes32 referral);
@@ -34,19 +32,20 @@ contract Competition is Governable
     event MemberRemoved(uint index, address leader, address member);
     event CompetitionCreated(uint index, uint start, uint end, uint maxTeamSize);
     event CompetitionUpdated(uint index, uint start, uint end, uint maxTeamSize);
+    event CompetitionRemoved(uint index);
 
     modifier registrationIsOpen(uint competitionIndex) {
-        require(competitions[competitionIndex].start > block.timestamp, "Registration is closed.");
+        require(competitions[competitionIndex].start > block.timestamp, "Competition: Registration is closed.");
         _;
     }
 
     modifier isNotMember(uint competitionIndex) {
-        require(competitions[competitionIndex].memberTeams[msg.sender] == address(0), "Team members are not allowed.");
+        require(competitions[competitionIndex].memberTeams[msg.sender] == address(0), "Competition: Team members are not allowed.");
         _;
     }
 
     modifier competitionExists(uint index) {
-        require(competitions[index].start > 0, "The competition does not exist.");
+        require(competitions.length > index && competitions[index].start > 0, "Competition: The competition does not exist.");
         _;
     }
 
@@ -55,29 +54,34 @@ contract Competition is Governable
     }
 
     function createCompetition(uint start, uint end, uint maxTeamSize) external onlyGov {
-        require(start > block.timestamp, "Start time must be in the future.");
-        require(end > start, "End time must be greater than start time.");
+        _validateCompetitionParameters(start, end, maxTeamSize);
 
-        competitions[nextCompetitionIndex] = Competition(start, end, maxTeamSize);
+        competitions.push(Competition(start, end, maxTeamSize));
 
-        emit CompetitionCreated(nextCompetitionIndex, start, end, maxTeamSize);
-
-        nextCompetitionIndex++;
+        emit CompetitionCreated(competitions.length - 1, start, end, maxTeamSize);
     }
 
     function updateCompetition(uint index, uint start, uint end, uint maxTeamSize) external onlyGov competitionExists(index) {
-        competitions[index].start = start;
-        competitions[index].end = end;
-        competitions[index].maxTeamSize = maxTeamSize;
+        _validateCompetitionParameters(start, end, maxTeamSize);
+
+        competitions[index] = Competition(start, end, maxTeamSize);
 
         emit CompetitionUpdated(index, start, end, maxTeamSize);
+    }
+
+    function removeCompetition(uint index) external onlyGov competitionExists(index) {
+        require(competitions[index].start > block.timestamp, "Competition: Competition is active.s");
+
+        delete competitions[index];
+
+        emit CompetitionRemoved(index);
     }
 
     function createTeam(uint competitionIndex, string calldata name, bytes32 referralCode) external registrationIsOpen(competitionIndex) isNotMember(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
-        require(referralStorage.codeOwners(referralCode) != address(0), "Referral code does not exist.");
-        require(competition.teamNames[name] == false, "Team name already registered.");
+        require(referralStorage.codeOwners(referralCode) != address(0), "Competition: Referral code does not exist.");
+        require(!competition.teamNames[name], "Competition: Team name already registered.");
 
         Team storage team = competition.teams[msg.sender];
         team.leader = msg.sender;
@@ -94,8 +98,8 @@ contract Competition is Governable
     function createJoinRequest(uint competitionIndex, address leaderAddress) external registrationIsOpen(competitionIndex) isNotMember(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
-        require(competition.memberTeams[msg.sender] == address(0), "You can't join multiple teams.");
-        require(competition.teams[leaderAddress].leader != address(0), "The team does not exist.");
+        require(competition.memberTeams[msg.sender] == address(0), "Competition: You can't join multiple teams.");
+        require(competition.teams[leaderAddress].leader != address(0), "Competition: The team does not exist.");
 
         competition.joinRequests[msg.sender] = leaderAddress;
 
@@ -105,9 +109,9 @@ contract Competition is Governable
     function approveJoinRequest(uint competitionIndex, address memberAddress) external registrationIsOpen(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
-        require(competition.joinRequests[memberAddress] == msg.sender, "This member did not apply.");
-        require(competition.memberTeams[memberAddress] == address(0), "This member already joined a team.");
-        require(competition.teams[msg.sender].members.length < competition.maxTeamSize, "Team is full.");
+        require(competition.joinRequests[memberAddress] == msg.sender, "Competition: This member did not apply.");
+        require(competition.memberTeams[memberAddress] == address(0), "Competition: This member already joined a team.");
+        require(competition.teams[msg.sender].members.length < competition.maxTeamSize, "Competition: Team is full.");
 
         // referralStorage.setTraderReferralCode(memberAddress, teams[msg.sender].referral);
         competition.teams[msg.sender].members.push(memberAddress);
@@ -125,35 +129,29 @@ contract Competition is Governable
     function removeMember(uint competitionIndex, address memberAddress) external registrationIsOpen(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
-        require(competition.memberTeams[memberAddress] == msg.sender, "This member is not in your team");
+        require(competition.memberTeams[memberAddress] == msg.sender, "Competition: This member is not in your team");
 
-        for (uint i = 0; i < competition.teams[msg.sender].members.length; i++) {
-            if (competition.teams[msg.sender].members[i] == memberAddress) {
-                delete competition.teams[msg.sender].members[i];
-                break;
+        address[] memory oldMembers = competition.teams[msg.sender].members;
+        address[] memory newMembers = new address[](oldMembers.length - 1);
+        for (uint i = 0; i < oldMembers.length; i++) {
+            if (oldMembers[i] != memberAddress) {
+                newMembers[i] = oldMembers[i];
             }
         }
 
+        competition.teams[msg.sender].members = newMembers;
         competition.memberTeams[memberAddress] = address(0);
 
         emit MemberRemoved(competitionIndex, msg.sender, memberAddress);
     }
 
-    function getCompetition(uint index) external view returns (uint, uint, uint) {
-        return (
-            competitions[index].start,
-            competitions[index].end,
-            competitions[index].maxTeamSize
-        );
-    }
-
-    function getTeam(uint competitionIndex, address leaderAddr) external view returns (address, string memory, bytes32) {
-        Team memory team = competitions[competitionIndex].teams[leaderAddr];
+    function getTeam(uint competitionIndex, address leaderAddress) external view returns (address, string memory, bytes32) {
+        Team memory team = competitions[competitionIndex].teams[leaderAddress];
         return (team.leader, team.name, team.referralCode);
     }
 
-    function getTeamMembers(uint competitionIndex, address leaderAddr, uint start, uint offset) external view returns (address[] memory) {
-        address[] memory members = competitions[competitionIndex].teams[leaderAddr].members;
+    function getTeamMembers(uint competitionIndex, address leaderAddress, uint start, uint offset) external view returns (address[] memory) {
+        address[] memory members = competitions[competitionIndex].teams[leaderAddress].members;
         address[] memory result = new address[](offset);
 
         for (uint i = start; i < start + offset && i < members.length; i++) {
@@ -165,5 +163,11 @@ contract Competition is Governable
 
     function getJoinRequest(uint competitionIndex, address memberAddress) external view returns (address) {
         return competitions[competitionIndex].joinRequests[memberAddress];
+    }
+
+    function _validateCompetitionParameters(uint start, uint end, uint maxTeamSize) internal {
+        require(start > block.timestamp, "Competition: Start time must be in the future.");
+        require(end > start, "Competition: End time must be greater than start time.");
+        require(maxTeamSize > 0, "Competition: Max team size must be greater than zero.");
     }
 }

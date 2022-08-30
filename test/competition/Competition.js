@@ -59,7 +59,7 @@ describe("Competition", function () {
     const ts = await getBlockTime(provider)
     await contract.connect(wallet).createCompetition(ts + 2, ts + 60, 10)
     await sleep(2000);
-    await expect(contract.connect(user0).createTeam(1, "1", code)).to.be.revertedWith("Registration is closed.")
+    await expect(contract.connect(user0).createTeam(1, "1", code)).to.be.revertedWith("Competition: Registration is closed.")
   })
 
   it("allows people to register teams in times", async () => {
@@ -68,16 +68,16 @@ describe("Competition", function () {
 
   it("disable people to register multiple teams", async () => {
     await contract.connect(user0).createTeam(0, "1", code)
-    await expect(contract.connect(user0).createTeam(0, "2", code)).to.be.revertedWith("Team members are not allowed.")
+    await expect(contract.connect(user0).createTeam(0, "2", code)).to.be.revertedWith("Competition: Team members are not allowed.")
   })
 
   it("disable people to register a team with non existing referral code", async () => {
-    await expect(contract.connect(user0).createTeam(0, "1", keccak256("0xFE"))).to.be.revertedWith("Referral code does not exist.")
+    await expect(contract.connect(user0).createTeam(0, "1", keccak256("0xFE"))).to.be.revertedWith("Competition: Referral code does not exist.")
   })
 
   it("disable multiple teams with the same name", async () => {
     await contract.connect(user0).createTeam(0, "1", code)
-    await expect(contract.connect(user1).createTeam(0, "1", code)).to.be.revertedWith("Team name already registered.")
+    await expect(contract.connect(user1).createTeam(0, "1", code)).to.be.revertedWith("Competition: Team name already registered.")
   })
 
   it("allows people to create join requests", async () => {
@@ -96,13 +96,13 @@ describe("Competition", function () {
     await contract.connect(user0).createTeam(0, "1", code)
     await contract.connect(user1).createJoinRequest(0, user0.address)
     await contract.connect(user1).cancelJoinRequest(0)
-    await expect(contract.connect(user0).approveJoinRequest(0, user1.address)).to.be.revertedWith("This member did not apply.")
+    await expect(contract.connect(user0).approveJoinRequest(0, user1.address)).to.be.revertedWith("Competition: This member did not apply.")
   })
 
   it("disable team members to create join requests", async () => {
     await contract.connect(user0).createTeam(0, "1", code)
     await contract.connect(user1).createTeam(0, "2", code)
-    await expect(contract.connect(user0).createJoinRequest(0, user1.address)).to.be.revertedWith("Team members are not allowed.")
+    await expect(contract.connect(user0).createJoinRequest(0, user1.address)).to.be.revertedWith("Competition: Team members are not allowed.")
   })
 
   it("allows team leaders to accept requests", async () => {
@@ -115,14 +115,14 @@ describe("Competition", function () {
 
   it("disallow leaders to accept non existant join request", async () => {
     await contract.connect(user0).createTeam(0, "1", code)
-    await expect(contract.connect(user0).approveJoinRequest(0, user1.address)).to.be.revertedWith("This member did not apply.")
+    await expect(contract.connect(user0).approveJoinRequest(0, user1.address)).to.be.revertedWith("Competition: This member did not apply.")
   })
 
   it("disallow leaders to accept members after registration time", async () => {
     const ts = await getBlockTime(provider)
     await contract.connect(wallet).createCompetition(ts + 2, ts + 10, 10)
     await sleep(2000)
-    await expect(contract.connect(user0).createTeam(1, "1", code)).to.be.revertedWith("Registration is closed.")
+    await expect(contract.connect(user0).createTeam(1, "1", code)).to.be.revertedWith("Competition: Registration is closed.")
   })
 
   it("allow leaders to kick members", async () => {
@@ -138,7 +138,7 @@ describe("Competition", function () {
   })
 
   it("allow owner to change competition", async () => {
-    await contract.connect(wallet).updateCompetition(0, ts + 60, ts + 12, 5);
+    await contract.connect(wallet).updateCompetition(0, ts + 60, ts + 120, 5);
   })
 
   it("disallow non owners to change competition", async () => {
@@ -158,6 +158,16 @@ describe("Competition", function () {
     await contract.connect(user0).approveJoinRequest(0, user2.address)
 
     await contract.connect(user3).createJoinRequest(0, user0.address)
-    await expect(contract.connect(user0).approveJoinRequest(0, user3.address)).to.be.revertedWith("Team is full.")
+    await expect(contract.connect(user0).approveJoinRequest(0, user3.address)).to.be.revertedWith("Competition: Team is full.")
+  })
+
+  it("allow owner to delete competition if it is not started", async () => {
+    await contract.removeCompetition(0)
+    const ts = await getBlockTime(provider)
+    await contract.createCompetition(ts + 2, ts + 10, 10)
+    await sleep(2000)
+    await expect(contract.removeCompetition(1)).to.be.revertedWith("Competition: Competition is active.")
+    await contract.updateCompetition(1, ts + 10, ts + 20, 10)
+    await expect(contract.connect(user1).removeCompetition(1)).to.be.revertedWith("Governable: forbidden")
   })
 });
