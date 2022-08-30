@@ -59,7 +59,7 @@ contract Competition is Governable
         referralStorage = _referralStorage;
     }
 
-    function createCompetition(uint start, uint end) external onlyGov returns (uint) {
+    function createCompetition(uint start, uint end) external onlyGov {
         require(start > block.timestamp, "Start time must be in the future.");
         require(end > start, "End time must be greater than start time.");
 
@@ -67,7 +67,7 @@ contract Competition is Governable
 
         emit CompetitionCreated(nextCompetitionIndex, start, end);
 
-        return nextCompetitionIndex++;
+        nextCompetitionIndex++;
     }
 
     function updateCompetition(uint index, uint start, uint end) external onlyGov {
