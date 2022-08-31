@@ -3,7 +3,9 @@
 pragma solidity 0.6.12;
 
 interface IGlpManager {
+    function usdg() external view returns (address);
     function cooldownDuration() external returns (uint256);
+    function getAumInUsdg(bool maximise) external view returns (uint256);
     function lastAddedAt(address _account) external returns (uint256);
     function addLiquidity(address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) external returns (uint256);
     function addLiquidityForAccount(address _fundingAccount, address _account, address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) external returns (uint256);

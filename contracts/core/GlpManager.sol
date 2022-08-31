@@ -22,7 +22,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     uint256 public constant MAX_COOLDOWN_DURATION = 48 hours;
 
     IVault public vault;
-    address public usdg;
+    address public override usdg;
     address public glp;
 
     uint256 public override cooldownDuration;
@@ -107,7 +107,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         return amounts;
     }
 
-    function getAumInUsdg(bool maximise) public view returns (uint256) {
+    function getAumInUsdg(bool maximise) public override view returns (uint256) {
         uint256 aum = getAum(maximise);
         return aum.mul(10 ** USDG_DECIMALS).div(PRICE_PRECISION);
     }

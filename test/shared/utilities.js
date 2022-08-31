@@ -115,6 +115,78 @@ function getPriceBits(prices) {
   return priceBits.toString()
 }
 
+const limitDecimals = (amount, maxDecimals) => {
+  let amountStr = amount.toString();
+  if (maxDecimals === undefined) {
+    return amountStr;
+  }
+  if (maxDecimals === 0) {
+    return amountStr.split(".")[0];
+  }
+  const dotIndex = amountStr.indexOf(".");
+  if (dotIndex !== -1) {
+    let decimals = amountStr.length - dotIndex - 1;
+    if (decimals > maxDecimals) {
+      amountStr = amountStr.substr(0, amountStr.length - (decimals - maxDecimals));
+    }
+  }
+  return amountStr;
+}
+
+const padDecimals = (amount, minDecimals) => {
+  let amountStr = amount.toString();
+  const dotIndex = amountStr.indexOf(".");
+  if (dotIndex !== -1) {
+    const decimals = amountStr.length - dotIndex - 1;
+    if (decimals < minDecimals) {
+      amountStr = amountStr.padEnd(amountStr.length + (minDecimals - decimals), "0");
+    }
+  } else {
+    amountStr = amountStr + ".0000";
+  }
+  return amountStr;
+}
+
+const parseValue = (value, tokenDecimals) => {
+  const pValue = parseFloat(value);
+  if (isNaN(pValue)) {
+    return undefined;
+  }
+  value = limitDecimals(value, tokenDecimals);
+  const amount = ethers.utils.parseUnits(value, tokenDecimals);
+  return bigNumberify(amount);
+}
+
+function numberWithCommas(x) {
+  if (!x) {
+    return "...";
+  }
+  var parts = x.toString().split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
+}
+
+const formatAmount = (amount, tokenDecimals, displayDecimals, useCommas, defaultValue) => {
+  if (!defaultValue) {
+    defaultValue = "...";
+  }
+  if (amount === undefined || amount.toString().length === 0) {
+    return defaultValue;
+  }
+  if (displayDecimals === undefined) {
+    displayDecimals = 4;
+  }
+  let amountStr = ethers.utils.formatUnits(amount, tokenDecimals);
+  amountStr = limitDecimals(amountStr, displayDecimals);
+  if (displayDecimals !== 0) {
+    amountStr = padDecimals(amountStr, displayDecimals);
+  }
+  if (useCommas) {
+    return numberWithCommas(amountStr);
+  }
+  return amountStr;
+};
+
 module.exports = {
   newWallet,
   maxUint256,
@@ -129,5 +201,7 @@ module.exports = {
   getTxnBalances,
   print,
   getPriceBitArray,
-  getPriceBits
+  getPriceBits,
+  formatAmount,
+  parseValue
 }

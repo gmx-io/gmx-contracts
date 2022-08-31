@@ -34,19 +34,17 @@ async function main() {
     20,
     21,
     22,
-    23,
-    24,
-    25,
     2726,
     16797,
     16809,
     16810,
     17079,
     17080,
-    24729,
-    25035,
-    25921,
-    31374
+    69112,
+    69115,
+    69119,
+    69120,
+    34143
   ]
 
   console.log("NFT ID,Fees")
@@ -66,7 +64,7 @@ async function main() {
     }
 
     const collectResult = await uniPositionManager.callStatic.collect(params, { from: owner })
-    console.log(`${nftId},${ethers.utils.formatUnits(collectResult.amount0, 18)}`)
+    console.log(`NFT_${nftId},${ethers.utils.formatUnits(collectResult.amount0, 18)}`)
   }
 }
 

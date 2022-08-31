@@ -7,9 +7,9 @@ const avaxData = require("../../distribution-data-avalanche.json")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
 
-const ethPrice = "1815"
-const avaxPrice = "25"
-const gmxPrice = "20"
+const ethPrice = "1617"
+const avaxPrice = "23"
+const gmxPrice = "41"
 
 const shouldSendTxn = false
 
@@ -20,9 +20,8 @@ async function getArbValues() {
   const esGmx = await contractAt("Token", "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA")
   const nativeTokenPrice = ethPrice
   const data = arbitrumData
-  const gasLimit = "30000000"
 
-  return { batchSender, esGmx, nativeTokenPrice, data, gasLimit }
+  return { batchSender, esGmx, nativeTokenPrice, data }
 }
 
 async function getAvaxValues() {
@@ -30,9 +29,8 @@ async function getAvaxValues() {
   const esGmx = await contractAt("Token", "0xFf1489227BbAAC61a9209A08929E4c2a526DdD17")
   const nativeTokenPrice = avaxPrice
   const data = avaxData
-  const gasLimit = "5000000"
 
-  return { batchSender, esGmx, nativeTokenPrice, data, gasLimit }
+  return { batchSender, esGmx, nativeTokenPrice, data }
 }
 
 async function getValues() {
@@ -62,8 +60,10 @@ async function main() {
 
   let totalAffiliateAmount = bigNumberify(0)
   let totalAffiliateUsd = bigNumberify(0)
+  let allAffiliateUsd = bigNumberify(0)
   let totalDiscountAmount = bigNumberify(0)
   let totalDiscountUsd = bigNumberify(0)
+  let allDiscountUsd = bigNumberify(0)
   let totalEsGmxAmount = bigNumberify(0)
   const affiliateAccounts = []
   const affiliateAmounts = []
@@ -74,6 +74,8 @@ async function main() {
 
   for (let i = 0; i < affiliatesData.length; i++) {
     const { account, rebateUsd, esgmxRewardsUsd } = affiliatesData[i]
+    allAffiliateUsd = allAffiliateUsd.add(rebateUsd)
+
     if (account === AddressZero) { continue }
 
     const amount = bigNumberify(rebateUsd).mul(expandDecimals(1, 18)).div(expandDecimals(nativeTokenPrice, 30))
@@ -92,6 +94,7 @@ async function main() {
 
   for (let i = 0; i < discountsData.length; i++) {
     const { account, discountUsd } = discountsData[i]
+    allDiscountUsd = allDiscountUsd.add(discountUsd)
     if (account === AddressZero) { continue }
 
     const amount = bigNumberify(discountUsd).mul(expandDecimals(1, 18)).div(expandDecimals(nativeTokenPrice, 30))
@@ -117,8 +120,10 @@ async function main() {
   const totalNativeAmount = totalAffiliateAmount.add(totalDiscountAmount)
   console.log(`total affiliate rewards (${nativeToken.name})`, ethers.utils.formatUnits(totalAffiliateAmount, 18))
   console.log("total affiliate rewards (USD)", ethers.utils.formatUnits(totalAffiliateUsd, 30))
+  console.log("all affiliate rewards (USD)", ethers.utils.formatUnits(allAffiliateUsd, 30))
   console.log(`total trader rebates (${nativeToken.name})`, ethers.utils.formatUnits(totalDiscountAmount, 18))
   console.log("total trader rebates (USD)", ethers.utils.formatUnits(totalDiscountUsd, 30))
+  console.log("all trader rebates (USD)", ethers.utils.formatUnits(allDiscountUsd, 30))
   console.log(`total ${nativeToken.name}`, ethers.utils.formatUnits(totalNativeAmount, 18))
   console.log(`total USD`, ethers.utils.formatUnits(totalAffiliateUsd.add(totalDiscountUsd), 30))
   console.log(`total esGmx`, ethers.utils.formatUnits(totalEsGmxAmount, 18))
