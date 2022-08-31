@@ -6,7 +6,7 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const shouldSendTxn = true
 
 const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("0"), 18)
-const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("13500"), 18)
+const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("0"), 18)
 
 async function getStakedAmounts() {
   const arbStakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", signers.arbitrum)
@@ -72,7 +72,7 @@ async function main() {
     totalStaked = totalStaked.add(stakedAmounts[net].total)
   }
 
-  const totalEsGmxRewards = expandDecimals(100000, tokenDecimals)
+  const totalEsGmxRewards = expandDecimals(50000, tokenDecimals)
   const secondsPerMonth = 28 * 24 * 60 * 60
 
   const gmxRewardDistributor = await contractAt("RewardDistributor", await gmxRewardTracker.distributor())

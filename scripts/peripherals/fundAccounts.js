@@ -1,18 +1,16 @@
-const { getFrameSigner, sendTxn } = require("../shared/helpers")
+const { getFrameSigner, sendTxn, contractAt } = require("../shared/helpers")
 const { formatAmount } = require("../../test/shared/utilities")
 const { getValues } = require("../shared/fundAccountsUtils")
 
 async function main() {
   const signer = await getFrameSigner()
   const { sender, transfers, totalTransferAmount, tokens, gasToken } = await getValues()
-  const nativeToken = await contractAt("WETH", tokens.nativeToken.address, signer)
+  const nativeTokenForSigner = await contractAt("WETH", tokens.nativeToken.address, signer)
 
+  await sendTxn(nativeTokenForSigner.transfer(sender.address, totalTransferAmount), `sending to distributor, ${formatAmount(totalTransferAmount, 18, 2)} ${gasToken} to ${sender.address}`)
+
+  const nativeToken = await contractAt("WETH", tokens.nativeToken.address)
   await sendTxn(nativeToken.withdraw(totalTransferAmount), `nativeToken.withdraw(${formatAmount(totalTransferAmount, 18, 2)})`)
-
-  await sendTxn(signer.sendTransaction({
-    to: sender.address,
-    value: totalTransferAmount
-  }), `${formatAmount(totalTransferAmount, 18, 2)} ${gasToken} to ${sender.address}`)
 
   for (let i = 0; i < transfers.length; i++) {
     const transferItem = transfers[i]

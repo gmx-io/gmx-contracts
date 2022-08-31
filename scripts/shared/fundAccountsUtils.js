@@ -43,12 +43,20 @@ async function getArbValues() {
 
   const keepers = [
     {
-      address: "0x1E359EaE31F5815AC3D5B337B26771Bc8ADbDFA3", // price sender
-      targetFunds: "25"
+      address: "0xD1e8300d3d1288BB63d462b109Ae16dA3F474020", // price sender 1
+      targetFunds: "12.5"
     },
     {
-      address: "0xEF9092d35Fda3e5b6E2Dd3Fac5b580aefc346FAf", // positions keeper
-      targetFunds: "25"
+      address: "0x13e12390fFFc8dA71708bbc90F0Bf2c07FbE6B7A", // price sender 2
+      targetFunds: "12.5"
+    },
+    {
+      address: "0x7AF4BA11eE55091F487D06977c1F4C3805e3ef48", // positions keeper 1
+      targetFunds: "12.5"
+    },
+    {
+      address: "0xA73731077B511b39853Fb149AfeC948d3DB9BA71", // positions keeper 2
+      targetFunds: "12.5"
     },
     {
       address: "0xd4266F8F82F7405429EE18559e548979D49160F3", // order keeper
@@ -76,7 +84,7 @@ async function getAvaxValues() {
       targetFunds: "1250"
     },
     {
-      address: "0xaC13E972B89001B45A8e07E5b040554096378810", // price sender 1
+      address: "0xaC13E972B89001B45A8e07E5b040554096378810", // price sender 2
       targetFunds: "1250"
     },
     {
