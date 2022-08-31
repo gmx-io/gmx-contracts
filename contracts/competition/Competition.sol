@@ -70,7 +70,7 @@ contract Competition is Governable {
     }
 
     function removeCompetition(uint index) external onlyGov competitionExists(index) {
-        require(competitions[index].start > block.timestamp, "Competition: Competition is active.s");
+        require(competitions[index].start > block.timestamp, "Competition: Competition is active.");
 
         delete competitions[index];
 
