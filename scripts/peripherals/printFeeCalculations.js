@@ -135,7 +135,7 @@ async function main() {
 
   for (let i = 0; i < data.length; i++) {
     const item = data[i]
-    console.log(item[0], ",", item[1])
+    console.log([item[0], item[1]].join(","))
   }
   // console.log(
   //   ["ETH Price", formatAmount(ethPrice, 30, 2)],
