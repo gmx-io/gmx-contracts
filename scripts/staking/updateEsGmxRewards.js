@@ -1,24 +1,40 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
-const { expandDecimals } = require("../../test/shared/utilities")
+const { deployContract, contractAt, sendTxn, signers } = require("../shared/helpers")
+const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 const shouldSendTxn = true
 
-async function getArbValues(signer) {
+const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("0"), 18)
+const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("0"), 18)
+
+async function getStakedAmounts() {
+  const arbStakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", signers.arbitrum)
+  const arbStakedGmxAndEsGmx =await arbStakedGmxTracker.totalSupply()
+
+  const avaxStakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", signers.avax)
+  const avaxStakedGmxAndEsGmx =await avaxStakedGmxTracker.totalSupply()
+
+  return {
+    arbStakedGmxAndEsGmx,
+    avaxStakedGmxAndEsGmx
+  }
+}
+
+async function getArbValues() {
   const gmxRewardTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4")
   const glpRewardTracker = await contractAt("RewardTracker", "0x1aDDD80E6039594eE970E5872D247bf0414C8903")
   const tokenDecimals = 18
-  const monthlyEsGmxForGlp = expandDecimals(50 * 1000, 18)
+  const monthlyEsGmxForGlp = monthlyEsGmxForGlpOnArb
 
   return { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp }
 }
 
-async function getAvaxValues(signer) {
+async function getAvaxValues() {
   const gmxRewardTracker = await contractAt("RewardTracker", "0x2bD10f8E93B3669b6d42E74eEedC65dd1B0a1342")
   const glpRewardTracker = await contractAt("RewardTracker", "0x9e295B5B976a184B14aD8cd72413aD846C299660")
   const tokenDecimals = 18
-  const monthlyEsGmxForGlp = expandDecimals(0, 18)
+  const monthlyEsGmxForGlp = monthlyEsGmxForGlpOnAvax
 
   return { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp }
 }
@@ -38,26 +54,25 @@ function toInt(value) {
 }
 
 async function main() {
+  const { arbStakedGmxAndEsGmx, avaxStakedGmxAndEsGmx } = await getStakedAmounts()
   const { tokenDecimals, gmxRewardTracker, glpRewardTracker, monthlyEsGmxForGlp } = await getValues()
 
   const stakedAmounts = {
     arbitrum: {
-      gmx: toInt("6,147,470"),
-      esGmx: toInt("1,277,087")
+      total: arbStakedGmxAndEsGmx
     },
     avax: {
-      gmx: toInt("417,802"),
-      esGmx: toInt("195,478")
+      total: avaxStakedGmxAndEsGmx
     }
   }
 
-  let totalStaked = 0
+  let totalStaked = bigNumberify(0)
+
   for (const net in stakedAmounts) {
-    stakedAmounts[net].total = stakedAmounts[net].gmx + stakedAmounts[net].esGmx
-    totalStaked += stakedAmounts[net].total
+    totalStaked = totalStaked.add(stakedAmounts[net].total)
   }
 
-  const totalEsGmxRewards = expandDecimals(100000, tokenDecimals)
+  const totalEsGmxRewards = expandDecimals(50000, tokenDecimals)
   const secondsPerMonth = 28 * 24 * 60 * 60
 
   const gmxRewardDistributor = await contractAt("RewardDistributor", await gmxRewardTracker.distributor())
@@ -78,8 +93,8 @@ async function main() {
   console.log("glpNextTokensPerInterval", glpNextTokensPerInterval.toString())
 
   if (shouldSendTxn) {
-    await sendTxn(gmxRewardDistributor.setTokensPerInterval(gmxNextTokensPerInterval), "gmxRewardDistributor.setTokensPerInterval")
-    await sendTxn(glpRewardDistributor.setTokensPerInterval(glpNextTokensPerInterval), "glpRewardDistributor.setTokensPerInterval")
+    await sendTxn(gmxRewardDistributor.setTokensPerInterval(gmxNextTokensPerInterval, { gasLimit: 500000 }), "gmxRewardDistributor.setTokensPerInterval")
+    await sendTxn(glpRewardDistributor.setTokensPerInterval(glpNextTokensPerInterval, { gasLimit: 500000 }), "glpRewardDistributor.setTokensPerInterval")
   }
 }
 

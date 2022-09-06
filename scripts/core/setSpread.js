@@ -4,11 +4,11 @@ const { bigNumberify, expandDecimals } = require("../../test/shared/utilities")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-async function getArbValues(signer) {
+async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
-  // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0xa18BB1003686d0854EF989BB936211c59EB6e363")
-  const timelock = await contractAt("Timelock", await vaultPriceFeed.gov(), signer)
+  // const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
+  const vaultPriceFeed = await contractAt("VaultPriceFeed", "0xfe661cbf27Da0656B7A1151a761ff194849C387A")
+  const timelock = await contractAt("PriceFeedTimelock", await vaultPriceFeed.gov())
 
   const { link, uni } = tokens
   const tokenArr = [link, uni]
@@ -16,11 +16,11 @@ async function getArbValues(signer) {
   return { vault, vaultPriceFeed, timelock, tokenArr }
 }
 
-async function getAvaxValues(signer) {
+async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
-  // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
-  const timelock = await contractAt("Timelock", await vaultPriceFeed.gov(), signer)
+  // const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
+  const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x205646B93B9D8070e15bc113449586875Ed7288E")
+  const timelock = await contractAt("PriceFeedTimelock", await vaultPriceFeed.gov())
 
   const { avax } = tokens
   const tokenArr = [avax]
@@ -28,20 +28,20 @@ async function getAvaxValues(signer) {
   return { vault, vaultPriceFeed, timelock, tokenArr }
 }
 
-async function getValues(signer) {
+async function getValues() {
   if (network === "arbitrum") {
-    return getArbValues(signer)
+    return getArbValues()
   }
 
   if (network === "avax") {
-    return getAvaxValues(signer)
+    return getAvaxValues()
   }
 }
 
 async function main() {
-  const signer = await getFrameSigner()
+  // const signer = await getFrameSigner()
 
-  const { vault, vaultPriceFeed, timelock, tokenArr } = await getValues(signer)
+  const { vault, vaultPriceFeed, timelock, tokenArr } = await getValues()
 
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)

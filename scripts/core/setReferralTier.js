@@ -27,12 +27,11 @@ async function getValues() {
   }
 }
 
-async function main() {
+async function updateAccount(account) {
   const { referralStorage } = await getValues()
   const timelock = await contractAt("Timelock", await referralStorage.gov())
-
-  const account = "0x99655CA16C742b46A4a05AFAf0f7798C336Fd279"
   const tier = 2 // tier 1, 2, 3
+
   console.log("account", account)
 
   const currentTier = (await referralStorage.referrerTiers(account)).add(1)
@@ -42,7 +41,18 @@ async function main() {
     throw new Error("Current tier is more than 1")
   }
 
+  console.log("updating to tier", tier)
   await sendTxn(timelock.setReferrerTier(referralStorage.address, account, tier - 1), "timelock.setReferrerTier")
+}
+
+async function main() {
+  const accounts = [
+    "0x1A4e395b035580Bb66079a13310bF737BcAf56BB",
+  ]
+
+  for (let i = 0; i < accounts.length; i++) {
+    await updateAccount(accounts[i])
+  }
 }
 
 main()

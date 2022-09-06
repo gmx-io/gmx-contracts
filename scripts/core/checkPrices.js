@@ -44,10 +44,10 @@ async function checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr) {
       console.log("\n3.")
       console.log(`delta1: ${ethers.utils.formatUnits(deltaBps1, 4)}`)
       console.log(`delta2: ${ethers.utils.formatUnits(deltaBps2, 4)}`)
-      if (parseFloat(ethers.utils.formatUnits(deltaBps1, 4)) > 0.7) {
+      if (parseFloat(ethers.utils.formatUnits(deltaBps1, 4)) > 7) {
         throw new Error("delta1 exceeds threshold")
       }
-      if (parseFloat(ethers.utils.formatUnits(deltaBps2, 4)) > 0.7) {
+      if (parseFloat(ethers.utils.formatUnits(deltaBps2, 4)) > 7) {
         throw new Error("delta2 exceeds threshold")
       }
     }
@@ -55,9 +55,9 @@ async function checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr) {
 }
 
 async function checkPricesArb() {
-  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0xEFF37c0969DcBf69B0b142dAc4e56A0930AECBa8")
+  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0xa18BB1003686d0854EF989BB936211c59EB6e363")
   // let vaultPriceFeed2
-  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0xa18BB1003686d0854EF989BB936211c59EB6e363")
+  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0xfe661cbf27Da0656B7A1151a761ff194849C387A")
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
   const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
@@ -66,12 +66,14 @@ async function checkPricesArb() {
 }
 
 async function checkPricesAvax() {
-  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x131238112aa25c0D8CD237a6c384d1A86D2BB152")
-  // let vaultPriceFeed2
-  const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
+  const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x205646B93B9D8070e15bc113449586875Ed7288E")
+  // const vaultPriceFeed1 = await contractAt("VaultPriceFeed", "0x81b7e71A1D9E08a6Ca016A0F4D6Fa50DBCE89Ee3")
+  let vaultPriceFeed2
+  // const vaultPriceFeed2 = await contractAt("VaultPriceFeed", "0x205646B93B9D8070e15bc113449586875Ed7288E")
 
-  const { avax, eth, btc, mim, usdce, usdc } = tokens
-  const tokenArr = [avax, btc, eth, mim, usdce, usdc]
+  const { avax, eth, btc, btcb, mim, usdce, usdc } = tokens
+  // const tokenArr = [avax, btc, eth, mim, usdce, usdc]
+  const tokenArr = [avax, btc, btcb, eth, mim, usdce, usdc]
 
   await checkPrices(vaultPriceFeed1, vaultPriceFeed2, tokenArr)
 }

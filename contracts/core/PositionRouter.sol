@@ -53,8 +53,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     bytes32[] public increasePositionRequestKeys;
     bytes32[] public decreasePositionRequestKeys;
 
-    uint256 public increasePositionRequestKeysStart;
-    uint256 public decreasePositionRequestKeysStart;
+    uint256 public override increasePositionRequestKeysStart;
+    uint256 public override decreasePositionRequestKeysStart;
 
     mapping (address => bool) public isPositionKeeper;
 

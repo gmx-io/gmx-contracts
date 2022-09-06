@@ -4,6 +4,26 @@ const parse = require('csv-parse')
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
+const ARBITRUM = 42161
+const AVALANCHE = 43114
+
+const {
+  ARBITRUM_URL,
+  AVAX_URL,
+  ARBITRUM_DEPLOY_KEY,
+  AVAX_DEPLOY_KEY
+} = require("../../env.json")
+
+const providers = {
+  arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
+  avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
+}
+
+const signers = {
+  arbitrum: new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(providers.arbitrum),
+  avax: new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(providers.avax)
+}
+
 const readCsv = async (file) => {
   records = []
   const parser = fs
@@ -141,6 +161,10 @@ async function processBatch(batchLists, batchSize, handler) {
 }
 
 module.exports = {
+  ARBITRUM,
+  AVALANCHE,
+  providers,
+  signers,
   readCsv,
   getFrameSigner,
   sendTxn,
