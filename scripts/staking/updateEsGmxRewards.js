@@ -6,7 +6,7 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const shouldSendTxn = true
 
 const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("0"), 18)
-const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("0"), 18)
+const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("6156"), 18)
 
 async function getStakedAmounts() {
   const arbStakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", signers.arbitrum)
