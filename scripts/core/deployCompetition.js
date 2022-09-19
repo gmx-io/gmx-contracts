@@ -14,6 +14,12 @@ async function getAvaxValues() {
   return { positionRouter }
 }
 
+// async function getArbitrumTestnetValues() {
+//   const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
+
+//   return { positionRouter }
+// }
+
 async function getValues() {
   if (network === "arbitrum") {
     return getArbValues()
@@ -22,15 +28,11 @@ async function getValues() {
   if (network === "avax") {
     return getAvaxValues()
   }
-
-  if (network === "testnet") {
-    return getTestnetValues()
-  }
 }
 
 async function main() {
-  const { positionRouter } = await getValues()
-  const referralStorage = await contractAt("ReferralStorage", await positionRouter.referralStorage())
+  // const { positionRouter } = await getValues()
+  const referralStorage = await contractAt("ReferralStorage", "0x902B74dAe2fff3BA564BDa930A7D687b84e0E9cC")
 
   await deployContract("Competition", [ referralStorage.address ]);
 }

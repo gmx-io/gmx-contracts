@@ -148,6 +148,8 @@ describe("Competition", function () {
     await contract.connect(user1).removeMember(0, user0.address, user1.address)
     members = await getTeamMembers(0, user0.address)
     expect(members).to.not.include(user1.address)
+    const team = await contract.getMemberTeam(0, user1.address)
+    expect(team).to.be.equal(ethers.constants.AddressZero)
   })
 
   it("allow owner to change competition", async () => {
