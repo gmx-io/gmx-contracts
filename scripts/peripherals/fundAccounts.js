@@ -7,7 +7,7 @@ async function main() {
   const { sender, transfers, totalTransferAmount, tokens, gasToken } = await getValues()
   const nativeTokenForSigner = await contractAt("WETH", tokens.nativeToken.address, signer)
 
-  await sendTxn(nativeTokenForSigner.transfer(sender.address, totalTransferAmount), `sending to distributor, ${formatAmount(totalTransferAmount, 18, 2)} ${gasToken} to ${sender.address}`)
+  await sendTxn(nativeTokenForSigner.transfer(sender.address, totalTransferAmount), `to distributor, ${formatAmount(totalTransferAmount, 18, 2)} ${gasToken} to ${sender.address}`)
 
   const nativeToken = await contractAt("WETH", tokens.nativeToken.address)
   await sendTxn(nativeToken.withdraw(totalTransferAmount), `nativeToken.withdraw(${formatAmount(totalTransferAmount, 18, 2)})`)

@@ -59,8 +59,12 @@ async function getArbValues() {
       targetFunds: "12.5"
     },
     {
-      address: "0xd4266F8F82F7405429EE18559e548979D49160F3", // order keeper
-      targetFunds: "15"
+      address: "0xd4266F8F82F7405429EE18559e548979D49160F3", // order keeper 1
+      targetFunds: "7.5"
+    },
+    {
+      address: "0x2D1545d6deDCE867fca3091F49B29D16B230a6E4", // order keeper 2
+      targetFunds: "7.5"
     },
     {
       address: "0x44311c91008DDE73dE521cd25136fD37d616802c", // liquidator
@@ -96,8 +100,12 @@ async function getAvaxValues() {
       targetFunds: "1250"
     },
     {
-      address: "0x06f34388A7CFDcC68aC9167C5f1C23DD39783179", // order keeper
-      targetFunds: "300"
+      address: "0x06f34388A7CFDcC68aC9167C5f1C23DD39783179", // order keeper 1
+      targetFunds: "150"
+    },
+    {
+      address: "0xf26f52d5985F6391E541A8d638e1EDaa522Ae56C", // order keeper 2
+      targetFunds: "150"
     },
     {
       address: "0x7858A4C42C619a68df6E95DF7235a9Ec6F0308b9", // liquidator
