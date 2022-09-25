@@ -131,14 +131,21 @@ describe("Competition", function () {
   })
 
   it("allow leaders to kick members", async () => {
+    await contract.updateCompetition(0, ts + 1000, ts + 2000, 10);
     await contract.connect(user0).createTeam(0, "1")
     await contract.connect(user1).createJoinRequest(0, user0.address, nullCode)
     await contract.connect(user0).approveJoinRequest(0, [user1.address])
+    await contract.connect(user2).createJoinRequest(0, user0.address, nullCode)
+    await contract.connect(user0).approveJoinRequest(0, [user2.address])
     let members = await getTeamMembers(0, user0.address)
     expect(members).to.include(user1.address)
+    expect(members).to.include(user2.address)
     await contract.connect(user0).removeMember(0, user0.address, user1.address)
     members = await getTeamMembers(0, user0.address)
+    expect(members).to.include(user2.address)
     expect(members).to.not.include(user1.address)
+    const team = await contract.getMemberTeam(0, user1.address)
+    expect(team).to.be.equal(ethers.constants.AddressZero)
   })
 
   it("allow members to kick themselves", async () => {
@@ -153,7 +160,13 @@ describe("Competition", function () {
   })
 
   it("allow owner to change competition", async () => {
-    await contract.connect(wallet).updateCompetition(0, ts + 60, ts + 120, 5);
+    const newStart = ts + 60
+    const newEnd = ts + 120
+    await contract.connect(wallet).updateCompetition(0, newStart, newEnd, 5);
+    const res = await contract.competitions(0)
+    expect(res.start.toNumber()).to.be.equal(newStart)
+    expect(res.end.toNumber()).to.be.equal(newEnd)
+    expect(res.maxTeamSize).to.be.equal(5)
   })
 
   it("disallow non owners to change competition", async () => {

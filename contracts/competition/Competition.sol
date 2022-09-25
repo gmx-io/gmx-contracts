@@ -64,7 +64,9 @@ contract Competition is Governable {
     function updateCompetition(uint index, uint start, uint end, uint maxTeamSize) external onlyGov competitionExists(index) {
         _validateCompetitionParameters(start, end, maxTeamSize);
 
-        competitions[index] = Competition(start, end, maxTeamSize);
+        competitions[index].start = start;
+        competitions[index].end = end;
+        competitions[index].maxTeamSize = maxTeamSize;
 
         emit CompetitionUpdated(index, start, end, maxTeamSize);
     }
@@ -141,14 +143,13 @@ contract Competition is Governable {
         require(competition.memberTeams[memberAddress] == msg.sender || memberAddress == msg.sender, "Competition: You are not allowed to remove this member.");
 
         address[] memory oldMembers = competition.teams[leaderAddress].members;
-        address[] memory newMembers = new address[](oldMembers.length - 1);
+        delete competition.teams[leaderAddress].members;
         for (uint i = 0; i < oldMembers.length; i++) {
             if (oldMembers[i] != memberAddress) {
-                newMembers[i] = oldMembers[i];
+                competition.teams[leaderAddress].members.push(oldMembers[i]);
             }
         }
 
-        competition.teams[leaderAddress].members = newMembers;
         competition.memberTeams[memberAddress] = address(0);
 
         emit MemberRemoved(competitionIndex, leaderAddress, memberAddress);
