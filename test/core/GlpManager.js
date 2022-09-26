@@ -54,7 +54,18 @@ describe("GlpManager", function () {
     glp = await deployContract("GLP", [])
 
     await initVault(vault, router, usdg, vaultPriceFeed)
-    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
+
+    const shortsTracker = await deployContract("ShortsTracker", [vault.address])
+    await shortsTracker.setIsGlobalShortDataReady(true)
+
+    glpManager = await deployContract("GlpManager", [
+      vault.address,
+      usdg.address,
+      glp.address,
+      shortsTracker.address,
+      24 * 60 * 60
+    ])
+    await glpManager.setShortsTrackerAveragePriceWeight(10000)
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])

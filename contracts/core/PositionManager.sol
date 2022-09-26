@@ -44,10 +44,11 @@ contract PositionManager is BasePositionManager {
     constructor(
         address _vault,
         address _router,
+        address _shortsTracker,
         address _weth,
         uint256 _depositFee,
         address _orderBook
-    ) public BasePositionManager(_vault, _router, _weth, _depositFee) {
+    ) public BasePositionManager(_vault, _router, _shortsTracker, _weth, _depositFee) {
         orderBook = _orderBook;
     }
 
@@ -153,7 +154,7 @@ contract PositionManager is BasePositionManager {
         require(_collateralToken == weth, "PositionManager: invalid _collateralToken");
 
         uint256 amountOut = _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
-        _transferOutETH(amountOut, _receiver);
+        _transferOutETHWithGasLimitIgnoreFail(amountOut, _receiver);
     }
 
     function decreasePositionAndSwap(
@@ -189,7 +190,7 @@ contract PositionManager is BasePositionManager {
         uint256 amount = _decreasePosition(msg.sender, _path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         IERC20(_path[0]).safeTransfer(vault, amount);
         uint256 amountOut = _swap(_path, _minOut, address(this));
-        _transferOutETH(amountOut, _receiver);
+        _transferOutETHWithGasLimitIgnoreFail(amountOut, _receiver);
     }
 
     function liquidatePosition(
@@ -201,8 +202,12 @@ contract PositionManager is BasePositionManager {
     ) external nonReentrant onlyLiquidator {
         address _vault = vault;
         address timelock = IVault(_vault).gov();
+        (uint256 size, , , , , , , ) = IVault(vault).getPosition(_account, _collateralToken, _indexToken, _isLong);
+
+        uint256 markPrice = _isLong ? IVault(_vault).getMinPrice(_indexToken) : IVault(_vault).getMaxPrice(_indexToken);
 
         ITimelock(timelock).enableLeverage(_vault);
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, size, markPrice, false);
         IVault(_vault).liquidatePosition(_account, _collateralToken, _indexToken, _isLong, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
     }
@@ -258,6 +263,8 @@ contract PositionManager is BasePositionManager {
             , // triggerAboveThreshold
             // executionFee
         ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
+
+        _validateMaxGlobalSize(_indexToken, _isLong, _sizeDelta);
 
         if (!shouldValidateIncreaseOrder) { return _sizeDelta; }
 

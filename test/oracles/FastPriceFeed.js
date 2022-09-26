@@ -55,7 +55,7 @@ describe("FastPriceFeed", function () {
 
     usdg = await deployContract("USDG", [vault.address])
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
-    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, depositFee, minExecutionFee])
+    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, ethers.constants.AddressZero, depositFee, minExecutionFee])
 
     fastPriceEvents = await deployContract("FastPriceEvents", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [

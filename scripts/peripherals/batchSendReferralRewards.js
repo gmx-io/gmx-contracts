@@ -7,9 +7,9 @@ const avaxData = require("../../distribution-data-avalanche.json")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
 
-const ethPrice = "1560"
-const avaxPrice = "20"
-const gmxPrice = "46"
+const ethPrice = "1342"
+const avaxPrice = "17"
+const gmxPrice = "40"
 
 const shouldSendTxn = false
 

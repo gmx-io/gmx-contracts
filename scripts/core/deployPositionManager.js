@@ -17,6 +17,7 @@ async function getArbValues() {
   // const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064", signer)
   const timelock = await contractAt("Timelock", await vault.gov())
   const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064")
+  const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x09f77E8A13De9a35a7231028187e9fD5DB8a2ACB")
 
@@ -44,7 +45,7 @@ async function getArbValues() {
     "0xe98f68F3380c990D3045B4ae29f3BCa0F3D02939", // Jones rDPX Hedging
   ]
 
-  return { vault, timelock, router, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
+  return { vault, timelock, router, shortsTracker, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
 }
 
 async function getAvaxValues() {
@@ -53,6 +54,7 @@ async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
   const timelock = await contractAt("Timelock", await vault.gov(), signer)
   const router = await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8", signer)
+  const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x4296e307f108B2f583FF2F7B7270ee7831574Ae5")
 
@@ -61,13 +63,14 @@ async function getAvaxValues() {
 
   const partnerContracts = []
 
-  return { vault, timelock, router, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
+  return { vault, timelock, router, shortsTracker, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
 }
 
 async function getArbTestnetValues() {
   const vault = await contractAt("Vault", "0xBc9BC47A7aB63db1E0030dC7B60DDcDe29CF4Ffb")
   const timelock = await contractAt("Timelock", await vault.gov())
   const router = await contractAt("Router", "0xe0d4662cdfa2d71477A7DF367d5541421FAC2547")
+  const shortsTracker = await contractAt("ShortsTracker", "0x5C9735e887B7FC64A611f1f9Fb812FBB7cd9Ea49")
   const weth = await contractAt("WETH", "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681")
   const orderBook = await contractAt("OrderBook", "0xebD147E5136879520dDaDf1cA8FBa48050EFf016")
 
@@ -76,7 +79,19 @@ async function getArbTestnetValues() {
 
   const partnerContracts = []
 
-  return { vault, timelock, router, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
+  return {
+    positionManagerAddress: "0x3bE9B5e8664BA76773943B7716c152Af949ad3AF",
+    vault,
+    timelock,
+    router,
+    shortsTracker,
+    weth,
+    depositFee,
+    orderBook,
+    orderKeeper,
+    liquidator,
+    partnerContracts
+  }
 }
 
 async function getValues() {
@@ -94,20 +109,57 @@ async function getValues() {
 }
 
 async function main() {
-  const { vault, timelock, router, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts } = await getValues()
+  const {
+    positionManagerAddress,
+    vault,
+    timelock,
+    router,
+    shortsTracker,
+    weth,
+    depositFee,
+    orderBook,
+    orderKeeper,
+    liquidator,
+    partnerContracts
+  } = await getValues()
 
-  const positionManager = await deployContract("PositionManager", [vault.address, router.address, weth.address, depositFee, orderBook.address])
-  // const positionManager = await contractAt("PositionManager", "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831")
-  await sendTxn(positionManager.setOrderKeeper(orderKeeper.address, true), "positionManager.setOrderKeeper(orderKeeper)")
-  await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
-  await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
-  await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
-  await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
+  let positionManager
+  if (positionManagerAddress) {
+    console.log("Using position manager at", positionManagerAddress)
+    positionManager = await contractAt("PositionManager", positionManagerAddress)
+  } else {
+    console.log("Deploying new position manager")
+    const positionManagerArgs = [vault.address, router.address, shortsTracker.address, weth.address, depositFee, orderBook.address]
+    positionManager = await deployContract("PositionManager", positionManagerArgs)
+  }
+
+  if (!(await positionManager.isOrderKeeper(orderKeeper.address))) {
+    await sendTxn(positionManager.setOrderKeeper(orderKeeper.address, true), "positionManager.setOrderKeeper(orderKeeper)")
+  }
+  if (!(await positionManager.isLiquidator(liquidator.address))) {
+    await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
+  }
+  if (!(await timelock.isHandler(positionManager.address))) {
+    await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
+  }
+  if (!(await vault.isLiquidator(positionManager.address))) {
+    await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
+  }
+  if (!(await shortsTracker.isHandler(positionManager.address))) {
+    await sendTxn(shortsTracker.setHandler(positionManager.address, true), "shortsTracker.setContractHandler(positionManager.address, true)")
+  }
+  if (!(await router.plugins(positionManager.address))) {
+    await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
+  }
 
   for (let i = 0; i < partnerContracts.length; i++) {
     const partnerContract = partnerContracts[i]
-    await sendTxn(positionManager.setPartner(partnerContract, true), "positionManager.setPartner(partnerContract)")
+    if (!(await positionManager.isPartner(partnerContract))) {
+      await sendTxn(positionManager.setPartner(partnerContract, true), "positionManager.setPartner(partnerContract)")
+    }
   }
+
+  console.log("done.")
 }
 
 main()

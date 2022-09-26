@@ -10,15 +10,20 @@ async function deployOnArbTestnet() {
   const timelock = await contractAt("Timelock", await vault.gov())
   const router = await contractAt("Router", "0xe0d4662cdfa2d71477A7DF367d5541421FAC2547")
   const weth = await contractAt("WETH", "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681")
+  const shortsTracker = await contractAt("ShortsTracker", "0x5C9735e887B7FC64A611f1f9Fb812FBB7cd9Ea49")
   // const referralStorage = await contractAt("ReferralStorage", "0x2249D006A8cCdF4C99Aa6c8B9502a2aeCC923392")
   const depositFee = "30" // 0.3%
   const minExecutionFee = "300000000000000" // 0.0003 ETH
 
-  const positionRouter = await deployContract("PositionRouter", [vault.address, router.address, weth.address, depositFee, minExecutionFee], "PositionRouter", { gasLimit: 12500000 })
-  // const positionRouter = await contractAt("PositionRouter", "0x338fF5b9d64484c8890704a76FE7166Ed7d3AEAd")
+  // const positionRouterArgs = [vault.address, router.address, weth.address, shortsTracker.address, depositFee, minExecutionFee]
+  // const positionRouter = await deployContract("PositionRouter", positionRouterArgs, { gasLimit: 12500000 })
 
+  const positionRouter = await contractAt("PositionRouter", "0xDb4A6434D808Dd3390db01001Ee4F1Cc5D259ffD")
+
+  // no referral storage in testnet
   // await sendTxn(positionRouter.setReferralStorage(referralStorage.address), "positionRouter.setReferralStorage")
   // await sendTxn(referralStorage.setHandler(positionRouter.address, true), "referralStorage.setHandler(positionRouter)")
+  await sendTxn(shortsTracker.setHandler(positionRouter.address, true), "shortsTracker.setHandler(positionRouter)")
 
   await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin")
 
@@ -34,14 +39,17 @@ async function deployOnArb() {
   const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064", signer)
   const weth = await contractAt("WETH", "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
   const referralStorage = await contractAt("ReferralStorage", "0x2249D006A8cCdF4C99Aa6c8B9502a2aeCC923392")
+  const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
   const depositFee = "30" // 0.3%
   const minExecutionFee = "300000000000000" // 0.0003 ETH
 
-  const positionRouter = await deployContract("PositionRouter", [vault.address, router.address, weth.address, depositFee, minExecutionFee], "PositionRouter", { gasLimit: 125000000 })
+  const positionRouterArgs = [vault.address, router.address, weth.address, depositFee, minExecutionFee]
+  const positionRouter = await deployContract("PositionRouter", positionRouterArgs, { gasLimit: 125000000 })
   // const positionRouter = await contractAt("PositionRouter", "0x338fF5b9d64484c8890704a76FE7166Ed7d3AEAd")
 
   await sendTxn(positionRouter.setReferralStorage(referralStorage.address), "positionRouter.setReferralStorage")
   await sendTxn(referralStorage.setHandler(positionRouter.address, true), "referralStorage.setHandler(positionRouter)")
+  await sendTxn(shortsTracker.setHandler(positionRouter.address, true), "shortsTracker.setHandler(positionRouter)")
 
   await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin")
 
@@ -57,14 +65,17 @@ async function deployOnAvax() {
   const router = await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8", signer)
   const weth = await contractAt("WETH", "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7")
   const referralStorage = await contractAt("ReferralStorage", "0x0e725cB75258c3D8e9FB47267207b8973B882eBF")
+  const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
   const depositFee = "30" // 0.3%
   const minExecutionFee = "17000000000000000" // 0.017 AVAX
 
-  const positionRouter = await deployContract("PositionRouter", [vault.address, router.address, weth.address, depositFee, minExecutionFee])
+  const positionRouterArgs = [vault.address, router.address, weth.address, depositFee, minExecutionFee]
+  const positionRouter = await deployContract("PositionRouter", positionRouterArgs)
   // const positionRouter = await contractAt("PositionRouter", "0xc5BBc613f4617eE4F7E89320081182024F86bd6B")
 
   await sendTxn(positionRouter.setReferralStorage(referralStorage.address), "positionRouter.setReferralStorage")
   await sendTxn(referralStorage.setHandler(positionRouter.address, true), "referralStorage.setHandler(positionRouter)")
+  await sendTxn(shortsTracker.setHandler(positionRouter.address, true), "shortsTracker.setHandler(positionRouter)")
 
   await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin")
 

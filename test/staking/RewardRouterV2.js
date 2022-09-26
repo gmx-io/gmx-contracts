@@ -77,7 +77,7 @@ describe("RewardRouterV2", function () {
     glp = await deployContract("GLP", [])
 
     await initVault(vault, router, usdg, vaultPriceFeed)
-    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
+    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, ethers.constants.AddressZero, 24 * 60 * 60])
 
     timelock = await deployContract("Timelock", [
       wallet.address,
@@ -255,7 +255,7 @@ describe("RewardRouterV2", function () {
     await esGmx.setGov(timelock.address)
     await bnGmx.setGov(timelock.address)
     await gmxVester.setGov(timelock.address)
-    await glpVester.setGov(timelock.address)    
+    await glpVester.setGov(timelock.address)
   })
 
   it("inits", async () => {
@@ -349,7 +349,11 @@ describe("RewardRouterV2", function () {
     expect(await feeGmxTracker.claimable(user1.address)).gt("3560000000000000000") // 3.56, 100 / 28 => ~3.57
     expect(await feeGmxTracker.claimable(user1.address)).lt("3580000000000000000") // 3.58
 
-    await timelock.mint(esGmx.address, expandDecimals(500, 18))
+    await timelock.signalMint(esGmx.address, tokenManager.address, expandDecimals(500, 18))
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+
+    await timelock.processMint(esGmx.address, tokenManager.address, expandDecimals(500, 18))
     await esGmx.connect(tokenManager).transferFrom(tokenManager.address, user2.address, expandDecimals(500, 18))
     await rewardRouter.connect(user2).stakeEsGmx(expandDecimals(500, 18))
 

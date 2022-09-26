@@ -7,6 +7,7 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IVault.sol";
 import "./interfaces/IGlpManager.sol";
+import "./interfaces/IShortsTracker.sol";
 import "../tokens/interfaces/IUSDG.sol";
 import "../tokens/interfaces/IMintable.sol";
 import "../access/Governable.sol";
@@ -19,9 +20,12 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
 
     uint256 public constant PRICE_PRECISION = 10 ** 30;
     uint256 public constant USDG_DECIMALS = 18;
+    uint256 public constant GLP_PRECISION = 10 ** 18;
     uint256 public constant MAX_COOLDOWN_DURATION = 48 hours;
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
     IVault public vault;
+    IShortsTracker public shortsTracker;
     address public override usdg;
     address public glp;
 
@@ -32,6 +36,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     uint256 public aumDeduction;
 
     bool public inPrivateMode;
+    uint256 public shortsTrackerAveragePriceWeight;
     mapping (address => bool) public isHandler;
 
     event AddLiquidity(
@@ -54,16 +59,23 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         uint256 amountOut
     );
 
-    constructor(address _vault, address _usdg, address _glp, uint256 _cooldownDuration) public {
+    constructor(address _vault, address _usdg, address _glp, address _shortsTracker, uint256 _cooldownDuration) public {
         gov = msg.sender;
         vault = IVault(_vault);
         usdg = _usdg;
         glp = _glp;
+        shortsTracker = IShortsTracker(_shortsTracker);
         cooldownDuration = _cooldownDuration;
     }
 
     function setInPrivateMode(bool _inPrivateMode) external onlyGov {
         inPrivateMode = _inPrivateMode;
+    }
+
+    function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external onlyGov {
+        require(shortsTrackerAveragePriceWeight <= BASIS_POINTS_DIVISOR, "GlpManager: invalid weight");
+        require(shortsTracker.isGlobalShortDataReady(), "GlpManager: data not ready");
+        shortsTrackerAveragePriceWeight = _shortsTrackerAveragePriceWeight;
     }
 
     function setHandler(address _handler, bool _isActive) external onlyGov {
@@ -100,6 +112,12 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         return _removeLiquidity(_account, _tokenOut, _glpAmount, _minOut, _receiver);
     }
 
+    function getPrice(bool _maximise) external view returns (uint256) {
+        uint256 aum = getAum(_maximise);
+        uint256 supply = IERC20(glp).totalSupply();
+        return aum.mul(GLP_PRECISION).div(supply);
+    }
+
     function getAums() public view returns (uint256[] memory) {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = getAum(true);
@@ -116,6 +134,8 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         uint256 length = vault.allWhitelistedTokensLength();
         uint256 aum = aumAddition;
         uint256 shortProfits = 0;
+        IShortsTracker _shortsTracker = shortsTracker;
+        IVault _vault = vault;
 
         for (uint256 i = 0; i < length; i++) {
             address token = vault.allWhitelistedTokens(i);
@@ -125,20 +145,19 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
                 continue;
             }
 
-            uint256 price = maximise ? vault.getMaxPrice(token) : vault.getMinPrice(token);
-            uint256 poolAmount = vault.poolAmounts(token);
-            uint256 decimals = vault.tokenDecimals(token);
+            uint256 price = maximise ? _vault.getMaxPrice(token) : _vault.getMinPrice(token);
+            uint256 poolAmount = _vault.poolAmounts(token);
+            uint256 decimals = _vault.tokenDecimals(token);
 
-            if (vault.stableTokens(token)) {
+            if (_vault.stableTokens(token)) {
                 aum = aum.add(poolAmount.mul(price).div(10 ** decimals));
             } else {
                 // add global short profit / loss
-                uint256 size = vault.globalShortSizes(token);
+                uint256 size = address(_shortsTracker) == address(0) ? _vault.globalShortSizes(token) : _shortsTracker.globalShortSizes(token);
+
                 if (size > 0) {
-                    uint256 averagePrice = vault.globalShortAveragePrices(token);
-                    uint256 priceDelta = averagePrice > price ? averagePrice.sub(price) : price.sub(averagePrice);
-                    uint256 delta = size.mul(priceDelta).div(averagePrice);
-                    if (price > averagePrice) {
+                    (uint256 delta, bool hasProfit) = getGlobalShortDelta(token, price, size);
+                    if (!hasProfit) {
                         // add losses from shorts
                         aum = aum.add(delta);
                     } else {
@@ -146,15 +165,40 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
                     }
                 }
 
-                aum = aum.add(vault.guaranteedUsd(token));
+                aum = aum.add(_vault.guaranteedUsd(token));
 
-                uint256 reservedAmount = vault.reservedAmounts(token);
+                uint256 reservedAmount = _vault.reservedAmounts(token);
                 aum = aum.add(poolAmount.sub(reservedAmount).mul(price).div(10 ** decimals));
             }
         }
 
         aum = shortProfits > aum ? 0 : aum.sub(shortProfits);
         return aumDeduction > aum ? 0 : aum.sub(aumDeduction);
+    }
+
+    function getGlobalShortDelta(address _token, uint256 _price, uint256 _size) public view returns (uint256, bool) {
+        uint256 averagePrice = getGlobalShortAveragePrice(_token);
+        uint256 priceDelta = averagePrice > _price ? averagePrice.sub(_price) : _price.sub(averagePrice);
+        uint256 delta = _size.mul(priceDelta).div(averagePrice);
+        return (delta, averagePrice > _price);
+    }
+
+    function getGlobalShortAveragePrice(address _token) public view returns (uint256) {
+        IShortsTracker _shortsTracker = shortsTracker;
+        uint256 _shortsTrackerAveragePriceWeight = shortsTrackerAveragePriceWeight;
+
+        if (_shortsTrackerAveragePriceWeight == 0) {
+            return vault.globalShortAveragePrices(_token);
+        } else if (_shortsTrackerAveragePriceWeight == BASIS_POINTS_DIVISOR) {
+            return _shortsTracker.globalShortAveragePrices(_token);
+        }
+
+        uint256 vaultAveragePrice = vault.globalShortAveragePrices(_token);
+        uint256 shortsTrackerAveragePrice = _shortsTracker.globalShortAveragePrices(_token);
+
+        return vaultAveragePrice.mul(BASIS_POINTS_DIVISOR.sub(_shortsTrackerAveragePriceWeight))
+            .add(shortsTrackerAveragePrice.mul(_shortsTrackerAveragePriceWeight))
+            .div(BASIS_POINTS_DIVISOR);
     }
 
     function _addLiquidity(address _fundingAccount, address _account, address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) private returns (uint256) {

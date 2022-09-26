@@ -9,8 +9,8 @@ const inputDir = path.resolve(__dirname, "../..") + "/data/bonds/"
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
-const inputFile = inputDir + "2022-06-01_transfers.csv"
-const shouldSendTxns = false
+const inputFile = inputDir + "2022-09-14_transfers.csv"
+const shouldSendTxns = true
 
 async function getArbValues() {
   const esGmx = await contractAt("EsGMX", "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA")
