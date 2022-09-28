@@ -53,7 +53,7 @@ async function main() {
     glpManager.address,
     maxTokenSupply,
     10, // marginFeeBasisPoints 0.1%
-    100 // maxMarginFeeBasisPoints 1%
+    500 // maxMarginFeeBasisPoints 5%
   ], "Timelock")
 
   const deployedTimelock = await contractAt("Timelock", timelock.address, signer)
