@@ -7,7 +7,7 @@ const tokens = require('./tokens')[network];
 
 async function getArbValues() {
   const positionRouter = await contractAt("PositionRouter", "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba")
-  const positionManager = await contractAt("PositionManager", "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831")
+  const positionManager = await contractAt("PositionManager", "0x956618e5B6996919eB6B943aBf36910DdabC9a0f")
 
   const { btc, eth, link, uni } = tokens
   const tokenArr = [btc, eth]
@@ -17,7 +17,7 @@ async function getArbValues() {
 
 async function getAvaxValues() {
   const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
-  const positionManager = await contractAt("PositionManager", "0xF2ec2e52c3b5F8b8bd5A3f93945d05628A233216")
+  const positionManager = await contractAt("PositionManager", "0xAaf69ca8d44d74EAD76a86f25001cfC44515e94E")
 
   const { avax, eth, btc } = tokens
   const tokenArr = [avax, eth, btc]
