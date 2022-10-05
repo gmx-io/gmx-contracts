@@ -217,14 +217,29 @@ contract PositionManager is BasePositionManager {
     }
 
     function executeIncreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
-        uint256 sizeDelta =  _validateIncreaseOrder(_account, _orderIndex);
+        _validateIncreaseOrder(_account, _orderIndex);
 
         address _vault = vault;
         address timelock = IVault(_vault).gov();
 
+        (
+            /*address purchaseToken*/,
+            /*uint256 purchaseTokenAmount*/,
+            address collateralToken,
+            address indexToken,
+            uint256 sizeDelta,
+            bool isLong,
+            /*uint256 triggerPrice*/,
+            /*bool triggerAboveThreshold*/,
+            /*uint256 executionFee*/
+        ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
+
         ITimelock(timelock).enableLeverage(_vault);
         IOrderBook(orderBook).executeIncreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
+
+        uint256 markPrice = isLong ? IVault(_vault).getMaxPrice(indexToken) : IVault(_vault).getMinPrice(indexToken);
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, true);
 
         _emitIncreasePositionReferral(_account, sizeDelta);
     }
@@ -234,24 +249,27 @@ contract PositionManager is BasePositionManager {
         address timelock = IVault(_vault).gov();
 
         (
-            , // _collateralToken
-            , // _collateralDelta
-            , // _indexToken
-            uint256 _sizeDelta,
-            , // _isLong
-            , // triggerPrice
-            , // triggerAboveThreshold
-            // executionFee
+            address collateralToken,
+            /*uint256 collateralDelta*/,
+            address indexToken,
+            uint256 sizeDelta,
+            bool isLong,
+            /*uint256 triggerPrice*/,
+            /*bool triggerAboveThreshold*/,
+            /*uint256 executionFee*/
         ) = IOrderBook(orderBook).getDecreaseOrder(_account, _orderIndex);
 
         ITimelock(timelock).enableLeverage(_vault);
         IOrderBook(orderBook).executeDecreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
 
-        _emitDecreasePositionReferral(_account, _sizeDelta);
+        uint256 markPrice = isLong ? IVault(_vault).getMinPrice(indexToken) : IVault(_vault).getMaxPrice(indexToken);
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, true);
+
+        _emitDecreasePositionReferral(_account, sizeDelta);
     }
 
-    function _validateIncreaseOrder(address _account, uint256 _orderIndex) internal view returns (uint256) {
+    function _validateIncreaseOrder(address _account, uint256 _orderIndex) internal view {
         (
             address _purchaseToken,
             uint256 _purchaseTokenAmount,
@@ -266,10 +284,10 @@ contract PositionManager is BasePositionManager {
 
         _validateMaxGlobalSize(_indexToken, _isLong, _sizeDelta);
 
-        if (!shouldValidateIncreaseOrder) { return _sizeDelta; }
+        if (!shouldValidateIncreaseOrder) { return; }
 
         // shorts are okay
-        if (!_isLong) { return _sizeDelta; }
+        if (!_isLong) { return; }
 
         // if the position size is not increasing, this is a collateral deposit
         require(_sizeDelta > 0, "PositionManager: long deposit");
@@ -278,7 +296,7 @@ contract PositionManager is BasePositionManager {
         (uint256 size, uint256 collateral, , , , , , ) = _vault.getPosition(_account, _collateralToken, _indexToken, _isLong);
 
         // if there is no existing position, do not charge a fee
-        if (size == 0) { return _sizeDelta; }
+        if (size == 0) { return; }
 
         uint256 nextSize = size.add(_sizeDelta);
         uint256 collateralDelta = _vault.tokenToUsdMin(_purchaseToken, _purchaseTokenAmount);
@@ -289,7 +307,5 @@ contract PositionManager is BasePositionManager {
         uint256 nextLeverageWithBuffer = nextSize.mul(BASIS_POINTS_DIVISOR + increasePositionBufferBps).div(nextCollateral);
 
         require(nextLeverageWithBuffer >= prevLeverage, "PositionManager: long leverage decrease");
-
-        return _sizeDelta;
     }
 }
