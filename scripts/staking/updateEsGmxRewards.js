@@ -1,10 +1,11 @@
-const { deployContract, contractAt, sendTxn, signers } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn, signers, updateTokensPerInterval } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 const shouldSendTxn = true
 
+// this should be set to a small value instead of zero to avoid retroactive distributions
 const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("25,000"), 18)
 const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("11,578"), 18)
 
@@ -93,8 +94,8 @@ async function main() {
   console.log("glpNextTokensPerInterval", glpNextTokensPerInterval.toString())
 
   if (shouldSendTxn) {
-    await sendTxn(gmxRewardDistributor.setTokensPerInterval(gmxNextTokensPerInterval, { gasLimit: 500000 }), "gmxRewardDistributor.setTokensPerInterval")
-    await sendTxn(glpRewardDistributor.setTokensPerInterval(glpNextTokensPerInterval, { gasLimit: 500000 }), "glpRewardDistributor.setTokensPerInterval")
+    await updateTokensPerInterval(gmxRewardDistributor, gmxNextTokensPerInterval, "gmxRewardDistributor")
+    await updateTokensPerInterval(glpRewardDistributor, glpNextTokensPerInterval, "glpRewardDistributor")
   }
 }
 

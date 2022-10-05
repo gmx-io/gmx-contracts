@@ -155,6 +155,16 @@ async function processBatch(batchLists, batchSize, handler) {
   }
 }
 
+async function updateTokensPerInterval(distributor, tokensPerInterval, label) {
+  const prevTokensPerInterval = await distributor.tokensPerInterval()
+  if (prevTokensPerInterval.eq(0)) {
+    await sendTxn(distributor.updateLastDistributionTime({ gasLimit: 500000 }), `${label}.updateLastDistributionTime`)
+  } else {
+    await sendTxn(distributor.distribute({ gasLimit: 500000 }), `${label}.distribute`)
+  }
+  await sendTxn(distributor.setTokensPerInterval(tokensPerInterval, { gasLimit: 500000 }), `${label}.setTokensPerInterval`)
+}
+
 module.exports = {
   ARBITRUM,
   AVALANCHE,
