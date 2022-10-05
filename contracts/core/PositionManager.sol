@@ -264,7 +264,7 @@ contract PositionManager is BasePositionManager {
         ITimelock(timelock).disableLeverage(_vault);
 
         uint256 markPrice = isLong ? IVault(_vault).getMinPrice(indexToken) : IVault(_vault).getMaxPrice(indexToken);
-        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, true);
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, false);
 
         _emitDecreasePositionReferral(_account, sizeDelta);
     }

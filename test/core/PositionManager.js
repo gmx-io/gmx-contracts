@@ -8,7 +8,7 @@ const { initVault, getBnbConfig, getBtcConfig, getDaiConfig, validateVaultBalanc
 
 use(solidity)
 
-describe("PositionManager", function () {
+describe("PositionManager core", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
@@ -1378,6 +1378,101 @@ describe("PositionManager next short data calculations", function () {
     let aumAfter = await glpManager.getAum(true)
     expectAumsAreEqual(aumBefore, aumAfter, "aum")
   });
+
+  it("executeIncreaseOrder updates global short data", async () => {
+    await shortsTracker.setIsGlobalShortDataReady(true)
+    await glpManager.setShortsTrackerAveragePriceWeight(10000)
+    await positionManager.setOrderKeeper(user1.address, true)
+
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(50000))
+    await positionManager.connect(user1).increasePosition([dai.address], btc.address, expandDecimals(50000, 18), 0, toUsd(100000), false, toNormalizedPrice(50000))
+
+    const executionFee = expandDecimals(1, 17) // 0.1 WETH
+    await orderBook.connect(user0).createIncreaseOrder(
+      [dai.address], // path
+      expandDecimals(1000, 18), // amountIn
+      btc.address, // indexToken
+      0, // minOut
+      toUsd(2000), // sizeDelta
+      dai.address, // collateralToken
+      false, // isLong
+      toUsd(59000), // triggerPrice
+      true, // triggerAboveThreshold
+      executionFee,
+      false, // shouldWrap
+      {value: executionFee}
+    );
+
+    let shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    expect(shortAveragePrice, "shortAveragePrice 0").to.be.equal(toUsd(50000))
+    let shortSize = await shortsTracker.globalShortSizes(btc.address)
+    expect(shortSize, "shortSize 0").to.be.equal(toUsd(100000))
+
+    let orderIndex = (await orderBook.increaseOrdersIndex(user0.address)) - 1
+    expect((await orderBook.increaseOrders(user0.address, orderIndex))[0]).to.be.equal(user0.address)
+
+    let [size] = await vault.getPosition(user0.address, btc.address, btc.address, true)
+    expect(size, "size 0").to.be.equal(0)
+
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(60000))
+    let aumBefore = await glpManager.getAum(true)
+    await positionManager.connect(user1).executeIncreaseOrder(user0.address, orderIndex, user1.address);
+    [size] = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    expect(size, "size 1").to.be.equal(toUsd(2000))
+
+    shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    expect(shortAveragePrice, "shortAveragePrice 1").to.be.equal("50163934426229508196721311475409836")
+    shortSize = await shortsTracker.globalShortSizes(btc.address)
+    expect(shortSize, "shortSize 1").to.be.equal(toUsd(102000))
+
+    let aumAfter = await glpManager.getAum(true)
+    expectAumsAreEqual(aumBefore, aumAfter, "aum 0")
+  })
+
+  it("executeDecreaseOrder updates global short data", async () => {
+    await shortsTracker.setIsGlobalShortDataReady(true)
+    await glpManager.setShortsTrackerAveragePriceWeight(10000)
+    await positionManager.setOrderKeeper(user1.address, true)
+
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(50000))
+    await positionManager.connect(user1).increasePosition([dai.address], btc.address, expandDecimals(50000, 18), 0, toUsd(100000), false, toNormalizedPrice(50000))
+
+    await router.connect(user1).approvePlugin(orderBook.address)
+
+    const executionFee = expandDecimals(1, 17) // 0.1 WETH
+    await orderBook.connect(user1).createDecreaseOrder(
+      btc.address, // indexToken
+      toUsd(10000), // sizeDelta
+      dai.address, // collateralToken
+      toUsd(5000), // collateralDelta
+      false, // isLong
+      toUsd(0), // triggerPrice
+      true, // triggerAboveThreshold
+      {value: executionFee}
+    );
+
+    let orderIndex = (await orderBook.decreaseOrdersIndex(user1.address)) - 1
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(60000))
+    let [size] = await vault.getPosition(user1.address, dai.address, btc.address, false)
+    expect(size, "size 1").to.be.equal(toUsd(100000))
+
+    let aumBefore = await glpManager.getAum(true)
+    let shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    expect(shortAveragePrice, "shortAveragePrice 0").to.be.equal(toUsd(50000))
+    let shortSize = await shortsTracker.globalShortSizes(btc.address)
+    expect(shortSize, "shortSize 0").to.be.equal(toUsd(100000))
+
+    await positionManager.connect(user1).executeDecreaseOrder(user1.address, orderIndex, user1.address);
+    [size] = await vault.getPosition(user1.address, dai.address, btc.address, false)
+    expect(size, "size 1").to.be.equal(toUsd(90000))
+
+    shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    expect(shortAveragePrice, "shortAveragePrice 1").to.be.equal(toUsd(50000))
+    shortSize = await shortsTracker.globalShortSizes(btc.address)
+    expect(shortSize, "shortSize 1").to.be.equal(toUsd(90000))
+    let aumAfter = await glpManager.getAum(true)
+    expectAumsAreEqual(aumBefore, aumAfter, "aum 0")
+  })
 
   it("compare gas costs", async () => {
     await shortsTracker.setIsGlobalShortDataReady(true)

@@ -3,7 +3,7 @@ const { solidity } = require("ethereum-waffle")
 const { deployContract } = require("../shared/fixtures")
 const { expandDecimals, getBlockTime, increaseTime, mineBlock, reportGasUsed, newWallet } = require("../shared/utilities")
 const { toChainlinkPrice } = require("../shared/chainlink")
-const { toUsd, toNormalizedPrice } = require("../shared/units")
+const { toUsd } = require("../shared/units")
 const { initVault, getBnbConfig, getBtcConfig, getDaiConfig } = require("./Vault/helpers")
 
 use(solidity)
@@ -11,7 +11,7 @@ use(solidity)
 describe("PositionRouter", function () {
   const { AddressZero, HashZero } = ethers.constants
   const provider = waffle.provider
-  const [wallet, positionKeeper, minter, user0, user1, user2, user3, user4, user5, tokenManager, mintReceiver, signer0, signer1, updater0, updater1] = provider.getWallets()
+  const [wallet, positionKeeper, minter, user0, user1, user2, user3, user4, tokenManager, mintReceiver, signer0, signer1, updater0, updater1] = provider.getWallets()
   const depositFee = 50
   const minExecutionFee = 4000
   let vault
@@ -20,7 +20,6 @@ describe("PositionRouter", function () {
   let router
   let positionRouter
   let referralStorage
-  let vaultPriceFeed
   let bnb
   let bnbPriceFeed
   let btc
@@ -29,13 +28,11 @@ describe("PositionRouter", function () {
   let ethPriceFeed
   let dai
   let daiPriceFeed
-  let busd
-  let busdPriceFeed
   let distributor0
   let yieldTracker0
-  let reader
   let fastPriceFeed
   let fastPriceEvents
+  let shortsTracker
 
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
@@ -69,14 +66,14 @@ describe("PositionRouter", function () {
     usdg = await deployContract("USDG", [vault.address])
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
 
-    const shortsTracker = await deployContract("ShortsTracker", [vault.address])
+    shortsTracker = await deployContract("ShortsTracker", [vault.address])
     await shortsTracker.setIsGlobalShortDataReady(true)
 
     positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, shortsTracker.address, depositFee, minExecutionFee])
     await shortsTracker.setHandler(positionRouter.address, true)
 
     referralStorage = await deployContract("ReferralStorage", [])
-    vaultPriceFeed = await deployContract("VaultPriceFeed", [])
+    const vaultPriceFeed = await deployContract("VaultPriceFeed", [])
     await positionRouter.setReferralStorage(referralStorage.address)
     await referralStorage.setHandler(positionRouter.address, true)
 
@@ -2488,5 +2485,163 @@ describe("PositionRouter", function () {
     await expect(positionRouter.connect(positionKeeper).cancelDecreasePosition(key, executionFeeReceiver.address), "decrease: gas limit = 1000000")
       .to.emit(positionRouter, "Callback").withArgs(callbackReceiver.address, true)
       .to.emit(callbackReceiver, "CallbackCalled").withArgs(key, false, false)
+  })
+
+  describe("Updates short tracker data", () => {
+    let glpManager
+
+    beforeEach(async () => {
+      const glp = await deployContract("GLP", [])
+      glpManager = await deployContract("GlpManager", [
+        vault.address,
+        usdg.address,
+        glp.address,
+        shortsTracker.address,
+        24 * 60 * 60
+      ])
+      await glpManager.setShortsTrackerAveragePriceWeight(10000)
+
+      await router.addPlugin(positionRouter.address)
+      await router.connect(user0).approvePlugin(positionRouter.address)
+      await positionRouter.setDelayValues(0, 300, 500)
+      await positionRouter.setPositionKeeper(positionKeeper.address, true)
+
+      await dai.mint(user0.address, expandDecimals(10000, 18))
+      await dai.connect(user0).approve(router.address, expandDecimals(10000, 18))
+
+      await dai.mint(vault.address, expandDecimals(10000, 18))
+      await vault.buyUSDG(dai.address, user1.address)
+      await timelock.setContractHandler(positionRouter.address, true)
+      await timelock.setShouldToggleIsLeverageEnabled(true)
+
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(300))
+    })
+
+    it("executeIncreasePosition", async () => {
+      const executionFee = expandDecimals(1, 17)
+      const params = [
+        [dai.address], // _path
+        bnb.address, // _indexToken
+        expandDecimals(500, 18), // _amountIn
+        0, // _minOut
+        toUsd(1000), // _sizeDelta
+        false, // _isLong
+        toUsd(300), // _acceptablePrice
+        executionFee, // executionFee
+        HashZero,
+        AddressZero
+      ]
+
+      await positionRouter.connect(user0).createIncreasePosition(...params, { value: executionFee })
+      let key = await positionRouter.getRequestKey(user0.address, 1)
+      await positionRouter.connect(positionKeeper).executeIncreasePosition(key, user1.address)
+
+      expect(await shortsTracker.globalShortSizes(bnb.address), "size 0").to.be.equal(toUsd(1000))
+      expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 0").to.be.equal(toUsd(300))
+
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
+
+      let [hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
+      expect(hasProfit, "has profit 0").to.be.false
+      expect(delta, "delta 0").to.be.equal(toUsd(100))
+
+      let aumBefore = await glpManager.getAum(true)
+
+      await positionRouter.connect(user0).createIncreasePosition(...params, { value: executionFee })
+      key = await positionRouter.getRequestKey(user0.address, 2)
+      await positionRouter.connect(positionKeeper).executeIncreasePosition(key, user1.address)
+
+      expect(await shortsTracker.globalShortSizes(bnb.address), "size 1").to.be.equal(toUsd(2000))
+      expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 1").to.be.equal("314285714285714285714285714285714");
+
+      [hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
+      expect(hasProfit, "has profit 1").to.be.false
+      expect(delta, "delta 1").to.be.closeTo(toUsd(100), 100)
+
+      let aumAfter = await glpManager.getAum(true)
+      expect(aumAfter).to.be.closeTo(aumBefore, 100)
+    })
+
+    it("executeDecreasePosition", async () => {
+      const executionFee = expandDecimals(1, 17)
+      const increaseParams = [
+        [dai.address], // _path
+        bnb.address, // _indexToken
+        expandDecimals(500, 18), // _amountIn
+        0, // _minOut
+        toUsd(1000), // _sizeDelta
+        false, // _isLong
+        toUsd(300), // _acceptablePrice
+        executionFee, // executionFee
+        HashZero,
+        AddressZero
+      ]
+
+      await positionRouter.connect(user0).createIncreasePosition(...increaseParams, { value: executionFee })
+      let key = await positionRouter.getRequestKey(user0.address, 1)
+      await positionRouter.connect(positionKeeper).executeIncreasePosition(key, user1.address)
+
+      let decreaseParams = [
+        [dai.address], // _collateralToken
+        bnb.address, // _indexToken
+        0, // _collateralDelta
+        toUsd(100), // _sizeDelta
+        false, // _isLong
+        user0.address,  // _receiver
+        toUsd(1000),  // _acceptablePrice
+        0, // _minOut
+        executionFee,
+        false,
+        AddressZero
+      ]
+
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
+
+      expect(await shortsTracker.globalShortSizes(bnb.address), "size 0").to.be.equal(toUsd(1000))
+      expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 0").to.be.equal(toUsd(300));
+
+      let [hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
+      expect(hasProfit, "has profit 0").to.be.false
+      expect(delta, "delta 0").to.be.equal(toUsd(100))
+
+      let aumBefore = await glpManager.getAum(true)
+
+      await positionRouter.connect(user0).createDecreasePosition(...decreaseParams, { value: executionFee })
+      key = await positionRouter.getRequestKey(user0.address, 1)
+      await positionRouter.connect(positionKeeper).executeDecreasePosition(key, user1.address)
+
+      expect(await shortsTracker.globalShortSizes(bnb.address), "size 1").to.be.equal(toUsd(900))
+      expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 1").to.be.equal(toUsd(300));
+
+      ;[hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
+      expect(hasProfit, "has profit 1").to.be.false
+      expect(delta, "delta 1").to.be.equal(toUsd(90))
+
+      expect(await glpManager.getAum(true), "aum 0").to.be.closeTo(aumBefore, 100)
+
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(300))
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(300))
+      await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(300))
+
+      aumBefore = await glpManager.getAum(true)
+
+      await positionRouter.connect(user0).createDecreasePosition(...decreaseParams, { value: executionFee })
+      key = await positionRouter.getRequestKey(user0.address, 2)
+      await positionRouter.connect(positionKeeper).executeDecreasePosition(key, user1.address)
+
+      expect(await shortsTracker.globalShortSizes(bnb.address), "size 2").to.be.equal(toUsd(800))
+      expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 2").to.be.equal(toUsd(300));
+
+      ;[hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
+      expect(hasProfit, "has profit 2").to.be.false
+      expect(delta, "delta 2").to.be.equal(toUsd(0))
+
+      expect(await glpManager.getAum(true), "aum 1").to.be.closeTo(aumBefore, 100)
+    })
+
   })
 })
