@@ -5,7 +5,6 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 const shouldSendTxn = true
 
-// this should be set to a small value instead of zero to avoid retroactive distributions
 const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("25,000"), 18)
 const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("11,578"), 18)
 
