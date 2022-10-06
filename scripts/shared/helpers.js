@@ -155,6 +155,19 @@ async function processBatch(batchLists, batchSize, handler) {
   }
 }
 
+async function updateTokensPerInterval(distributor, tokensPerInterval, label) {
+  const prevTokensPerInterval = await distributor.tokensPerInterval()
+  if (prevTokensPerInterval.eq(0)) {
+    // if the tokens per interval was zero, the distributor.lastDistributionTime may not have been updated for a while
+    // so the lastDistributionTime should be manually updated here
+    await sendTxn(distributor.updateLastDistributionTime({ gasLimit: 500000 }), `${label}.updateLastDistributionTime`)
+  } else {
+    // distribute any pending rewards for the previous tokensPerInterval value
+    await sendTxn(distributor.distribute({ gasLimit: 500000 }), `${label}.distribute`)
+  }
+  await sendTxn(distributor.setTokensPerInterval(tokensPerInterval, { gasLimit: 500000 }), `${label}.setTokensPerInterval`)
+}
+
 module.exports = {
   ARBITRUM,
   AVALANCHE,

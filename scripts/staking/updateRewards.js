@@ -1,4 +1,4 @@
-const { getFrameSigner, deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { getFrameSigner, deployContract, contractAt, sendTxn, updateTokensPerInterval } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
@@ -70,7 +70,7 @@ async function main() {
     console.log("rewardsPerInterval", rewardsPerInterval.toString())
 
     await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount, { gasLimit: 500000 }), `rewardToken.transfer ${i}`)
-    await sendTxn(rewardDistributor.setTokensPerInterval(rewardsPerInterval, { gasLimit: 500000 }), "rewardDistributor.setTokensPerInterval")
+    await updateTokensPerInterval(rewardDistributor, rewardsPerInterval)
   }
 }
 

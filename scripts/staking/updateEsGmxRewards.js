@@ -1,4 +1,4 @@
-const { deployContract, contractAt, sendTxn, signers } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn, signers, updateTokensPerInterval } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
@@ -93,8 +93,8 @@ async function main() {
   console.log("glpNextTokensPerInterval", glpNextTokensPerInterval.toString())
 
   if (shouldSendTxn) {
-    await sendTxn(gmxRewardDistributor.setTokensPerInterval(gmxNextTokensPerInterval, { gasLimit: 500000 }), "gmxRewardDistributor.setTokensPerInterval")
-    await sendTxn(glpRewardDistributor.setTokensPerInterval(glpNextTokensPerInterval, { gasLimit: 500000 }), "glpRewardDistributor.setTokensPerInterval")
+    await updateTokensPerInterval(gmxRewardDistributor, gmxNextTokensPerInterval, "gmxRewardDistributor")
+    await updateTokensPerInterval(glpRewardDistributor, glpNextTokensPerInterval, "glpRewardDistributor")
   }
 }
 
