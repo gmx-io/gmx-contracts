@@ -10,7 +10,7 @@ async function getArbValues() {
   const positionManager = await contractAt("PositionManager", "0x956618e5B6996919eB6B943aBf36910DdabC9a0f")
 
   const { btc, eth, link, uni } = tokens
-  const tokenArr = [btc, eth]
+  const tokenArr = [btc, eth, link, uni]
 
   return { positionRouter, positionManager, tokenArr }
 }
@@ -19,8 +19,8 @@ async function getAvaxValues() {
   const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
   const positionManager = await contractAt("PositionManager", "0xAaf69ca8d44d74EAD76a86f25001cfC44515e94E")
 
-  const { avax, eth, btc } = tokens
-  const tokenArr = [avax, eth, btc]
+  const { avax, eth, btc, btcb } = tokens
+  const tokenArr = [avax, eth, btc, btcb]
 
   return { positionRouter, positionManager, tokenArr }
 }
@@ -34,7 +34,6 @@ async function getValues() {
     return getAvaxValues()
   }
 }
-
 
 async function main() {
   const { positionRouter, positionManager, tokenArr } = await getValues()

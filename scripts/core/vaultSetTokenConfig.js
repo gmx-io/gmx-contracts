@@ -5,10 +5,38 @@ const { toChainlinkPrice } = require("../../test/shared/chainlink")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+async function getArbValues() {
+  const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
+
+  const {} = tokens
+  const tokenArr = []
+
+  return { vault, tokenArr }
+}
+
+async function getAvaxValues() {
+  const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
+
+  const { btcb } = tokens
+  const tokenArr = [btcb]
+
+  return { vault, tokenArr }
+}
+
+async function getValues() {
+  if (network === "arbitrum") {
+    return getArbValues()
+  }
+
+  if (network === "avax") {
+    return getAvaxValues()
+  }
+}
+
 async function main() {
   const signer = await getFrameSigner()
 
-  const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
+  const { vault, tokenArr } = await getValues()
   const vaultGov = await vault.gov()
 
   const vaultTimelock = await contractAt("Timelock", vaultGov, signer)
@@ -18,9 +46,6 @@ async function main() {
   console.log("vault", vault.address)
   console.log("vaultTimelock", vaultTimelock.address)
   console.log("vaultMethod", vaultMethod)
-
-  const { link, uni } = tokens
-  const tokenArr = [link, uni]
 
   for (const token of tokenArr) {
     await sendTxn(vaultTimelock[vaultMethod](
