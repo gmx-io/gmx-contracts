@@ -1347,6 +1347,31 @@ describe("PositionManager next short data calculations", function () {
     expect(size, "size 3").to.be.eq(startSize)
   })
 
+  it("ShortTracker sizes restores to correct values", async () => {
+    // if somebody decreases position through Vault or Router then ShortTracker sizes data is not up-to-date
+    // it should restore next time `updateGlobalShortData` is called
+
+    await shortsTracker.setIsGlobalShortDataReady(true)
+    await glpManager.setShortsTrackerAveragePriceWeight(10000)
+    expect(await glpManager.shortsTrackerAveragePriceWeight()).to.be.equal(10000)
+
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(60000))
+    await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(50000, 18), 0, toUsd(100000), false, toNormalizedPrice(60000))
+
+    expect(await vault.globalShortSizes(btc.address)).to.equal(toUsd(100000))
+    expect(await shortsTracker.globalShortSizes(btc.address)).to.equal(toUsd(100000))
+
+    await vault.connect(user0).decreasePosition(user0.address, dai.address, btc.address, 0, toUsd(10000), false, user0.address)
+
+    expect(await vault.globalShortSizes(btc.address)).to.equal(toUsd(90000))
+    expect(await shortsTracker.globalShortSizes(btc.address)).to.equal(toUsd(100000))
+
+    await positionManager.connect(user1).increasePosition([dai.address], btc.address, expandDecimals(10000, 18), 0, toUsd(20000), false, toNormalizedPrice(60000))
+
+    expect(await vault.globalShortSizes(btc.address)).to.equal(toUsd(110000))
+    expect(await shortsTracker.globalShortSizes(btc.address)).to.equal(toUsd(110000))
+  });
+
   it("aum should be the same after multiple increase/decrease shorts", async () => {
     // open pos A 100k/50k at 60000
     // open/close pos B 100k/10k at 50000 multiple times

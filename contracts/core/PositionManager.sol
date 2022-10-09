@@ -205,9 +205,10 @@ contract PositionManager is BasePositionManager {
         (uint256 size, , , , , , , ) = IVault(vault).getPosition(_account, _collateralToken, _indexToken, _isLong);
 
         uint256 markPrice = _isLong ? IVault(_vault).getMinPrice(_indexToken) : IVault(_vault).getMaxPrice(_indexToken);
+        // should be called strictly before position is updated in Vault
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, size, markPrice, false);
 
         ITimelock(timelock).enableLeverage(_vault);
-        IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, size, markPrice, false);
         IVault(_vault).liquidatePosition(_account, _collateralToken, _indexToken, _isLong, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
     }
@@ -234,12 +235,13 @@ contract PositionManager is BasePositionManager {
             /*uint256 executionFee*/
         ) = IOrderBook(orderBook).getIncreaseOrder(_account, _orderIndex);
 
+        uint256 markPrice = isLong ? IVault(_vault).getMaxPrice(indexToken) : IVault(_vault).getMinPrice(indexToken);
+        // should be called strictly before position is updated in Vault
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, true);
+
         ITimelock(timelock).enableLeverage(_vault);
         IOrderBook(orderBook).executeIncreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
-
-        uint256 markPrice = isLong ? IVault(_vault).getMaxPrice(indexToken) : IVault(_vault).getMinPrice(indexToken);
-        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, true);
 
         _emitIncreasePositionReferral(_account, sizeDelta);
     }
@@ -259,12 +261,13 @@ contract PositionManager is BasePositionManager {
             /*uint256 executionFee*/
         ) = IOrderBook(orderBook).getDecreaseOrder(_account, _orderIndex);
 
+        uint256 markPrice = isLong ? IVault(_vault).getMinPrice(indexToken) : IVault(_vault).getMaxPrice(indexToken);
+        // should be called strictly before position is updated in Vault
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, false);
+
         ITimelock(timelock).enableLeverage(_vault);
         IOrderBook(orderBook).executeDecreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
-
-        uint256 markPrice = isLong ? IVault(_vault).getMinPrice(indexToken) : IVault(_vault).getMaxPrice(indexToken);
-        IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, false);
 
         _emitDecreasePositionReferral(_account, sizeDelta);
     }

@@ -116,7 +116,7 @@ contract ShortsTracker is Governable, IShortsTracker {
         uint256 delta;
         // avoid stack to deep
         {
-            uint256 size = globalShortSizes[ _indexToken];
+            uint256 size = vault.globalShortSizes(_indexToken);
             nextSize = _isIncrease ? size.add(_sizeDelta) : size.sub(_sizeDelta);
 
             if (nextSize == 0) {

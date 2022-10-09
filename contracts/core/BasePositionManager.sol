@@ -186,7 +186,9 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
 
         address timelock = IVault(_vault).gov();
 
+        // should be called strictly before position is updated in Vault
         IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, markPrice, true);
+
         ITimelock(timelock).enableLeverage(_vault);
         IRouter(router).pluginIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
         ITimelock(timelock).disableLeverage(_vault);
@@ -206,7 +208,9 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
 
         address timelock = IVault(_vault).gov();
 
+        // should be called strictly before position is updated in Vault
         IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, markPrice, false);
+
         ITimelock(timelock).enableLeverage(_vault);
         uint256 amountOut = IRouter(router).pluginDecreasePosition(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver);
         ITimelock(timelock).disableLeverage(_vault);
