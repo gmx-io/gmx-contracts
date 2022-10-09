@@ -11,6 +11,8 @@ pragma solidity 0.6.12;
 contract ShortsTracker is Governable, IShortsTracker {
     using SafeMath for uint256;
 
+    event GlobalShortDataUpdated(address indexed token, uint256 globalShortSize, uint256 globalShortAveragePrice);
+
     uint256 public constant MAX_INT256 = uint256(type(int256).max);
 
     IVault public vault;
@@ -75,6 +77,8 @@ contract ShortsTracker is Governable, IShortsTracker {
         );
         _setGlobalShortSize(_indexToken, globalShortSize);
         _setGlobalShortAveragePrice(_indexToken, globalShortAveragePrice);
+
+        emit GlobalShortDataUpdated(_indexToken, globalShortSize, globalShortAveragePrice);
     }
 
     function getGlobalShortDelta(address _token) public view returns (bool, uint256) {
