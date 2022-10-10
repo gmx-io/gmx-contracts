@@ -2536,7 +2536,7 @@ describe("PositionRouter", function () {
       let key = await positionRouter.getRequestKey(user0.address, 1)
       await positionRouter.connect(positionKeeper).executeIncreasePosition(key, user1.address)
 
-      expect(await shortsTracker.globalShortSizes(bnb.address), "size 0").to.be.equal(toUsd(1000))
+      expect(await vault.globalShortSizes(bnb.address), "size 0").to.be.equal(toUsd(1000))
       expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 0").to.be.equal(toUsd(300))
 
       await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
@@ -2553,7 +2553,7 @@ describe("PositionRouter", function () {
       key = await positionRouter.getRequestKey(user0.address, 2)
       await positionRouter.connect(positionKeeper).executeIncreasePosition(key, user1.address)
 
-      expect(await shortsTracker.globalShortSizes(bnb.address), "size 1").to.be.equal(toUsd(2000))
+      expect(await vault.globalShortSizes(bnb.address), "size 1").to.be.equal(toUsd(2000))
       expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 1").to.be.equal("314285714285714285714285714285714");
 
       [hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
@@ -2601,7 +2601,7 @@ describe("PositionRouter", function () {
       await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
       await bnbPriceFeed.setLatestAnswer(toChainlinkPrice(330))
 
-      expect(await shortsTracker.globalShortSizes(bnb.address), "size 0").to.be.equal(toUsd(1000))
+      expect(await vault.globalShortSizes(bnb.address), "size 0").to.be.equal(toUsd(1000))
       expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 0").to.be.equal(toUsd(300));
 
       let [hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
@@ -2614,7 +2614,7 @@ describe("PositionRouter", function () {
       key = await positionRouter.getRequestKey(user0.address, 1)
       await positionRouter.connect(positionKeeper).executeDecreasePosition(key, user1.address)
 
-      expect(await shortsTracker.globalShortSizes(bnb.address), "size 1").to.be.equal(toUsd(900))
+      expect(await vault.globalShortSizes(bnb.address), "size 1").to.be.equal(toUsd(900))
       expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 1").to.be.equal(toUsd(300));
 
       ;[hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)
@@ -2633,7 +2633,7 @@ describe("PositionRouter", function () {
       key = await positionRouter.getRequestKey(user0.address, 2)
       await positionRouter.connect(positionKeeper).executeDecreasePosition(key, user1.address)
 
-      expect(await shortsTracker.globalShortSizes(bnb.address), "size 2").to.be.equal(toUsd(800))
+      expect(await vault.globalShortSizes(bnb.address), "size 2").to.be.equal(toUsd(800))
       expect(await shortsTracker.globalShortAveragePrices(bnb.address), "avg price 2").to.be.equal(toUsd(300));
 
       ;[hasProfit, delta] = await shortsTracker.getGlobalShortDelta(bnb.address)

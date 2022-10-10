@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
+pragma solidity 0.6.12;
+
 import "../libraries/math/SafeMath.sol";
 
 import "../access/Governable.sol";
 import "./interfaces/IShortsTracker.sol";
 import "./interfaces/IVault.sol";
-
-pragma solidity 0.6.12;
 
 contract ShortsTracker is Governable, IShortsTracker {
     using SafeMath for uint256;
@@ -20,7 +20,6 @@ contract ShortsTracker is Governable, IShortsTracker {
     mapping (address => bool) public isHandler;
     mapping (bytes32 => bytes32) public data;
 
-    mapping (address => uint256) override public globalShortSizes;
     mapping (address => uint256) override public globalShortAveragePrices;
     bool override public isGlobalShortDataReady;
 
@@ -36,10 +35,6 @@ contract ShortsTracker is Governable, IShortsTracker {
     function setHandler(address _handler, bool _isActive) external onlyGov {
         require(_handler != address(0), "ShortsTracker: invalid _handler");
         isHandler[_handler] = _isActive;
-    }
-
-    function _setGlobalShortSize(address _token, uint256 _size) internal {
-        globalShortSizes[_token] = _size;
     }
 
     function _setGlobalShortAveragePrice(address _token, uint256 _averagePrice) internal {
@@ -75,18 +70,17 @@ contract ShortsTracker is Governable, IShortsTracker {
             _sizeDelta,
             _isIncrease
         );
-        _setGlobalShortSize(_indexToken, globalShortSize);
         _setGlobalShortAveragePrice(_indexToken, globalShortAveragePrice);
 
         emit GlobalShortDataUpdated(_indexToken, globalShortSize, globalShortAveragePrice);
     }
 
     function getGlobalShortDelta(address _token) public view returns (bool, uint256) {
-        uint256 size = globalShortSizes[_token];
+        uint256 size = vault.globalShortSizes(_token);
+        uint256 averagePrice = globalShortAveragePrices[_token];
         if (size == 0) { return (false, 0); }
 
         uint256 nextPrice = IVault(vault).getMaxPrice(_token);
-        uint256 averagePrice = globalShortAveragePrices[_token];
         uint256 priceDelta = averagePrice > nextPrice ? averagePrice.sub(nextPrice) : nextPrice.sub(averagePrice);
         uint256 delta = size.mul(priceDelta).div(averagePrice);
         bool hasProfit = averagePrice > nextPrice;

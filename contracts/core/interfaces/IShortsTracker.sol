@@ -5,7 +5,6 @@ pragma solidity 0.6.12;
 interface IShortsTracker {
     function isGlobalShortDataReady() external view returns (bool);
     function globalShortAveragePrices(address _token) external view returns (uint256);
-    function globalShortSizes(address _token) external view returns (uint256);
     function getNextGlobalShortData(
         address _account,
         address _collateralToken,

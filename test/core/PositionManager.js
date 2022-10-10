@@ -954,7 +954,7 @@ describe("PositionManager next short data calculations", function () {
       positionManager.shortsTracker(),
       glpManager.shortsTracker(),
       shortsTracker.globalShortAveragePrices(btc.address),
-      shortsTracker.globalShortSizes(btc.address)
+      vault.globalShortSizes(btc.address)
     ])
     expect(positionManagerShortTracker, 'positionManager shortsTracker').eq(shortsTracker.address)
     expect(glpManagerShortTracker, 'glpManager shortsTracker').eq(shortsTracker.address)
@@ -965,33 +965,30 @@ describe("PositionManager next short data calculations", function () {
   it("does not update shorts data if isGlobalShortDataReady == false", async () => {
     expect(await shortsTracker.isGlobalShortDataReady()).to.be.false
 
-    let data = await Promise.all([shortsTracker.globalShortAveragePrices(btc.address), shortsTracker.globalShortSizes(btc.address)])
-    expect(data[0], 0).to.be.equal(0)
-    expect(data[1], 0).to.be.equal(0)
+    let averagePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    expect(averagePrice, 0).to.be.equal(0)
 
     await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(100, 18), 0, toUsd(1000), false, toNormalizedPrice(60000))
-    data = await Promise.all([shortsTracker.globalShortAveragePrices(btc.address), shortsTracker.globalShortSizes(btc.address)])
-    expect(data[0], 1).to.be.equal(0)
-    expect(data[1], 1).to.be.equal(0)
+    averagePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    expect(averagePrice, 1).to.be.equal(0)
 
     await positionManager.connect(user0).decreasePosition(dai.address, btc.address, 0, toUsd(1000), false, user0.address, toNormalizedPrice(60000))
-    data = await Promise.all([shortsTracker.globalShortAveragePrices(btc.address), shortsTracker.globalShortSizes(btc.address)])
-    expect(data[0], 2).to.be.equal(0)
-    expect(data[1], 2).to.be.equal(0)
+    averagePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    expect(averagePrice, 2).to.be.equal(0)
   })
 
   it("updates global short sizes as Vault does", async () => {
     await shortsTracker.setIsGlobalShortDataReady(true)
-    expect(await shortsTracker.globalShortSizes(btc.address)).to.be.equal(0)
+    expect(await vault.globalShortSizes(btc.address)).to.be.equal(0)
     expect(await vault.globalShortSizes(btc.address)).to.be.equal(0)
 
     await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(100, 18), 0, toUsd(1000), false, toNormalizedPrice(60000))
-    expect(await shortsTracker.globalShortSizes(btc.address)).to.be.equal(await vault.globalShortSizes(btc.address))
-    expect(await shortsTracker.globalShortSizes(btc.address), 1).to.be.equal(toUsd(1000))
+    expect(await vault.globalShortSizes(btc.address)).to.be.equal(await vault.globalShortSizes(btc.address))
+    expect(await vault.globalShortSizes(btc.address), 1).to.be.equal(toUsd(1000))
 
     await positionManager.connect(user0).decreasePosition(dai.address, btc.address, 0, toUsd(1000), false, user0.address, toNormalizedPrice(60000))
-    expect(await shortsTracker.globalShortSizes(btc.address)).to.be.equal(await vault.globalShortSizes(btc.address))
-    expect(await shortsTracker.globalShortSizes(btc.address), 1).to.be.equal(0)
+    expect(await vault.globalShortSizes(btc.address)).to.be.equal(await vault.globalShortSizes(btc.address))
+    expect(await vault.globalShortSizes(btc.address), 1).to.be.equal(0)
   })
 
   it("updates global short average prices on position increases as Vault does", async () => {
@@ -1272,11 +1269,14 @@ describe("PositionManager next short data calculations", function () {
     // open pos A 100k/50k at 60000
     // open pos B 100k/10k at 50000
     // open pos C 100k/15k at 55000
-    // liquidate pos B at 60000 at loss of 20k
-    // liquidate pos C at 63250 at loss of 15k
+    // liquidate pos B at 60000 at pending delta of -20k
+    // liquidate pos C at 63250 at pending delta of -15k
     // set price 60000
-    // aum should be increased by 25k - $400 margin fees - $10 liq fees
+    // aum should be increased by $25k collateral - $400 margin fees - $10 liq fees
     // and pending pnl should be 0
+    await shortsTracker.setIsGlobalShortDataReady(true)
+    await glpManager.setShortsTrackerAveragePriceWeight(10000)
+    expect(await glpManager.shortsTrackerAveragePriceWeight()).to.be.equal(10000)
 
     let aumBefore = await glpManager.getAum(true)
 
@@ -1302,6 +1302,7 @@ describe("PositionManager next short data calculations", function () {
 
     let data = await shortsTracker.getGlobalShortDelta(btc.address)
     expect(data[1], "global delta").to.be.lt(100) // 100 to consider rounding errors
+
     let aumAfter = await glpManager.getAum(true)
     expectAumsAreEqual(aumBefore, aumAfter.sub(toUsd(24590)), "aum")
   });
@@ -1318,59 +1319,34 @@ describe("PositionManager next short data calculations", function () {
     await positionManager.connect(user1).increasePosition([dai.address], btc.address, expandDecimals(50000, 18), 0, toUsd(100000), false, toNormalizedPrice(60000))
 
     const startAvgPrice = await shortsTracker.globalShortAveragePrices(btc.address)
-    const startSize = await shortsTracker.globalShortSizes(btc.address)
+    const startSize = await vault.globalShortSizes(btc.address)
 
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(55000))
     await positionManager.connect(user1).increasePosition([dai.address], btc.address, expandDecimals(10000, 18), 0, 0, false, toNormalizedPrice(55000))
     let avgPrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(avgPrice, "avg price 0").to.be.eq(startAvgPrice)
-    let size = await shortsTracker.globalShortSizes(btc.address)
+    let size = await vault.globalShortSizes(btc.address)
     expect(size, "size 0").to.be.eq(startSize)
 
     await positionManager.connect(user1).decreasePosition(dai.address, btc.address, toUsd(10000), 0, false, user0.address, toNormalizedPrice(55000))
     avgPrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(avgPrice, "avg price 1").to.be.eq(startAvgPrice)
-    size = await shortsTracker.globalShortSizes(btc.address)
+    size = await vault.globalShortSizes(btc.address)
     expect(size, "size 1").to.be.eq(startSize)
 
     await btcPriceFeed.setLatestAnswer(toChainlinkPrice(65000))
     await positionManager.connect(user1).increasePosition([dai.address], btc.address, expandDecimals(10000, 18), 0, 0, false, toNormalizedPrice(65000))
     avgPrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(avgPrice, "avg price 0").to.be.eq(startAvgPrice)
-    size = await shortsTracker.globalShortSizes(btc.address)
+    size = await vault.globalShortSizes(btc.address)
     expect(size, "size 2").to.be.eq(startSize)
 
     await positionManager.connect(user1).decreasePosition(dai.address, btc.address, toUsd(10000), 0, false, user0.address, toNormalizedPrice(65000))
     avgPrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(avgPrice, "avg price 1").to.be.eq(startAvgPrice)
-    size = await shortsTracker.globalShortSizes(btc.address)
+    size = await vault.globalShortSizes(btc.address)
     expect(size, "size 3").to.be.eq(startSize)
   })
-
-  it("ShortTracker sizes restores to correct values", async () => {
-    // if somebody decreases position through Vault or Router then ShortTracker sizes data is not up-to-date
-    // it should restore next time `updateGlobalShortData` is called
-
-    await shortsTracker.setIsGlobalShortDataReady(true)
-    await glpManager.setShortsTrackerAveragePriceWeight(10000)
-    expect(await glpManager.shortsTrackerAveragePriceWeight()).to.be.equal(10000)
-
-    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(60000))
-    await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(50000, 18), 0, toUsd(100000), false, toNormalizedPrice(60000))
-
-    expect(await vault.globalShortSizes(btc.address)).to.equal(toUsd(100000))
-    expect(await shortsTracker.globalShortSizes(btc.address)).to.equal(toUsd(100000))
-
-    await vault.connect(user0).decreasePosition(user0.address, dai.address, btc.address, 0, toUsd(10000), false, user0.address)
-
-    expect(await vault.globalShortSizes(btc.address)).to.equal(toUsd(90000))
-    expect(await shortsTracker.globalShortSizes(btc.address)).to.equal(toUsd(100000))
-
-    await positionManager.connect(user1).increasePosition([dai.address], btc.address, expandDecimals(10000, 18), 0, toUsd(20000), false, toNormalizedPrice(60000))
-
-    expect(await vault.globalShortSizes(btc.address)).to.equal(toUsd(110000))
-    expect(await shortsTracker.globalShortSizes(btc.address)).to.equal(toUsd(110000))
-  });
 
   it("aum should be the same after multiple increase/decrease shorts", async () => {
     // open pos A 100k/50k at 60000
@@ -1430,7 +1406,7 @@ describe("PositionManager next short data calculations", function () {
 
     let shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(shortAveragePrice, "shortAveragePrice 0").to.be.equal(toUsd(50000))
-    let shortSize = await shortsTracker.globalShortSizes(btc.address)
+    let shortSize = await vault.globalShortSizes(btc.address)
     expect(shortSize, "shortSize 0").to.be.equal(toUsd(100000))
 
     let orderIndex = (await orderBook.increaseOrdersIndex(user0.address)) - 1
@@ -1447,7 +1423,7 @@ describe("PositionManager next short data calculations", function () {
 
     shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(shortAveragePrice, "shortAveragePrice 1").to.be.equal("50163934426229508196721311475409836")
-    shortSize = await shortsTracker.globalShortSizes(btc.address)
+    shortSize = await vault.globalShortSizes(btc.address)
     expect(shortSize, "shortSize 1").to.be.equal(toUsd(102000))
 
     let aumAfter = await glpManager.getAum(true)
@@ -1484,7 +1460,7 @@ describe("PositionManager next short data calculations", function () {
     let aumBefore = await glpManager.getAum(true)
     let shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(shortAveragePrice, "shortAveragePrice 0").to.be.equal(toUsd(50000))
-    let shortSize = await shortsTracker.globalShortSizes(btc.address)
+    let shortSize = await vault.globalShortSizes(btc.address)
     expect(shortSize, "shortSize 0").to.be.equal(toUsd(100000))
 
     await positionManager.connect(user1).executeDecreaseOrder(user1.address, orderIndex, user1.address);
@@ -1493,7 +1469,7 @@ describe("PositionManager next short data calculations", function () {
 
     shortAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
     expect(shortAveragePrice, "shortAveragePrice 1").to.be.equal(toUsd(50000))
-    shortSize = await shortsTracker.globalShortSizes(btc.address)
+    shortSize = await vault.globalShortSizes(btc.address)
     expect(shortSize, "shortSize 1").to.be.equal(toUsd(90000))
     let aumAfter = await glpManager.getAum(true)
     expectAumsAreEqual(aumBefore, aumAfter, "aum 0")

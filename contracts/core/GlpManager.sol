@@ -134,7 +134,6 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         uint256 length = vault.allWhitelistedTokensLength();
         uint256 aum = aumAddition;
         uint256 shortProfits = 0;
-        IShortsTracker _shortsTracker = shortsTracker;
         IVault _vault = vault;
 
         for (uint256 i = 0; i < length; i++) {
@@ -153,7 +152,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
                 aum = aum.add(poolAmount.mul(price).div(10 ** decimals));
             } else {
                 // add global short profit / loss
-                uint256 size = address(_shortsTracker) == address(0) ? _vault.globalShortSizes(token) : _shortsTracker.globalShortSizes(token);
+                uint256 size = _vault.globalShortSizes(token);
 
                 if (size > 0) {
                     (uint256 delta, bool hasProfit) = getGlobalShortDelta(token, price, size);

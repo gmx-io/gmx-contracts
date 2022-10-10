@@ -21,7 +21,7 @@ contract ShortsTrackerTest is ShortsTracker {
         uint256 delta;
         // avoid stack to deep
         {
-            uint256 size = globalShortSizes[ _indexToken];
+            uint256 size = vault.globalShortSizes(_indexToken);
             nextSize = _isIncrease ? size.add(_sizeDelta) : size.sub(_sizeDelta);
 
             if (nextSize == 0) {
@@ -44,10 +44,6 @@ contract ShortsTrackerTest is ShortsTracker {
         );
 
         return (nextSize, nextAveragePrice);
-    }
-
-    function setGlobalShortSize(address _token, uint256 _size) public {
-        globalShortSizes[_token] = _size;
     }
 
     function setGlobalShortAveragePrice(address _token, uint256 _averagePrice) public {
