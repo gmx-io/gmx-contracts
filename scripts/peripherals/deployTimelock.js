@@ -10,8 +10,9 @@ async function getArbValues() {
 
   const positionRouter = { address: "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba" }
   const positionManager = { address: "0x956618e5B6996919eB6B943aBf36910DdabC9a0f" }
+  const gmx = { address: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" }
 
-  return { vault, tokenManager, glpManager, positionRouter, positionManager }
+  return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
 }
 
 async function getAvaxValues() {
@@ -21,8 +22,9 @@ async function getAvaxValues() {
 
   const positionRouter = { address: "0x195256074192170d1530527abC9943759c7167d8" }
   const positionManager = { address: "0xAaf69ca8d44d74EAD76a86f25001cfC44515e94E" }
+  const gmx = { address: "0x62edc0692BD897D2295872a9FFCac5425011c661" }
 
-  return { vault, tokenManager, glpManager, positionRouter, positionManager }
+  return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
 }
 
 async function getValues() {
@@ -42,7 +44,7 @@ async function main() {
   const buffer = 24 * 60 * 60
   const maxTokenSupply = expandDecimals("13250000", 18)
 
-  const { vault, tokenManager, glpManager, positionRouter, positionManager } = await getValues()
+  const { vault, tokenManager, glpManager, positionRouter, positionManager, gmx } = await getValues()
   const mintReceiver = tokenManager
 
   const timelock = await deployContract("Timelock", [
@@ -65,8 +67,8 @@ async function main() {
   // // update gov of vault
   const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
 
-  await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
-  await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
+  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
+  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
 
   const signers = [
     "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
@@ -89,6 +91,8 @@ async function main() {
     const keeper = keepers[i]
     await sendTxn(deployedTimelock.setKeeper(keeper, true), `deployedTimelock.setKeeper(${keeper})`)
   }
+
+  await sendTxn(deployedTimelock.signalApprove(gmx.address, admin, "1000000000000000000"), "deployedTimelock.signalApprove")
 }
 
 main()
