@@ -5,22 +5,22 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const tokenManager = { address: "0x7b78CeEa0a89040873277e279C40a08dE59062f5" }
+  const tokenManager = { address: "0xddDc546e07f1374A07b270b7d863371e575EA96A" }
   const glpManager = { address: "0x321F653eED006AD1C29D174e17d96351BDe22649" }
 
   const positionRouter = { address: "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba" }
-  const positionManager = { address: "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831" }
+  const positionManager = { address: "0x956618e5B6996919eB6B943aBf36910DdabC9a0f" }
 
   return { vault, tokenManager, glpManager, positionRouter, positionManager }
 }
 
 async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const tokenManager = { address: "0x26137dfA81f9Ac8BACd748f6A298262f11504Da9" }
+  const tokenManager = { address: "0x8b25Ba1cAEAFaB8e9926fabCfB6123782e3B4BC2" }
   const glpManager = { address: "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F" }
 
   const positionRouter = { address: "0x195256074192170d1530527abC9943759c7167d8" }
-  const positionManager = { address: "0xF2ec2e52c3b5F8b8bd5A3f93945d05628A233216" }
+  const positionManager = { address: "0xAaf69ca8d44d74EAD76a86f25001cfC44515e94E" }
 
   return { vault, tokenManager, glpManager, positionRouter, positionManager }
 }
