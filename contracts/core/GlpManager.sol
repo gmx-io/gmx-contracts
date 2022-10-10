@@ -74,7 +74,6 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
 
     function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external onlyGov {
         require(shortsTrackerAveragePriceWeight <= BASIS_POINTS_DIVISOR, "GlpManager: invalid weight");
-        require(shortsTracker.isGlobalShortDataReady(), "GlpManager: data not ready");
         shortsTrackerAveragePriceWeight = _shortsTrackerAveragePriceWeight;
     }
 
@@ -184,8 +183,11 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
 
     function getGlobalShortAveragePrice(address _token) public view returns (uint256) {
         IShortsTracker _shortsTracker = shortsTracker;
-        uint256 _shortsTrackerAveragePriceWeight = shortsTrackerAveragePriceWeight;
+        if (!_shortsTracker.isGlobalShortDataReady()) {
+            return vault.globalShortAveragePrices(_token);
+        }
 
+        uint256 _shortsTrackerAveragePriceWeight = shortsTrackerAveragePriceWeight;
         if (_shortsTrackerAveragePriceWeight == 0) {
             return vault.globalShortAveragePrices(_token);
         } else if (_shortsTrackerAveragePriceWeight == BASIS_POINTS_DIVISOR) {
