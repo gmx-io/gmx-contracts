@@ -2532,6 +2532,10 @@ describe("PositionRouter", function () {
     request = await positionRouter.increasePositionRequests(key)
     expect(request.account, "request 0").to.equal(AddressZero)
 
+    // make sure position was increased
+    let position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0], "position size 0").to.equal(toUsd(1000))
+
     // use contract without callback method as a callbackTarget
     await positionRouter.connect(user0).createIncreasePosition(...params.concat([btc.address]), { value: executionFee })
     key = await positionRouter.getRequestKey(user0.address, 2)
@@ -2544,6 +2548,10 @@ describe("PositionRouter", function () {
     // make sure it was executed
     request = await positionRouter.increasePositionRequests(key)
     expect(request.account, "request 1").to.equal(AddressZero)
+
+    // make sure position was increased
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0], "position size 1").to.equal(toUsd(2000))
   })
 
   describe("Updates short tracker data", () => {
