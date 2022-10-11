@@ -2487,6 +2487,65 @@ describe("PositionRouter", function () {
       .to.emit(callbackReceiver, "CallbackCalled").withArgs(key, false, false)
   })
 
+  it("invalid callback is handled correctly", async () => {
+    await positionRouter.setDelayValues(0, 300, 500)
+    await bnb.mint(vault.address, expandDecimals(30, 18))
+    await vault.buyUSDG(bnb.address, user1.address)
+    await timelock.setContractHandler(positionRouter.address, true)
+    await timelock.setShouldToggleIsLeverageEnabled(true)
+
+    const referralCode = "0x0000000000000000000000000000000000000000000000000000000000000123"
+
+    await router.addPlugin(positionRouter.address)
+    await router.connect(user0).approvePlugin(positionRouter.address)
+
+    await dai.mint(user0.address, expandDecimals(6000, 18))
+    await dai.connect(user0).approve(router.address, expandDecimals(6000, 18))
+
+    const executionFeeReceiver = newWallet()
+    await positionRouter.setPositionKeeper(positionKeeper.address, true)
+
+    await positionRouter.setCallbackGasLimit(10)
+
+    const executionFee = 4000
+    const params = [
+      [dai.address, bnb.address], // _path
+      bnb.address, // _indexToken
+      expandDecimals(100, 18), // _amountIn
+      0, // _minOut
+      toUsd(1000), // _sizeDelta
+      true, // _isLong
+      toUsd(310), // _acceptablePrice
+      executionFee,
+      referralCode
+    ]
+    // use EOA as a callbackTarget
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([user0.address]), { value: executionFee })
+    let key = await positionRouter.getRequestKey(user0.address, 1)
+    let request = await positionRouter.increasePositionRequests(key)
+    expect(request.callbackTarget, "callback target 0").to.equal(user0.address)
+
+    // request should be executed successfully, Callback event should not be emitted
+    await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address), "executed 0")
+      .to.not.emit(positionRouter, "Callback")
+    // make sure it was executed
+    request = await positionRouter.increasePositionRequests(key)
+    expect(request.account, "request 0").to.equal(AddressZero)
+
+    // use contract without callback method as a callbackTarget
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([btc.address]), { value: executionFee })
+    key = await positionRouter.getRequestKey(user0.address, 2)
+    request = await positionRouter.increasePositionRequests(key)
+    expect(request.callbackTarget, "callback target 1").to.equal(btc.address)
+
+    // request should be executed successfully, Callback event should be emitted
+    await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address), "executed 1")
+      .to.emit(positionRouter, "Callback").withArgs(btc.address, false)
+    // make sure it was executed
+    request = await positionRouter.increasePositionRequests(key)
+    expect(request.account, "request 1").to.equal(AddressZero)
+  })
+
   describe("Updates short tracker data", () => {
     let glpManager
 

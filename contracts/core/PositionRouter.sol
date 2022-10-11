@@ -7,10 +7,13 @@ import "./interfaces/IVault.sol";
 import "./interfaces/IPositionRouter.sol";
 import "./interfaces/IPositionRouterCallbackReceiver.sol";
 
+import "../libraries/utils/Address.sol";
 import "../peripherals/interfaces/ITimelock.sol";
 import "./BasePositionManager.sol";
 
 contract PositionRouter is BasePositionManager, IPositionRouter {
+    using Address for address;
+
     struct IncreasePositionRequest {
         address account;
         address[] path;
@@ -761,6 +764,10 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         bool _isIncrease
     ) internal {
         if (_callbackTarget == address(0)) {
+            return;
+        }
+
+        if (!_callbackTarget.isContract()) {
             return;
         }
 
