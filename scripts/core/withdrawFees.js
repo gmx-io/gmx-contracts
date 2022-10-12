@@ -1,4 +1,4 @@
-const { getFrameSigner, deployContract, contractAt, sendTxn } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
@@ -39,11 +39,9 @@ async function withdrawFeesBsc() {
 }
 
 async function withdrawFeesArb() {
-  const signer = await getFrameSigner()
-
   const receiver = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const gov = await contractAt("Timelock", await vault.gov(), signer)
+  const gov = await contractAt("Timelock", await vault.gov())
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
 
   const tokenArr = [btc, eth, usdc, link, uni, usdt, frax, dai]
@@ -58,17 +56,15 @@ async function withdrawFeesArb() {
     if (vaultAmount.gt(balance)) {
       throw new Error("vaultAmount > vault.balance")
     }
-
-    await sendTxn(gov.withdrawFees(vault.address, token.address, receiver.address), `gov.withdrawFees ${i}, ${tokenArr[i].name}`)
   }
+
+  await sendTxn(gov.batchWithdrawFees(vault.address, tokenArr.map(t => t.address)), `gov.batchWithdrawFees`)
 }
 
 async function withdrawFeesAvax() {
-  const signer = await getFrameSigner()
-
   const receiver = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const gov = await contractAt("Timelock", await vault.gov(), signer)
+  const gov = await contractAt("Timelock", await vault.gov())
   const { avax, btc, btcb, eth, mim, usdce, usdc } = tokens
 
   const tokenArr = [avax, btc, btcb, eth, usdce, usdc]
@@ -83,9 +79,9 @@ async function withdrawFeesAvax() {
     if (vaultAmount.gt(balance)) {
       throw new Error("vaultAmount > vault.balance")
     }
-
-    await sendTxn(gov.withdrawFees(vault.address, token.address, receiver.address), `gov.withdrawFees ${i}, ${tokenArr[i].name}`)
   }
+
+  await sendTxn(gov.batchWithdrawFees(vault.address, tokenArr.map(t => t.address)), `gov.batchWithdrawFees`)
 }
 
 async function main() {
