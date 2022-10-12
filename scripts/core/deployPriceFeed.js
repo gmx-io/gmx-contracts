@@ -33,7 +33,7 @@ async function getArbValues(signer) {
     tokenManager,
     positionRouter,
     chainlinkFlags,
-    tokenArr
+    tokenArr,
     updaters,
     timelock
   }
