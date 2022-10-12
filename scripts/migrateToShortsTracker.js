@@ -88,7 +88,7 @@ async function getArbValues() {
       "0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0": "UNI",
       "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4": "LINK"
     },
-    serverData: arbitrumTestServerData,
+    // serverData: arbitrumTestServerData,
     oracleHost: "https://localhost:8008"
   }
 }
@@ -103,7 +103,7 @@ async function getAvaxValues() {
       "0x50b7545627a5162F82A992c33b87aDc75187B218": "BTC",
       "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB": "WETH"
     },
-    serverData: avaxTestServerData,
+    // serverData: avaxTestServerData,
     oracleHost: "https://localhost:8008"
   }
 }
@@ -182,10 +182,10 @@ async function toggleOrdersExecution(serverHost, serverAdminApiKey, enabled) {
   return await postRequest(serverHost, "/orders/info", { key: serverAdminApiKey, executionDisabled: !enabled })
 }
 
-async function togglePositionsExecution(oracleHost, positionsExecutionEnabled) {
-  console.log("Toggling positions execution to", positionsExecutionEnabled)
-  return await postRequest(oracleHost, "/toggle_positions_execution", { positionsExecutionEnabled })
-}
+// async function togglePositionsExecution(oracleHost, positionsExecutionEnabled) {
+//   console.log("Toggling positions execution to", positionsExecutionEnabled)
+//   return await postRequest(oracleHost, "/toggle_positions_execution", { positionsExecutionEnabled })
+// }
 
 async function rollback() {
   console.warn("Rolling back")
@@ -198,7 +198,7 @@ async function rollback() {
 
   await toggleOrdersExecution(serverHost, serverAdminApiKey, true)
   await toggleLiquidations(serverHost, serverAdminApiKey, true)
-  await togglePositionsExecution(oracleHost, true)
+  // await togglePositionsExecution(oracleHost, true)
 
   const shortsTracker = await getContractAt("ShortsTracker", shortsTrackerAddress)
   if (await shortsTracker.isGlobalShortDataReady()) {
@@ -284,7 +284,7 @@ async function migrate() {
   Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, false),
     toggleLiquidations(serverHost, serverAdminApiKey, false),
-    togglePositionsExecution(oracleHost, false)
+    // togglePositionsExecution(oracleHost, false)
   ])
 
   console.log("Wait for jobs to be finished...")
@@ -306,7 +306,7 @@ async function migrate() {
   Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, true),
     toggleLiquidations(serverHost, serverAdminApiKey, true),
-    togglePositionsExecution(oracleHost, true)
+    // togglePositionsExecution(oracleHost, true)
   ])
   console.log("Done. Everything should operate as usual")
 }
