@@ -4,6 +4,13 @@ const { expandDecimals } = require("../../test/shared/utilities")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+// time check to avoid invalid fee withdrawals
+const time = 1665532800
+
+if (Date.now() / 1000 > time + 10 * 60) {
+  throw new Error("invalid time")
+}
+
 async function withdrawFeesBsc() {
   const receiver = { address: "0x9f169c2189A2d975C18965DE985936361b4a9De9" }
   const vault = await contractAt("Vault", "0xc73A8DcAc88498FD4b4B1b2AaA37b0a2614Ff67B")
