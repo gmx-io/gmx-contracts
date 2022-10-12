@@ -3,17 +3,6 @@ const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
-async function getArbTestnetValues() {
-  const vault = await contractAt("Vault", "0xBc9BC47A7aB63db1E0030dC7B60DDcDe29CF4Ffb")
-  const tokenManager = { address: "0x8226EC2c1926c9162b6F815153d10018A7ccdf07" }
-  const mintReceiver = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // G
-
-  const positionRouter = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // FAKE
-  const positionManager = { address: "0xFb11f15f206bdA02c224EDC744b0E50E46137046" } // FAKE
-
-  return { vault, tokenManager, mintReceiver, positionRouter, positionManager }
-}
-
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const tokenManager = { address: "0xddDc546e07f1374A07b270b7d863371e575EA96A" }
@@ -41,10 +30,10 @@ async function getAvaxValues() {
 async function getValues() {
   if (network === "arbitrum") {
     return getArbValues()
-  } else if (network === "avax") {
+  }
+
+  if (network === "avax") {
     return getAvaxValues()
-  } else if (network === "arbitrumTestnet") {
-    return getArbTestnetValues()
   }
 }
 
@@ -69,7 +58,7 @@ async function main() {
     500 // maxMarginFeeBasisPoints 5%
   ], "Timelock")
 
-  const deployedTimelock = await contractAt("Timelock", timelock.address)
+  const deployedTimelock = await contractAt("Timelock", timelock.address, signer)
 
   await sendTxn(deployedTimelock.setShouldToggleIsLeverageEnabled(true), "deployedTimelock.setShouldToggleIsLeverageEnabled(true)")
   await sendTxn(deployedTimelock.setContractHandler(positionRouter.address, true), "deployedTimelock.setContractHandler(positionRouter)")

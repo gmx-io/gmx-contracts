@@ -1,17 +1,14 @@
 const { readTmpAddresses, contractAt, callWithRetries } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 
-const network = (process.env.HARDHAT_NETWORK || 'mainnet');
-const tokens = require("../core/tokens")[network]
-
 async function main() {
 	const account = (await ethers.getSigners())[0]
-	const {btc, usdc, usdt} = tokens
+	const {BTC, ETH, USDC, USDT} = readTmpAddresses()
 
-	for (const token of [btc, usdc, usdt]) {
-		const amount = expandDecimals(100000, token.decimals)
-		console.log(`Minting ${amount} of tokens ${token.address}`)
-		const tokenContract = await contractAt("FaucetToken", token.address)
+	for (const tokenAddress of [BTC, USDC, USDT]) {
+		const amount = expandDecimals(100000, 18)
+		console.log(`Minting ${amount} of tokens ${tokenAddress}`)
+		const tokenContract = await contractAt("FaucetToken", tokenAddress)
 		await callWithRetries(tokenContract.mint.bind(tokenContract), [account.address, amount])
 	}
 }

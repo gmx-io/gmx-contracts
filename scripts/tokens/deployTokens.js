@@ -3,9 +3,9 @@ const { expandDecimals } = require("../../test/shared/utilities")
 
 async function main() {
   const addresses = {}
-  addresses.BTC = (await callWithRetries(deployContract, ["FaucetToken", ["Bitcoin (GMX)", "BTC", 8, expandDecimals(1000, 8)]])).address
-  addresses.USDC = (await callWithRetries(deployContract, ["FaucetToken", ["USDC Coin (GMX)", "USDC", 6, expandDecimals(1000, 6)]])).address
-  addresses.USDT = (await callWithRetries(deployContract, ["FaucetToken", ["Tether (GMX)", "USDT", 6, expandDecimals(1000, 6)]])).address
+  addresses.BTC = (await callWithRetries(deployContract, ["FaucetToken", ["Bitcoin", "BTC", 18, expandDecimals(1000, 18)]])).address
+  addresses.USDC = (await callWithRetries(deployContract, ["FaucetToken", ["USDC Coin", "USDC", 18, expandDecimals(1000, 18)]])).address
+  addresses.USDT = (await callWithRetries(deployContract, ["FaucetToken", ["Tether", "USDT", 18, expandDecimals(1000, 18)]])).address
 
   writeTmpAddresses(addresses)
 }

@@ -64,16 +64,11 @@ async function getFrameSigner() {
 }
 
 async function sendTxn(txnPromise, label) {
-  try {
-    const txn = await txnPromise
-    console.info(`Sending ${label}...`)
-    await txn.wait()
-    console.info(`... Sent! ${txn.hash}`)
-    return txn
-  } catch (ex) {
-    console.error("sendTxn failed", label)
-    throw ex
-  }
+  const txn = await txnPromise
+  console.info(`Sending ${label}...`)
+  await txn.wait()
+  console.info(`... Sent! ${txn.hash}`)
+  return txn
 }
 
 async function callWithRetries(func, args, retriesCount = 3) {
