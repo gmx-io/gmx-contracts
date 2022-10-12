@@ -183,7 +183,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
 
     function getGlobalShortAveragePrice(address _token) public view returns (uint256) {
         IShortsTracker _shortsTracker = shortsTracker;
-        if (!_shortsTracker.isGlobalShortDataReady()) {
+        if (address(_shortsTracker) == address(0) || !_shortsTracker.isGlobalShortDataReady()) {
             return vault.globalShortAveragePrices(_token);
         }
 

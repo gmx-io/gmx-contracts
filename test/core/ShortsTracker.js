@@ -12,7 +12,7 @@ describe("ShortsTracker", function () {
   let vault
 
   beforeEach(async function () {
-    vault = await deployContract("Vault", [])
+    vault = await deployContract("VaultTest", [])
     shortsTracker = await deployContract("ShortsTrackerTest", [vault.address])
     await shortsTracker.setHandler(user0.address, true)
   })
@@ -30,8 +30,6 @@ describe("ShortsTracker", function () {
     // global delta 10000, realised pnl 11000 => -1000 (flips sign)
     // global delta -10000, realised pnl -11000 => 1000 (flips sign)
 
-    const size = toUsd(100000)
-
     const cases = [
       [60000, 54000, 1000, "60845070422535211267605633802816901", "8999999999999999999999999999999999"],
       [60000, 54000, -1000, "62608695652173913043478260869565217", "10999999999999999999999999999999999"],
@@ -41,7 +39,8 @@ describe("ShortsTracker", function () {
       [60000, 66000, -11000, "66835443037974683544303797468354430", "999999999999999999999999999999999"]
     ]
 
-    await shortsTracker.connect(user0).setGlobalShortSize(eth.address, size)
+    const size = toUsd(100000)
+    await vault.increaseGlobalShortSize(eth.address, size)
     let i = 0
     for (const [_avgPrice, _nextPrice, _realisedPnl, expectedAvgPrice, expectedDelta] of cases) {
       const avgPrice = toUsd(_avgPrice)
