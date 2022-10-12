@@ -1,4 +1,5 @@
 node_modules/
+.vscode
 typechain/
 env.json
 .tmp-addresses*.json
