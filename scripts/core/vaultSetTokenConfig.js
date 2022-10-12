@@ -1,33 +1,54 @@
 const { getFrameSigner, deployContract, contractAt, sendTxn, readTmpAddresses, callWithRetries } = require("../shared/helpers")
-const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
+const { expandDecimals } = require("../../test/shared/utilities")
 const { toChainlinkPrice } = require("../../test/shared/chainlink")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-async function main() {
-  let signer
-  let vaultAddress = "0x489ee077994B6658eAfA855C308275EAd8097C4A"
-  const { link, uni, usdc, usdt, btc, eth } = tokens
-  let tokenArr = [link, uni]
+async function getArbValues() {
+  const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
 
-  if (network === "arbitrumTestnet") {
-    vaultAddress = "0xBc9BC47A7aB63db1E0030dC7B60DDcDe29CF4Ffb"
-    tokenArr = [btc, usdc, usdt]
-  } else {
-    signer = await getFrameSigner()
+  const {} = tokens
+  const tokenArr = []
+
+  return { vault, tokenArr }
+}
+
+async function getAvaxValues() {
+  const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
+
+  const { btcb } = tokens
+  const tokenArr = [btcb]
+
+  return { vault, tokenArr }
+}
+
+async function getValues() {
+  if (network === "arbitrum") {
+    return getArbValues()
   }
 
-  const vault = await contractAt("Vault", vaultAddress)
+  if (network === "avax") {
+    return getAvaxValues()
+  }
+}
+
+async function main() {
+  const signer = await getFrameSigner()
+
+  const { vault, tokenArr } = await getValues()
   const vaultGov = await vault.gov()
 
   const vaultTimelock = await contractAt("Timelock", vaultGov, signer)
+  const vaultMethod = "signalVaultSetTokenConfig"
+  // const vaultMethod = "vaultSetTokenConfig"
 
   console.log("vault", vault.address)
   console.log("vaultTimelock", vaultTimelock.address)
+  console.log("vaultMethod", vaultMethod)
 
   for (const token of tokenArr) {
-    const params = [
+    await sendTxn(vaultTimelock[vaultMethod](
       vault.address,
       token.address, // _token
       token.decimals, // _tokenDecimals
@@ -36,26 +57,7 @@ async function main() {
       expandDecimals(token.maxUsdgAmount, 18), // _maxUsdgAmount
       token.isStable, // _isStable
       token.isShortable // _isShortable
-    ]
-    const action = ethers.utils.solidityKeccak256([
-      "string",
-      "address",
-      "address",
-      "uint256",
-      "uint256",
-      "uint256",
-      "uint256",
-      "bool",
-      "bool"
-    ], ["vaultSetTokenConfig", ...params])
-    const actionTimestamp = await vaultTimelock.pendingActions(action)
-    let vaultMethod = "signalVaultSetTokenConfig"
-    if (actionTimestamp.gt(0)) { // action was already signalled
-      console.log("Pending action exists timestamp: %s (%s)", actionTimestamp.toString(), new Date(actionTimestamp.toNumber() * 1000))
-      vaultMethod = "vaultSetTokenConfig"
-    }
-    console.log("vaultMethod", vaultMethod)
-    await sendTxn(vaultTimelock[vaultMethod](...params, {gasLimit: 1000000, gasPrice:1000000000}), `vault.${vaultMethod}(${token.name}) ${token.address}`)
+    ), `vault.${vaultMethod}(${token.name}) ${token.address}`)
   }
 }
 

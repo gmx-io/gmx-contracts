@@ -16,24 +16,26 @@ async function getArbTestnetValues() {
 
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const tokenManager = { address: "0x7b78CeEa0a89040873277e279C40a08dE59062f5" }
+  const tokenManager = { address: "0xddDc546e07f1374A07b270b7d863371e575EA96A" }
   const glpManager = { address: "0x321F653eED006AD1C29D174e17d96351BDe22649" }
 
   const positionRouter = { address: "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba" }
-  const positionManager = { address: "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831" }
+  const positionManager = { address: "0x956618e5B6996919eB6B943aBf36910DdabC9a0f" }
+  const gmx = { address: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" }
 
-  return { vault, tokenManager, glpManager, positionRouter, positionManager }
+  return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
 }
 
 async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const tokenManager = { address: "0x26137dfA81f9Ac8BACd748f6A298262f11504Da9" }
+  const tokenManager = { address: "0x8b25Ba1cAEAFaB8e9926fabCfB6123782e3B4BC2" }
   const glpManager = { address: "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F" }
 
   const positionRouter = { address: "0x195256074192170d1530527abC9943759c7167d8" }
-  const positionManager = { address: "0xF2ec2e52c3b5F8b8bd5A3f93945d05628A233216" }
+  const positionManager = { address: "0xAaf69ca8d44d74EAD76a86f25001cfC44515e94E" }
+  const gmx = { address: "0x62edc0692BD897D2295872a9FFCac5425011c661" }
 
-  return { vault, tokenManager, glpManager, positionRouter, positionManager }
+  return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
 }
 
 async function getValues() {
@@ -53,7 +55,7 @@ async function main() {
   const buffer = 24 * 60 * 60
   const maxTokenSupply = expandDecimals("13250000", 18)
 
-  const { vault, tokenManager, glpManager, positionRouter, positionManager } = await getValues()
+  const { vault, tokenManager, glpManager, positionRouter, positionManager, gmx } = await getValues()
   const mintReceiver = tokenManager
 
   const timelock = await deployContract("Timelock", [
@@ -64,7 +66,7 @@ async function main() {
     glpManager.address,
     maxTokenSupply,
     10, // marginFeeBasisPoints 0.1%
-    100 // maxMarginFeeBasisPoints 1%
+    500 // maxMarginFeeBasisPoints 5%
   ], "Timelock")
 
   const deployedTimelock = await contractAt("Timelock", timelock.address)
@@ -76,8 +78,8 @@ async function main() {
   // // update gov of vault
   const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
 
-  await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
-  await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
+  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
+  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
 
   const signers = [
     "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
@@ -100,6 +102,8 @@ async function main() {
     const keeper = keepers[i]
     await sendTxn(deployedTimelock.setKeeper(keeper, true), `deployedTimelock.setKeeper(${keeper})`)
   }
+
+  await sendTxn(deployedTimelock.signalApprove(gmx.address, admin, "1000000000000000000"), "deployedTimelock.signalApprove")
 }
 
 main()

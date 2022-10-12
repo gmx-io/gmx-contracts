@@ -1,12 +1,12 @@
-const { deployContract, contractAt, sendTxn, signers } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn, signers, updateTokensPerInterval } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 const shouldSendTxn = true
 
-const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("0"), 18)
-const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("0"), 18)
+const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("25,000"), 18)
+const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("12,246"), 18)
 
 async function getStakedAmounts() {
   const arbStakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4", signers.arbitrum)
@@ -93,8 +93,8 @@ async function main() {
   console.log("glpNextTokensPerInterval", glpNextTokensPerInterval.toString())
 
   if (shouldSendTxn) {
-    await sendTxn(gmxRewardDistributor.setTokensPerInterval(gmxNextTokensPerInterval, { gasLimit: 500000 }), "gmxRewardDistributor.setTokensPerInterval")
-    await sendTxn(glpRewardDistributor.setTokensPerInterval(glpNextTokensPerInterval, { gasLimit: 500000 }), "glpRewardDistributor.setTokensPerInterval")
+    await updateTokensPerInterval(gmxRewardDistributor, gmxNextTokensPerInterval, "gmxRewardDistributor")
+    await updateTokensPerInterval(glpRewardDistributor, glpNextTokensPerInterval, "glpRewardDistributor")
   }
 }
 

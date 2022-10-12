@@ -6,23 +6,29 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 async function getArbValues() {
-  const positionRouter = await contractAt("PositionRouter", "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba")
-  const positionManager = await contractAt("PositionManager", "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831")
+  const positionContracts = [
+    "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba", // PositionRouter
+    "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831", // PositionManager 1
+    "0x956618e5B6996919eB6B943aBf36910DdabC9a0f", // PositionManager 2
+  ]
 
   const { btc, eth, link, uni } = tokens
-  const tokenArr = [btc, eth]
+  const tokenArr = [btc, eth, link, uni]
 
-  return { positionRouter, positionManager, tokenArr }
+  return { positionContracts, tokenArr }
 }
 
 async function getAvaxValues() {
-  const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
-  const positionManager = await contractAt("PositionManager", "0xF2ec2e52c3b5F8b8bd5A3f93945d05628A233216")
+  const positionContracts = [
+    "0x195256074192170d1530527abC9943759c7167d8", // PositionRouter
+    "0xF2ec2e52c3b5F8b8bd5A3f93945d05628A233216", // PositionManager 1
+    "0xAaf69ca8d44d74EAD76a86f25001cfC44515e94E", // PositionManager 2
+  ]
 
-  const { avax, eth, btc } = tokens
-  const tokenArr = [avax, eth, btc]
+  const { avax, eth, btc, btcb } = tokens
+  const tokenArr = [avax, eth, btc, btcb]
 
-  return { positionRouter, positionManager, tokenArr }
+  return { positionContracts, tokenArr }
 }
 
 async function getValues() {
@@ -35,9 +41,8 @@ async function getValues() {
   }
 }
 
-
 async function main() {
-  const { positionRouter, positionManager, tokenArr } = await getValues()
+  const { positionContracts, tokenArr } = await getValues()
 
   const tokenAddresses = tokenArr.map(t => t.address)
   const longSizes = tokenArr.map((token) => {
@@ -56,8 +61,10 @@ async function main() {
     return expandDecimals(token.maxGlobalShortSize, 30)
   })
 
-  await sendTxn(positionRouter.setMaxGlobalSizes(tokenAddresses, longSizes, shortSizes), "positionRouter.setMaxGlobalSizes")
-  await sendTxn(positionManager.setMaxGlobalSizes(tokenAddresses, longSizes, shortSizes), "positionManager.setMaxGlobalSizes")
+  for (let i = 0; i < positionContracts.length; i++) {
+    const positionContract = await contractAt("PositionManager", positionContracts[i])
+    await sendTxn(positionContract.setMaxGlobalSizes(tokenAddresses, longSizes, shortSizes), "positionContract.setMaxGlobalSizes")
+  }
 }
 
 main()
