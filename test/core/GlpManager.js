@@ -30,6 +30,7 @@ describe("GlpManager", function () {
   let distributor0
   let yieldTracker0
   let reader
+  let shortsTracker
 
   beforeEach(async () => {
     bnb = await deployContract("Token", [])
@@ -54,7 +55,18 @@ describe("GlpManager", function () {
     glp = await deployContract("GLP", [])
 
     await initVault(vault, router, usdg, vaultPriceFeed)
-    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
+
+    shortsTracker = await deployContract("ShortsTracker", [vault.address])
+    await shortsTracker.setIsGlobalShortDataReady(true)
+
+    glpManager = await deployContract("GlpManager", [
+      vault.address,
+      usdg.address,
+      glp.address,
+      shortsTracker.address,
+      24 * 60 * 60
+    ])
+    await glpManager.setShortsTrackerAveragePriceWeight(10000)
 
     distributor0 = await deployContract("TimeDistributor", [])
     yieldTracker0 = await deployContract("YieldTracker", [usdg.address])
@@ -463,5 +475,86 @@ describe("GlpManager", function () {
     expect(await dai.balanceOf(user0.address)).eq("79520720000000000000")
     expect(await bnb.balanceOf(user0.address)).eq(0)
     expect(await glp.balanceOf(user0.address)).eq("19940000000000000000") // 19.94
+  })
+
+  context("Different avg price in Vault and ShortsTracker", async () => {
+    beforeEach(async () => {
+      await vaultPriceFeed.setPriceSampleSpace(1)
+
+      await dai.mint(vault.address, expandDecimals(100000, 18))
+      await vault.directPoolDeposit(dai.address)
+
+      let aum = await glpManager.getAum(true)
+      expect(aum, "aum 0").to.equal(toUsd(100000))
+
+      await btcPriceFeed.setLatestAnswer(toChainlinkPrice(60000))
+      await dai.mint(user0.address, expandDecimals(1000, 18))
+      await dai.connect(user0).approve(router.address, expandDecimals(1000, 18))
+      // vault globalShortSizes(BTC) will be 2000 and globalShortAveragePrices(BTC) will be 60000
+      await router.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(1000, 18), 0, toUsd(2000), false, toUsd(60000))
+
+      // set different average price to ShortsTracker
+      await shortsTracker.setIsGlobalShortDataReady(false)
+      await shortsTracker.setInitData([btc.address], [toUsd(61000)])
+      await shortsTracker.setIsGlobalShortDataReady(false)
+    })
+
+    it("GlpManager ignores ShortsTracker if flag is off", async () => {
+      expect(await shortsTracker.isGlobalShortDataReady()).to.be.false
+
+      expect(await vault.globalShortSizes(btc.address), "size 0").to.equal(toUsd(2000))
+      expect(await vault.globalShortAveragePrices(btc.address), "avg price 0").to.equal(toUsd(60000))
+
+      await btcPriceFeed.setLatestAnswer(toChainlinkPrice(54000))
+      expect((await vault.getGlobalShortDelta(btc.address))[1], "delta 0").to.equal(toUsd(200))
+      expect((await shortsTracker.getGlobalShortDelta(btc.address))[1], "delta 1").to.equal("229508196721311475409836065573770")
+
+      // aum should be $100,000 pool - $200 shorts pnl = 99,800
+      expect(await glpManager.getAum(true), "aum 1").to.equal(toUsd(99800))
+    })
+
+    it("GlpManager switches gradually to ShortsTracker average price", async () => {
+      expect(await vault.globalShortSizes(btc.address), "size 0").to.equal(toUsd(2000))
+      expect(await vault.globalShortAveragePrices(btc.address), "avg price 0").to.equal(toUsd(60000))
+
+      await glpManager.setShortsTrackerAveragePriceWeight(0)
+      expect(await shortsTracker.globalShortAveragePrices(btc.address), "avg price 1").to.equal(toUsd(61000))
+
+      await btcPriceFeed.setLatestAnswer(toChainlinkPrice(54000))
+
+      await shortsTracker.setIsGlobalShortDataReady(true)
+      // with flag enabled it should be the same because shortsTrackerAveragePriceWeight is 0
+      expect(await glpManager.getAum(true), "aum 2").to.equal(toUsd(99800))
+
+      // according to ShortsTracker data pnl is ~$229.51
+      // gradually configure GlpManager to use ShortsTracker for aum calculation
+      await glpManager.setShortsTrackerAveragePriceWeight(1000) // 10% for ShortsTracker, 90% for Vault
+      // 100,000 - (200 * 90% + 229.51 * 10%) = 99,797.05
+      expect(await glpManager.getAum(true), "aum 3").to.equal("99797004991680532445923460898502496")
+
+      await glpManager.setShortsTrackerAveragePriceWeight(5000) // 50% for ShortsTracker, 50% for Vault
+      // 100,000 - (200 * 50% + 229.51 * 50%) = 99,785.25
+      expect(await glpManager.getAum(true), "aum 4").to.equal("99785123966942148760330578512396695")
+
+      await glpManager.setShortsTrackerAveragePriceWeight(10000) // 100% for ShortsTracker
+      // 100,000 - (200 * 0 + 229.51 * 100%) = 99,770.49
+      expect(await glpManager.getAum(true), "aum 5").to.equal("99770491803278688524590163934426230")
+    })
+
+    it("GlpManager switches back to Vault average price after flag is turned off", async () => {
+      await btcPriceFeed.setLatestAnswer(toChainlinkPrice(54000))
+      await glpManager.setShortsTrackerAveragePriceWeight(10000)
+
+      // flag is disabled, aum is calculated with Vault values
+      expect(await glpManager.getAum(true), "aum 0").to.equal(toUsd(99800))
+
+      // enable ShortsTracker
+      await shortsTracker.setIsGlobalShortDataReady(true)
+      expect(await glpManager.getAum(true), "aum 1").to.equal("99770491803278688524590163934426230")
+
+      // back to vault
+      await shortsTracker.setIsGlobalShortDataReady(false)
+      expect(await glpManager.getAum(true), "aum 2").to.equal(toUsd(99800))
+    })
   })
 })

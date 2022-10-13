@@ -38,6 +38,7 @@ async function getNetworkFee(provider, tx) {
 async function reportGasUsed(provider, tx, label) {
   const { gasUsed } = await provider.getTransactionReceipt(tx.hash)
   console.info(label, gasUsed.toString())
+  return gasUsed
 }
 
 async function getBlockTime(provider) {

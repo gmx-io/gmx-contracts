@@ -1,4 +1,5 @@
 node_modules/
+.vscode
 typechain/
 env.json
 .tmp-addresses*.json
@@ -11,6 +12,7 @@ data/snapshotBalance
 data/holders
 flattened
 distribution-data*.json
+**/.DS_Store
 
 #Hardhat files
 cache

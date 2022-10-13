@@ -89,6 +89,11 @@ async function callWithRetries(func, args, retriesCount = 3) {
 }
 
 async function deployContract(name, args, label, options) {
+  if (!options && typeof label === "object") {
+    label = null
+    options = label
+  }
+
   let info = name
   if (label) { info = name + ":" + label }
   const contractFactory = await ethers.getContractFactory(name)

@@ -72,7 +72,7 @@ describe("Vault.decreaseLongPosition", function () {
     )
 
     glp = await deployContract("GLP", [])
-    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, 24 * 60 * 60])
+    glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, ethers.constants.AddressZero, 24 * 60 * 60])
   })
 
   it("decreasePosition long", async () => {

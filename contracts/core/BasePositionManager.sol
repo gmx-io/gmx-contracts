@@ -11,6 +11,7 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IRouter.sol";
 import "./interfaces/IVault.sol";
+import "./interfaces/IShortsTracker.sol";
 import "./interfaces/IOrderBook.sol";
 import "./interfaces/IBasePositionManager.sol";
 
@@ -20,6 +21,7 @@ import "../peripherals/interfaces/ITimelock.sol";
 import "../referrals/interfaces/IReferralStorage.sol";
 
 contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governable {
+
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Address for address payable;
@@ -29,6 +31,7 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
     address public admin;
 
     address public vault;
+    address public shortsTracker;
     address public router;
     address public weth;
 
@@ -82,6 +85,7 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
     constructor(
         address _vault,
         address _router,
+        address _shortsTracker,
         address _weth,
         uint256 _depositFee
     ) public {
@@ -89,6 +93,7 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
         router = _router;
         weth = _weth;
         depositFee = _depositFee;
+        shortsTracker = _shortsTracker;
 
         admin = msg.sender;
     }
@@ -149,28 +154,40 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
         _receiver.sendValue(_amount);
     }
 
-    function _increasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong, uint256 _price) internal {
-        address _vault = vault;
-
-        if (_isLong) {
-            require(IVault(_vault).getMaxPrice(_indexToken) <= _price, "BasePositionManager: mark price higher than limit");
-        } else {
-            require(IVault(_vault).getMinPrice(_indexToken) >= _price, "BasePositionManager: mark price lower than limit");
+    function _validateMaxGlobalSize(address _indexToken, bool _isLong, uint256 _sizeDelta) internal view {
+        if (_sizeDelta == 0) {
+            return;
         }
 
         if (_isLong) {
             uint256 maxGlobalLongSize = maxGlobalLongSizes[_indexToken];
-            if (maxGlobalLongSize > 0 && IVault(_vault).guaranteedUsd(_indexToken).add(_sizeDelta) > maxGlobalLongSize) {
+            if (maxGlobalLongSize > 0 && IVault(vault).guaranteedUsd(_indexToken).add(_sizeDelta) > maxGlobalLongSize) {
                 revert("BasePositionManager: max global longs exceeded");
             }
         } else {
             uint256 maxGlobalShortSize = maxGlobalShortSizes[_indexToken];
-            if (maxGlobalShortSize > 0 && IVault(_vault).globalShortSizes(_indexToken).add(_sizeDelta) > maxGlobalShortSize) {
+            if (maxGlobalShortSize > 0 && IVault(vault).globalShortSizes(_indexToken).add(_sizeDelta) > maxGlobalShortSize) {
                 revert("BasePositionManager: max global shorts exceeded");
             }
         }
+    }
+
+    function _increasePosition(address _account, address _collateralToken, address _indexToken, uint256 _sizeDelta, bool _isLong, uint256 _price) internal {
+        address _vault = vault;
+
+        uint256 markPrice = _isLong ? IVault(_vault).getMaxPrice(_indexToken) : IVault(_vault).getMinPrice(_indexToken);
+        if (_isLong) {
+            require(markPrice <= _price, "BasePositionManager: mark price higher than limit");
+        } else {
+            require(markPrice >= _price, "BasePositionManager: mark price lower than limit");
+        }
+
+        _validateMaxGlobalSize(_indexToken, _isLong, _sizeDelta);
 
         address timelock = IVault(_vault).gov();
+
+        // should be called strictly before position is updated in Vault
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, markPrice, true);
 
         ITimelock(timelock).enableLeverage(_vault);
         IRouter(router).pluginIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
@@ -182,13 +199,17 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
     function _decreasePosition(address _account, address _collateralToken, address _indexToken, uint256 _collateralDelta, uint256 _sizeDelta, bool _isLong, address _receiver, uint256 _price) internal returns (uint256) {
         address _vault = vault;
 
+        uint256 markPrice = _isLong ? IVault(_vault).getMinPrice(_indexToken) : IVault(_vault).getMaxPrice(_indexToken);
         if (_isLong) {
-            require(IVault(_vault).getMinPrice(_indexToken) >= _price, "BasePositionManager: mark price lower than limit");
+            require(markPrice >= _price, "BasePositionManager: mark price lower than limit");
         } else {
-            require(IVault(_vault).getMaxPrice(_indexToken) <= _price, "BasePositionManager: mark price higher than limit");
+            require(markPrice <= _price, "BasePositionManager: mark price higher than limit");
         }
 
         address timelock = IVault(_vault).gov();
+
+        // should be called strictly before position is updated in Vault
+        IShortsTracker(shortsTracker).updateGlobalShortData(_account, _collateralToken, _indexToken, _isLong, _sizeDelta, markPrice, false);
 
         ITimelock(timelock).enableLeverage(_vault);
         uint256 amountOut = IRouter(router).pluginDecreasePosition(_account, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, _receiver);
@@ -255,14 +276,13 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
         }
     }
 
-    function _transferOutETH(uint256 _amountOut, address payable _receiver) internal {
+    function _transferOutETHWithGasLimitIgnoreFail(uint256 _amountOut, address payable _receiver) internal {
         IWETH(weth).withdraw(_amountOut);
-        _receiver.sendValue(_amountOut);
-    }
 
-    function _transferOutETHWithGasLimit(uint256 _amountOut, address payable _receiver) internal {
-        IWETH(weth).withdraw(_amountOut);
-        _receiver.transfer(_amountOut);
+        // use `send` instead of `transfer` to not revert whole transaction in case ETH transfer was failed
+        // it has limit of 2300 gas
+        // this is to avoid front-running
+        _receiver.send(_amountOut);
     }
 
     function _collectFees(
