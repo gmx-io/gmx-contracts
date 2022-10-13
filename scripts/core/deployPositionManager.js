@@ -13,10 +13,7 @@ async function getArbValues() {
 
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A", signer)
   const timelock = await contractAt("Timelock", await vault.gov(), signer)
-  const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064", signer)
-  // const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  // const timelock = await contractAt("Timelock", await vault.gov())
-  // const router = await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064")
+  const router = await contractAt("Router", await vault.router(), signer)
   const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x09f77E8A13De9a35a7231028187e9fD5DB8a2ACB")
@@ -59,7 +56,7 @@ async function getAvaxValues() {
 
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
   const timelock = await contractAt("Timelock", await vault.gov(), signer)
-  const router = await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8", signer)
+  const router = await contractAt("Router", await vault.router(), signer)
   const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x4296e307f108B2f583FF2F7B7270ee7831574Ae5")
