@@ -8,13 +8,11 @@ const tokens = require('./tokens')[network];
 
 const depositFee = 30 // 0.3%
 
-async function getArbValues() {
-  const signer = await getFrameSigner()
-
+async function getArbValues(signer) {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A", signer)
   const timelock = await contractAt("Timelock", await vault.gov(), signer)
   const router = await contractAt("Router", await vault.router(), signer)
-  const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
+  const shortsTracker = await contractAt("ShortsTracker", "0xf58eEc83Ba28ddd79390B9e90C4d3EbfF1d434da", signer)
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x09f77E8A13De9a35a7231028187e9fD5DB8a2ACB")
   const referralStorage = await contractAt("ReferralStorage", "0xe6fab3f0c7199b0d34d7fbe83394fc0e0d06e99d")
@@ -32,32 +30,24 @@ async function getArbValues() {
     "0x5D8a5599D781CC50A234D73ac94F4da62c001D8B", // Vovo ETH down vault
     "0xE40bEb54BA00838aBE076f6448b27528Dd45E4F0", // Vovo BTC up vault
     "0x1704A75bc723A018D176Dc603b0D1a361040dF16", // Vovo BTC down vault
-  ]
-
-  const partnerContracts = [
     "0xbFbEe90E2A96614ACe83139F41Fa16a2079e8408", // Vovo GLP ETH up vault
     "0x0FAE768Ef2191fDfCb2c698f691C49035A53eF0f", // Vovo GLP ETH down vault
     "0x2b8E28667A29A5Ab698b82e121F2b9Edd9271e93", // Vovo GLP BTC up vault
     "0x46d6dEE922f1d2C6421895Ba182120C784d986d3", // Vovo GLP BTC down vault
-  ]
-
-  const partnerContracts = [
     "0xC8d6d21995E00e17c5aaF07bBCde43f0ccd12725", // Jones ETH Hedging
     "0xe36fA7dC99658C9B7E247471261b65A88077D349", // Jones gOHM Hedging
     "0xB9bd050747357ce1fF4eFD314012ca94C07543E6", // Jones DPX Hedging
     "0xe98f68F3380c990D3045B4ae29f3BCa0F3D02939", // Jones rDPX Hedging
   ]
 
-  return { vault, timelock, router, shortsTracker, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
+  return { vault, timelock, router, shortsTracker, weth, depositFee, orderBook, referralStorage, orderKeepers, liquidators, partnerContracts }
 }
 
-async function getAvaxValues() {
-  const signer = await getFrameSigner()
-
+async function getAvaxValues(signer) {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
   const timelock = await contractAt("Timelock", await vault.gov(), signer)
   const router = await contractAt("Router", await vault.router(), signer)
-  const shortsTracker = await contractAt("ShortsTracker", null) // TODO replace with real address
+  const shortsTracker = await contractAt("ShortsTracker", "0x9234252975484D75Fd05f3e4f7BdbEc61956D73a", signer)
   const weth = await contractAt("WETH", tokens.nativeToken.address)
   const orderBook = await contractAt("OrderBook", "0x4296e307f108B2f583FF2F7B7270ee7831574Ae5")
   const referralStorage = await contractAt("ReferralStorage", "0x827ed045002ecdabeb6e2b0d1604cf5fc3d322f8")
@@ -72,20 +62,22 @@ async function getAvaxValues() {
 
   const partnerContracts = []
 
-  return { vault, timelock, router, shortsTracker, weth, depositFee, orderBook, orderKeeper, liquidator, partnerContracts }
+  return { vault, timelock, router, shortsTracker, weth, depositFee, orderBook, referralStorage, orderKeepers, liquidators, partnerContracts }
 }
 
-async function getValues() {
+async function getValues(signer) {
   if (network === "arbitrum") {
-    return getArbValues()
+    return getArbValues(signer)
   }
 
   if (network === "avax") {
-    return getAvaxValues()
+    return getAvaxValues(signer)
   }
 }
 
 async function main() {
+  const signer = await getFrameSigner()
+
   const {
     positionManagerAddress,
     vault,
@@ -96,10 +88,10 @@ async function main() {
     depositFee,
     orderBook,
     referralStorage,
-    orderKeeper,
-    liquidator,
+    orderKeepers,
+    liquidators,
     partnerContracts
-  } = await getValues()
+  } = await getValues(signer)
 
   let positionManager
   if (positionManagerAddress) {
@@ -149,6 +141,7 @@ async function main() {
     }
   }
 
+  await sendTxn(positionManager.setGov(await vault.gov()), "positionManager.setGov")
   console.log("done.")
 }
 
