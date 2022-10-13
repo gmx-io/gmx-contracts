@@ -30,19 +30,19 @@ async function getArbValues() {
     { address: "0x44311c91008DDE73dE521cd25136fD37d616802c" }
   ]
 
-  // const partnerContracts = [
-  //   "0x9ba57a1D3f6C61Ff500f598F16b97007EB02E346", // Vovo ETH up vault
-  //   "0x5D8a5599D781CC50A234D73ac94F4da62c001D8B", // Vovo ETH down vault
-  //   "0xE40bEb54BA00838aBE076f6448b27528Dd45E4F0", // Vovo BTC up vault
-  //   "0x1704A75bc723A018D176Dc603b0D1a361040dF16", // Vovo BTC down vault
-  // ]
+  const partnerContracts = [
+    "0x9ba57a1D3f6C61Ff500f598F16b97007EB02E346", // Vovo ETH up vault
+    "0x5D8a5599D781CC50A234D73ac94F4da62c001D8B", // Vovo ETH down vault
+    "0xE40bEb54BA00838aBE076f6448b27528Dd45E4F0", // Vovo BTC up vault
+    "0x1704A75bc723A018D176Dc603b0D1a361040dF16", // Vovo BTC down vault
+  ]
 
-  // const partnerContracts = [
-  //   "0xbFbEe90E2A96614ACe83139F41Fa16a2079e8408", // Vovo GLP ETH up vault
-  //   "0x0FAE768Ef2191fDfCb2c698f691C49035A53eF0f", // Vovo GLP ETH down vault
-  //   "0x2b8E28667A29A5Ab698b82e121F2b9Edd9271e93", // Vovo GLP BTC up vault
-  //   "0x46d6dEE922f1d2C6421895Ba182120C784d986d3", // Vovo GLP BTC down vault
-  // ]
+  const partnerContracts = [
+    "0xbFbEe90E2A96614ACe83139F41Fa16a2079e8408", // Vovo GLP ETH up vault
+    "0x0FAE768Ef2191fDfCb2c698f691C49035A53eF0f", // Vovo GLP ETH down vault
+    "0x2b8E28667A29A5Ab698b82e121F2b9Edd9271e93", // Vovo GLP BTC up vault
+    "0x46d6dEE922f1d2C6421895Ba182120C784d986d3", // Vovo GLP BTC down vault
+  ]
 
   const partnerContracts = [
     "0xC8d6d21995E00e17c5aaF07bBCde43f0ccd12725", // Jones ETH Hedging
@@ -104,6 +104,7 @@ async function main() {
     partnerContracts
   } = await getValues()
 
+  let positionManager
   if (positionManagerAddress) {
     console.log("Using position manager at", positionManagerAddress)
     positionManager = await contractAt("PositionManager", positionManagerAddress)
@@ -113,13 +114,35 @@ async function main() {
     positionManager = await deployContract("PositionManager", positionManagerArgs)
   }
 
-  // const positionManager = await deployContract("PositionManager", [vault.address, router.address, weth.address, depositFee, orderBook.address])
-  const positionManager = await contractAt("PositionManager", "0x87a4088Bd721F83b6c2E5102e2FA47022Cb1c831")
-  // await sendTxn(positionManager.setOrderKeeper(orderKeeper.address, true), "positionManager.setOrderKeeper(orderKeeper)")
-  // await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
-  // await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
-  // await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
-  // await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
+  await sendTxn(positionManager.setReferralStorage(referralStorage.address), "positionManager.setReferralStorage")
+  await sendTxn(positionManager.setShouldValidateIncreaseOrder(false), "positionManager.setShouldValidateIncreaseOrder(false)")
+
+  for (let i = 0; i < orderKeepers.length; i++) {
+    const orderKeeper = orderKeepers[i]
+    if (!(await positionManager.isOrderKeeper(orderKeeper.address))) {
+      await sendTxn(positionManager.setOrderKeeper(orderKeeper.address, true), "positionManager.setOrderKeeper(orderKeeper)")
+    }
+  }
+
+  for (let i = 0; i < liquidators.length; i++) {
+    const liquidator = liquidators[i]
+    if (!(await positionManager.isLiquidator(liquidator.address))) {
+      await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
+    }
+  }
+
+  if (!(await timelock.isHandler(positionManager.address))) {
+    await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
+  }
+  if (!(await vault.isLiquidator(positionManager.address))) {
+    await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
+  }
+  if (!(await shortsTracker.isHandler(positionManager.address))) {
+    await sendTxn(shortsTracker.setHandler(positionManager.address, true), "shortsTracker.setContractHandler(positionManager.address, true)")
+  }
+  if (!(await router.plugins(positionManager.address))) {
+    await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
+  }
 
   for (let i = 0; i < partnerContracts.length; i++) {
     const partnerContract = partnerContracts[i]
