@@ -118,7 +118,7 @@ async function main() {
     5 * 60, // _priceDuration
     60 * 60, // _maxPriceUpdateDelay
     0, // _minBlockInterval
-    750, // _maxDeviationBasisPoints
+    250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
     tokenManager.address, // _tokenManager
     positionRouter.address
@@ -158,7 +158,7 @@ async function main() {
   await sendTxn(secondaryPriceFeed.setSpreadBasisPointsIfInactive(50), "secondaryPriceFeed.setSpreadBasisPointsIfInactive")
   await sendTxn(secondaryPriceFeed.setSpreadBasisPointsIfChainError(500), "secondaryPriceFeed.setSpreadBasisPointsIfChainError")
   await sendTxn(secondaryPriceFeed.setMaxCumulativeDeltaDiffs(fastPriceTokens.map(t => t.address), fastPriceTokens.map(t => t.maxCumulativeDeltaDiff)), "secondaryPriceFeed.setMaxCumulativeDeltaDiffs")
-  await sendTxn(secondaryPriceFeed.setPriceDataInterval(5 * 60), "secondaryPriceFeed.setPriceDataInterval")
+  await sendTxn(secondaryPriceFeed.setPriceDataInterval(1 * 60), "secondaryPriceFeed.setPriceDataInterval")
 
   await sendTxn(positionRouter.setPositionKeeper(secondaryPriceFeed.address, true), "positionRouter.setPositionKeeper(secondaryPriceFeed)")
   await sendTxn(fastPriceEvents.setIsPriceFeed(secondaryPriceFeed.address, true), "fastPriceEvents.setIsPriceFeed")

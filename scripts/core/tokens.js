@@ -133,7 +133,7 @@ module.exports = {
       priceFeed: "0x6ce185860a4963106506C203335A2910413708e9",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.02 * 10 * 1000 * 1000, // 2%
       isStrictStable: false,
       tokenWeight: 20000,
       minProfitBps: 0,
@@ -151,7 +151,7 @@ module.exports = {
       priceFeed: "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.02 * 10 * 1000 * 1000, // 2%
       isStrictStable: false,
       tokenWeight: 33000,
       minProfitBps: 0,
@@ -183,7 +183,7 @@ module.exports = {
       priceFeed: "0x86E53CF1B870786351Da77A57575e79CB55812CB",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.01 * 10 * 1000 * 1000, // 1%
       isStrictStable: false,
       tokenWeight: 1000,
       minProfitBps: 0,
@@ -202,7 +202,7 @@ module.exports = {
       priceFeed: "0x9C917083fDb403ab5ADbEC26Ee294f6EcAda2720",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.01 * 10 * 1000 * 1000, // 1%
       isStrictStable: false,
       tokenWeight: 1000,
       minProfitBps: 0,
@@ -284,7 +284,7 @@ module.exports = {
       priceFeed: "0x0A77230d17318075983913bC2145DB16C7366156",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.01 * 10 * 1000 * 1000, // 1%
       isStrictStable: false,
       tokenWeight: 8000,
       minProfitBps: 0,
@@ -303,7 +303,7 @@ module.exports = {
       priceFeed: "0x976B3D034E162d8bD72D6b9C989d545b839003b0",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.02 * 10 * 1000 * 1000, // 2%
       isStrictStable: false,
       tokenWeight: 20000,
       minProfitBps: 0,
@@ -320,7 +320,7 @@ module.exports = {
       priceFeed: "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.02 * 10 * 1000 * 1000, // 2%
       isStrictStable: false,
       tokenWeight: 10000,
       minProfitBps: 0,
@@ -337,7 +337,7 @@ module.exports = {
       priceFeed: "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 10 * 1000 * 1000,
+      maxCumulativeDeltaDiff: 0.02 * 10 * 1000 * 1000, // 2%
       isStrictStable: false,
       tokenWeight: 12000,
       minProfitBps: 0,
