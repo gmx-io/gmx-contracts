@@ -111,6 +111,7 @@ async function main() {
     positionManager = await deployContract("PositionManager", positionManagerArgs)
   }
 
+  // positionManager only reads from referralStorage so it does not need to be set as a handler of referralStorage
   await sendTxn(positionManager.setReferralStorage(referralStorage.address), "positionManager.setReferralStorage")
   await sendTxn(positionManager.setShouldValidateIncreaseOrder(false), "positionManager.setShouldValidateIncreaseOrder(false)")
 

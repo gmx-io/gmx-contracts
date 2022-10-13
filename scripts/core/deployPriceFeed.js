@@ -18,7 +18,7 @@ async function getArbValues(signer) {
   const keeper2 = { address: "0xA73731077B511b39853Fb149AfeC948d3DB9BA71" }
   const updaters = [updater1.address, updater2.address, keeper1.address, keeper2.address]
 
-  const tokenManager = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
+  const tokenManager = { address: "0x2c247a44928d66041D9F7B11A69d7a84d25207ba" }
 
   const positionRouter = await contractAt("PositionRouter", "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba")
 
@@ -52,7 +52,7 @@ async function getAvaxValues(signer) {
   const keeper2 = { address: "0x295f648f091074015d4C26725421b2E73768199F" }
   const updaters = [updater1.address, updater2.address, keeper1.address, keeper2.address]
 
-  const tokenManager = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
+  const tokenManager = { address: "0x9bf98C09590CeE2Ec5F6256449754f1ba77d5aE5" }
 
   const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
 
@@ -82,6 +82,7 @@ async function getValues(signer) {
 
 async function main() {
   const signer = await getFrameSigner()
+  const deployer = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
 
   const {
     fastPriceTokens,
@@ -120,7 +121,7 @@ async function main() {
     0, // _minBlockInterval
     250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
-    tokenManager.address, // _tokenManager
+    deployer.address, // _tokenManager
     positionRouter.address
   ])
 
@@ -165,6 +166,7 @@ async function main() {
 
   await sendTxn(vaultPriceFeed.setGov(timelock.address), "vaultPriceFeed.setGov")
   await sendTxn(secondaryPriceFeed.setGov(timelock.address), "secondaryPriceFeed.setGov")
+  await sendTxn(secondaryPriceFeed.setTokenManager(tokenManager.address), "secondaryPriceFeed.setTokenManager")
 }
 
 main()
