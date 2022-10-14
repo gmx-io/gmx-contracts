@@ -12,10 +12,10 @@ async function getArbValues(signer) {
 
   const timelock = { address: "0x7b1FFdDEEc3C4797079C7ed91057e399e9D43a8B" }
 
-  const updater1 = { address: "0xD1e8300d3d1288BB63d462b109Ae16dA3F474020" }
-  const updater2 = { address: "0x13e12390fFFc8dA71708bbc90F0Bf2c07FbE6B7A" }
-  const keeper1 = { address: "0x7AF4BA11eE55091F487D06977c1F4C3805e3ef48" }
-  const keeper2 = { address: "0xA73731077B511b39853Fb149AfeC948d3DB9BA71" }
+  const updater1 = { address: "0x18eAc44875EC92Ed80EeFAa7fa7Ac957b312D366" }
+  const updater2 = { address: "0x2eD9829CFF68c7Bb40812f70c4Fc06A4938845de" }
+  const keeper1 = { address: "0xbEe27BD52dB995D3c74Dc11FF32D93a1Aad747f7" }
+  const keeper2 = { address: "0x94577665926885f47ddC1Feb322bc51470daA8E8" }
   const updaters = [updater1.address, updater2.address, keeper1.address, keeper2.address]
 
   const tokenManager = { address: "0x2c247a44928d66041D9F7B11A69d7a84d25207ba" }
@@ -46,10 +46,10 @@ async function getAvaxValues(signer) {
 
   const timelock = { address: "0xCa8b5F2fF7B8d452bE8972B44Dc026Be96b97228" }
 
-  const updater1 = { address: "0x6647B6f671E390Fe64c039dd7119E42E93Ccf957" }
-  const updater2 = { address: "0xaC13E972B89001B45A8e07E5b040554096378810" }
-  const keeper1 = { address: "0xa0c6954b241f592a937D778Dc8b994F4518b82a5" }
-  const keeper2 = { address: "0x295f648f091074015d4C26725421b2E73768199F" }
+  const updater1 = { address: "0x2b249Bec7c3A142431b67e63A1dF86F974FAF3aa" }
+  const updater2 = { address: "0x63ff41E44d68216e716d236E2ECdd5272611D835" }
+  const keeper1 = { address: "0x5e0338CE6597FCB9404d69F4286194A60aD442b7" }
+  const keeper2 = { address: "0x8CD98FF48831aa8864314ae8f41337FaE9941C8D" }
   const updaters = [updater1.address, updater2.address, keeper1.address, keeper2.address]
 
   const tokenManager = { address: "0x9bf98C09590CeE2Ec5F6256449754f1ba77d5aE5" }
