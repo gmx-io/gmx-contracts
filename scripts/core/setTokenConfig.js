@@ -1,13 +1,13 @@
-const { getFrameSigner, deployContract, contractAt, sendTxn, readTmpAddresses, callWithRetries } = require("../shared/helpers")
+const { deployContract, contractAt, sendTxn, readTmpAddresses, callWithRetries } = require("../shared/helpers")
 const { bigNumberify, expandDecimals } = require("../../test/shared/utilities")
 const { toChainlinkPrice } = require("../../test/shared/chainlink")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-async function getArbValues(signer) {
+async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const timelock = await contractAt("Timelock", await vault.gov(), signer)
+  const timelock = await contractAt("Timelock", await vault.gov())
   const reader = await contractAt("Reader", "0x2b43c90D1B727cEe1Df34925bcd5Ace52Ec37694")
 
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
@@ -18,9 +18,9 @@ async function getArbValues(signer) {
   return { vault, timelock, reader, tokenArr, vaultTokenInfo }
 }
 
-async function getAvaxValues(signer) {
+async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const timelock = await contractAt("Timelock", await vault.gov(), signer)
+  const timelock = await contractAt("Timelock", await vault.gov())
   const reader = await contractAt("Reader", "0x2eFEE1950ededC65De687b40Fd30a7B5f4544aBd")
 
   const { avax, eth, btc, btcb, mim, usdce, usdc } = tokens
@@ -31,18 +31,18 @@ async function getAvaxValues(signer) {
   return { vault, timelock, reader, tokenArr, vaultTokenInfo }
 }
 
-async function main() {
-  const signer = await getFrameSigner()
-
-  let vault, timelock, reader, tokenArr, vaultTokenInfo
-
+async function getValues() {
   if (network === "arbitrum") {
-    ;({ vault, timelock, reader, tokenArr, vaultTokenInfo }  = await getArbValues(signer));
+    return getArbValues()
   }
 
   if (network === "avax") {
-    ;({ vault, timelock, reader, tokenArr, vaultTokenInfo }  = await getAvaxValues(signer));
+    return getAvaxValues()
   }
+}
+
+async function main() {
+  const { vault, timelock, reader, tokenArr, vaultTokenInfo } = await getValues()
 
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)

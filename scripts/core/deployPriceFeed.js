@@ -10,7 +10,7 @@ async function getArbValues(signer) {
   const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
   const fastPriceTokens = [btc, eth, link, uni]
 
-  const timelock = { address: "0x7b1FFdDEEc3C4797079C7ed91057e399e9D43a8B" }
+  const priceFeedTimelock = { address: "0x7b1FFdDEEc3C4797079C7ed91057e399e9D43a8B" }
 
   const updater1 = { address: "0x18eAc44875EC92Ed80EeFAa7fa7Ac957b312D366" }
   const updater2 = { address: "0x2eD9829CFF68c7Bb40812f70c4Fc06A4938845de" }
@@ -20,7 +20,7 @@ async function getArbValues(signer) {
 
   const tokenManager = { address: "0x2c247a44928d66041D9F7B11A69d7a84d25207ba" }
 
-  const positionRouter = await contractAt("PositionRouter", "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba")
+  const positionRouter = await contractAt("PositionRouter", "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868")
 
   const fastPriceEvents = await contractAt("FastPriceEvents", "0x4530b7DE1958270A2376be192a24175D795e1b07", signer)
   // const fastPriceEvents = await deployContract("FastPriceEvents", [])
@@ -35,7 +35,7 @@ async function getArbValues(signer) {
     chainlinkFlags,
     tokenArr,
     updaters,
-    timelock
+    priceFeedTimelock
   }
 }
 
@@ -44,7 +44,7 @@ async function getAvaxValues(signer) {
   const tokenArr = [avax, btc, btcb, eth, mim, usdce, usdc]
   const fastPriceTokens = [avax, btc, btcb, eth]
 
-  const timelock = { address: "0xCa8b5F2fF7B8d452bE8972B44Dc026Be96b97228" }
+  const priceFeedTimelock = { address: "0xCa8b5F2fF7B8d452bE8972B44Dc026Be96b97228" }
 
   const updater1 = { address: "0x2b249Bec7c3A142431b67e63A1dF86F974FAF3aa" }
   const updater2 = { address: "0x63ff41E44d68216e716d236E2ECdd5272611D835" }
@@ -54,7 +54,7 @@ async function getAvaxValues(signer) {
 
   const tokenManager = { address: "0x9bf98C09590CeE2Ec5F6256449754f1ba77d5aE5" }
 
-  const positionRouter = await contractAt("PositionRouter", "0x195256074192170d1530527abC9943759c7167d8")
+  const positionRouter = await contractAt("PositionRouter", "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8")
 
   // const fastPriceEvents = await deployContract("FastPriceEvents", [])
   const fastPriceEvents = await contractAt("FastPriceEvents", "0x02b7023D43bc52bFf8a0C54A9F2ecec053523Bf6", signer)
@@ -64,9 +64,9 @@ async function getAvaxValues(signer) {
     fastPriceEvents,
     tokenManager,
     positionRouter,
-    tokenArr
+    tokenArr,
     updaters,
-    timelock
+    priceFeedTimelock
   }
 }
 
@@ -90,9 +90,9 @@ async function main() {
     tokenManager,
     positionRouter,
     chainlinkFlags,
-    tokenArr
+    tokenArr,
     updaters,
-    timelock
+    priceFeedTimelock
   } = await getValues(signer)
 
   const signers = [
@@ -118,7 +118,7 @@ async function main() {
   const secondaryPriceFeed = await deployContract("FastPriceFeed", [
     5 * 60, // _priceDuration
     60 * 60, // _maxPriceUpdateDelay
-    0, // _minBlockInterval
+    1, // _minBlockInterval
     250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
     deployer.address, // _tokenManager
@@ -127,7 +127,7 @@ async function main() {
 
   const vaultPriceFeed = await deployContract("VaultPriceFeed", [])
 
-  await sendTxn(vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(1, 28)), "vaultPriceFeed.setMaxStrictPriceDeviation") // 0.05 USD
+  await sendTxn(vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(1, 28)), "vaultPriceFeed.setMaxStrictPriceDeviation") // 0.01 USD
   await sendTxn(vaultPriceFeed.setPriceSampleSpace(1), "vaultPriceFeed.setPriceSampleSpace")
   await sendTxn(vaultPriceFeed.setSecondaryPriceFeed(secondaryPriceFeed.address), "vaultPriceFeed.setSecondaryPriceFeed")
   await sendTxn(vaultPriceFeed.setIsAmmEnabled(false), "vaultPriceFeed.setIsAmmEnabled")
@@ -137,6 +137,7 @@ async function main() {
   }
 
   for (const [i, tokenItem] of tokenArr.entries()) {
+    if (tokenItem.spreadBasisPoints === undefined) { continue }
     await sendTxn(vaultPriceFeed.setSpreadBasisPoints(
       tokenItem.address, // _token
       tokenItem.spreadBasisPoints // _spreadBasisPoints
@@ -164,8 +165,8 @@ async function main() {
   await sendTxn(positionRouter.setPositionKeeper(secondaryPriceFeed.address, true), "positionRouter.setPositionKeeper(secondaryPriceFeed)")
   await sendTxn(fastPriceEvents.setIsPriceFeed(secondaryPriceFeed.address, true), "fastPriceEvents.setIsPriceFeed")
 
-  await sendTxn(vaultPriceFeed.setGov(timelock.address), "vaultPriceFeed.setGov")
-  await sendTxn(secondaryPriceFeed.setGov(timelock.address), "secondaryPriceFeed.setGov")
+  await sendTxn(vaultPriceFeed.setGov(priceFeedTimelock.address), "vaultPriceFeed.setGov")
+  await sendTxn(secondaryPriceFeed.setGov(priceFeedTimelock.address), "secondaryPriceFeed.setGov")
   await sendTxn(secondaryPriceFeed.setTokenManager(tokenManager.address), "secondaryPriceFeed.setTokenManager")
 }
 
