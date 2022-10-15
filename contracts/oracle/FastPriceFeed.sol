@@ -138,10 +138,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
     }
 
-    function setTokenManager(address _tokenManager) external onlyGov {
-        tokenManager = _tokenManager;
-    }
-
     function setSigner(address _account, bool _isActive) external override onlyGov {
         isSigner[_account] = _isActive;
     }
@@ -187,23 +183,27 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         isSpreadEnabled = _isSpreadEnabled;
     }
 
-    function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external override onlyGov {
+    function setLastUpdatedAt(uint256 _lastUpdatedAt) external onlyGov {
+        lastUpdatedAt = _lastUpdatedAt;
+    }
+
+    function setTokenManager(address _tokenManager) external onlyTokenManager {
+        tokenManager = _tokenManager;
+    }
+
+    function setMaxDeviationBasisPoints(uint256 _maxDeviationBasisPoints) external override onlyTokenManager {
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
     }
 
-    function setMaxCumulativeDeltaDiffs(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyGov {
+    function setMaxCumulativeDeltaDiffs(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyTokenManager {
         for (uint256 i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
             maxCumulativeDeltaDiffs[token] = _maxCumulativeDeltaDiffs[i];
         }
     }
 
-    function setPriceDataInterval(uint256 _priceDataInterval) external override onlyGov {
+    function setPriceDataInterval(uint256 _priceDataInterval) external override onlyTokenManager {
         priceDataInterval = _priceDataInterval;
-    }
-
-    function setLastUpdatedAt(uint256 _lastUpdatedAt) external onlyGov {
-        lastUpdatedAt = _lastUpdatedAt;
     }
 
     function setMinAuthorizations(uint256 _minAuthorizations) external onlyTokenManager {

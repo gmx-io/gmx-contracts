@@ -99,17 +99,6 @@ describe("FastPriceFeed", function () {
       .to.be.revertedWith("FastPriceFeed: already initialized")
   })
 
-  it("setTokenManager", async () => {
-    await expect(fastPriceFeed.connect(user0).setTokenManager(user1.address))
-      .to.be.revertedWith("Governable: forbidden")
-
-    await fastPriceFeed.setGov(user0.address)
-
-    expect(await fastPriceFeed.tokenManager()).eq(tokenManager.address)
-    await fastPriceFeed.connect(user0).setTokenManager(user1.address)
-    expect(await fastPriceFeed.tokenManager()).eq(user1.address)
-  })
-
   it("setSigner", async () => {
     await expect(fastPriceFeed.connect(user0).setSigner(user1.address, true))
       .to.be.revertedWith("Governable: forbidden")
@@ -236,41 +225,53 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.favorFastPrice(AddressZero)).eq(false)
   })
 
-  it("setMaxDeviationBasisPoints", async () => {
-    await expect(fastPriceFeed.connect(user0).setMaxDeviationBasisPoints(100))
-      .to.be.revertedWith("Governable: forbidden")
+  it("setTokenManager", async () => {
+    await expect(fastPriceFeed.connect(user0).setTokenManager(user1.address))
+      .to.be.revertedWith("FastPriceFeed: forbidden")
 
-    await fastPriceFeed.setGov(user0.address)
+    expect(await fastPriceFeed.tokenManager()).eq(tokenManager.address)
+    await fastPriceFeed.connect(tokenManager).setTokenManager(user1.address)
+    expect(await fastPriceFeed.tokenManager()).eq(user1.address)
+  })
+
+  it("setMaxDeviationBasisPoints", async () => {
+    await expect(fastPriceFeed.connect(wallet).setMaxDeviationBasisPoints(100))
+      .to.be.revertedWith("FastPriceFeed: forbidden")
 
     expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(250)
-    await fastPriceFeed.connect(user0).setMaxDeviationBasisPoints(100)
+    await fastPriceFeed.connect(tokenManager).setMaxDeviationBasisPoints(100)
     expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(100)
   })
 
   it("setMaxCumulativeDeltaDiffs", async () => {
-    await expect(fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiffs([btc.address, eth.address], [300, 500]))
-      .to.be.revertedWith("Governable: forbidden")
-
-    await fastPriceFeed.setGov(user0.address)
+    await expect(fastPriceFeed.connect(wallet).setMaxCumulativeDeltaDiffs([btc.address, eth.address], [300, 500]))
+      .to.be.revertedWith("FastPriceFeed: forbidden")
 
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(0)
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(eth.address)).eq(0)
 
-    await fastPriceFeed.connect(user0).setMaxCumulativeDeltaDiffs([btc.address, eth.address], [300, 500])
+    await fastPriceFeed.connect(tokenManager).setMaxCumulativeDeltaDiffs([btc.address, eth.address], [300, 500])
 
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(300)
     expect(await fastPriceFeed.maxCumulativeDeltaDiffs(eth.address)).eq(500)
   })
 
   it("setPriceDataInterval", async () => {
-    await expect(fastPriceFeed.connect(user0).setPriceDataInterval(300))
-      .to.be.revertedWith("Governable: forbidden")
-
-    await fastPriceFeed.setGov(user0.address)
+    await expect(fastPriceFeed.connect(wallet).setPriceDataInterval(300))
+      .to.be.revertedWith("FastPriceFeed: forbidden")
 
     expect(await fastPriceFeed.priceDataInterval()).eq(0)
-    await fastPriceFeed.connect(user0).setPriceDataInterval(300)
+    await fastPriceFeed.connect(tokenManager).setPriceDataInterval(300)
     expect(await fastPriceFeed.priceDataInterval()).eq(300)
+  })
+
+  it("setMinAuthorizations", async () => {
+    await expect(fastPriceFeed.connect(wallet).setMinAuthorizations(3))
+      .to.be.revertedWith("FastPriceFeed: forbidden")
+
+    expect(await fastPriceFeed.minAuthorizations()).eq(2)
+    await fastPriceFeed.connect(tokenManager).setMinAuthorizations(3)
+    expect(await fastPriceFeed.minAuthorizations()).eq(3)
   })
 
   it("setLastUpdatedAt", async () => {
@@ -282,17 +283,6 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.lastUpdatedAt()).eq(0)
     await fastPriceFeed.connect(user0).setLastUpdatedAt(700)
     expect(await fastPriceFeed.lastUpdatedAt()).eq(700)
-  })
-
-  it("setMinAuthorizations", async () => {
-    await expect(fastPriceFeed.connect(user0).setMinAuthorizations(3))
-      .to.be.revertedWith("FastPriceFeed: forbidden")
-
-    await fastPriceFeed.setTokenManager(user0.address)
-
-    expect(await fastPriceFeed.minAuthorizations()).eq(2)
-    await fastPriceFeed.connect(user0).setMinAuthorizations(3)
-    expect(await fastPriceFeed.minAuthorizations()).eq(3)
   })
 
   it("setPrices", async () => {
@@ -774,8 +764,8 @@ describe("FastPriceFeed", function () {
     await fastPriceFeed.connect(wallet).setUpdater(user0.address, true)
     await fastPriceFeed.setMaxTimeDeviation(20000)
     await fastPriceFeed.setMinBlockInterval(0)
-    await fastPriceFeed.setPriceDataInterval(300)
-    await fastPriceFeed.setMaxCumulativeDeltaDiffs([bnb.address, eth.address], [7 * 10 * 1000 * 1000 / 100, 7 * 10 * 1000 * 1000 / 100])
+    await fastPriceFeed.connect(tokenManager).setPriceDataInterval(300)
+    await fastPriceFeed.connect(tokenManager).setMaxCumulativeDeltaDiffs([bnb.address, eth.address], [7 * 10 * 1000 * 1000 / 100, 7 * 10 * 1000 * 1000 / 100])
 
     let blockTime = await getBlockTime(provider)
     const tx0 = await fastPriceFeed.connect(user0).setPrices([bnb.address], [500], blockTime)

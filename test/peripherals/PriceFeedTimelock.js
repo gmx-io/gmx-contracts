@@ -253,35 +253,6 @@ describe("PriceFeedTimelock", function () {
     expect(await fastPriceFeed.spreadBasisPointsIfChainError()).eq(500)
   })
 
-  it("setMaxDeviationBasisPoints", async () => {
-    await expect(timelock.connect(user0).setMaxDeviationBasisPoints(fastPriceFeed.address, 300))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(250)
-    await timelock.connect(wallet).setMaxDeviationBasisPoints(fastPriceFeed.address, 300)
-    expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(300)
-  })
-
-  it("setMaxCumulativeDeltaDiffs", async () => {
-    await expect(timelock.connect(user0).setMaxCumulativeDeltaDiffs(fastPriceFeed.address, [bnb.address, btc.address], [500, 300]))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(bnb.address)).eq(0)
-    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(0)
-    await timelock.connect(wallet).setMaxCumulativeDeltaDiffs(fastPriceFeed.address, [bnb.address, btc.address], [500, 300])
-    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(bnb.address)).eq(500)
-    expect(await fastPriceFeed.maxCumulativeDeltaDiffs(btc.address)).eq(300)
-  })
-
-  it("setPriceDataInterval", async () => {
-    await expect(timelock.connect(user0).setPriceDataInterval(fastPriceFeed.address, 700))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    expect(await fastPriceFeed.priceDataInterval()).eq(0)
-    await timelock.connect(wallet).setPriceDataInterval(fastPriceFeed.address, 700)
-    expect(await fastPriceFeed.priceDataInterval()).eq(700)
-  })
-
   it("transferIn", async () => {
     await bnb.mint(user1.address, 1000)
     await expect(timelock.connect(user0).transferIn(user1.address, bnb.address, 1000))

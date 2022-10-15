@@ -157,18 +157,6 @@ contract PriceFeedTimelock {
         IFastPriceFeed(_fastPriceFeed).setIsSpreadEnabled(_isSpreadEnabled);
     }
 
-    function setMaxDeviationBasisPoints(address _fastPriceFeed, uint256 _maxDeviationBasisPoints) external onlyAdmin {
-        IFastPriceFeed(_fastPriceFeed).setMaxDeviationBasisPoints(_maxDeviationBasisPoints);
-    }
-
-    function setMaxCumulativeDeltaDiffs(address _fastPriceFeed, address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external onlyAdmin {
-        IFastPriceFeed(_fastPriceFeed).setMaxCumulativeDeltaDiffs(_tokens, _maxCumulativeDeltaDiffs);
-    }
-
-    function setPriceDataInterval(address _fastPriceFeed, uint256 _priceDataInterval) external onlyAdmin {
-        IFastPriceFeed(_fastPriceFeed).setPriceDataInterval(_priceDataInterval);
-    }
-
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {
         IERC20(_token).transferFrom(_sender, address(this), _amount);
     }

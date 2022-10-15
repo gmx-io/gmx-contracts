@@ -328,7 +328,7 @@ module.exports = {
       bufferAmount: 200,
       isStable: false,
       isShortable: true,
-      maxGlobalShortSize: 5 * 1000 * 1000
+      maxGlobalShortSize: 2 * 1000 * 1000
     },
     btcb: {
       name: "btcb",
