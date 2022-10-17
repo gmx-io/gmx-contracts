@@ -162,6 +162,26 @@ describe("GlpManager", function () {
     expect(await glpManager.getAum(true)).eq(12)
   })
 
+  it("setShortsTrackerAveragePriceWeight", async () => {
+    await expect(glpManager.connect(user0).setShortsTrackerAveragePriceWeight(5000))
+      .to.be.revertedWith("Governable: forbidden")
+
+    expect(await glpManager.shortsTrackerAveragePriceWeight()).eq(10000)
+    expect(await glpManager.gov()).eq(wallet.address)
+    await glpManager.connect(wallet).setShortsTrackerAveragePriceWeight(5000)
+    expect(await glpManager.shortsTrackerAveragePriceWeight()).eq(5000)
+  })
+
+  it("setShortsTracker", async () => {
+    await expect(glpManager.connect(user0).setShortsTracker(user2.address))
+      .to.be.revertedWith("Governable: forbidden")
+
+    expect(await glpManager.shortsTracker()).eq(shortsTracker.address)
+    expect(await glpManager.gov()).eq(wallet.address)
+    await glpManager.connect(wallet).setShortsTracker(user2.address)
+    expect(await glpManager.shortsTracker()).eq(user2.address)
+  })
+
   it("addLiquidity, removeLiquidity", async () => {
     await dai.mint(user0.address, expandDecimals(100, 18))
     await dai.connect(user0).approve(glpManager.address, expandDecimals(100, 18))
