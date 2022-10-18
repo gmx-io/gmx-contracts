@@ -302,6 +302,14 @@ contract Timelock is ITimelock {
         IUSDG(usdg).removeVault(address(this));
     }
 
+    function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external onlyAdmin {
+        IGlpManager(glpManager).setShortsTrackerAveragePriceWeight(_shortsTrackerAveragePriceWeight);
+    }
+
+    function setGlpCooldownDuration(uint256 _cooldownDuration) external onlyAdmin {
+        IGlpManager(glpManager).setCooldownDuration(_cooldownDuration);
+    }
+
     function setMaxGlobalShortSize(address _vault, address _token, uint256 _amount) external onlyAdmin {
         IVault(_vault).setMaxGlobalShortSize(_token, _amount);
     }

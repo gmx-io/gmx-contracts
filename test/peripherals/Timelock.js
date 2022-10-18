@@ -1309,4 +1309,22 @@ describe("Timelock", function () {
     await timelock.connect(wallet).redeemUsdg(vault.address, bnb.address, expandDecimals(1000, 18))
     expect(await bnb.balanceOf(mintReceiver.address)).eq("1994000000000000000") // 1.994
   })
+
+  it("setShortsTrackerAveragePriceWeight", async () => {
+    await glpManager.setGov(timelock.address)
+    expect(await glpManager.gov()).eq(timelock.address)
+
+    expect(await glpManager.shortsTrackerAveragePriceWeight()).eq(0)
+    await timelock.setShortsTrackerAveragePriceWeight(1234)
+    expect(await glpManager.shortsTrackerAveragePriceWeight()).eq(1234)
+  })
+
+  it("setGlpCooldownDuration", async () => {
+    await glpManager.setGov(timelock.address)
+    expect(await glpManager.gov()).eq(timelock.address)
+
+    expect(await glpManager.cooldownDuration()).eq(86400)
+    await timelock.setGlpCooldownDuration(3600)
+    expect(await glpManager.cooldownDuration()).eq(3600)
+  })
 })

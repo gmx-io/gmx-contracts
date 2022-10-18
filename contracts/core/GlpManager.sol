@@ -76,7 +76,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         shortsTracker = _shortsTracker;
     }
 
-    function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external onlyGov {
+    function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external override onlyGov {
         require(shortsTrackerAveragePriceWeight <= BASIS_POINTS_DIVISOR, "GlpManager: invalid weight");
         shortsTrackerAveragePriceWeight = _shortsTrackerAveragePriceWeight;
     }
@@ -85,7 +85,7 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         isHandler[_handler] = _isActive;
     }
 
-    function setCooldownDuration(uint256 _cooldownDuration) external onlyGov {
+    function setCooldownDuration(uint256 _cooldownDuration) external override onlyGov {
         require(_cooldownDuration <= MAX_COOLDOWN_DURATION, "GlpManager: invalid _cooldownDuration");
         cooldownDuration = _cooldownDuration;
     }
