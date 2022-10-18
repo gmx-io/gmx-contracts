@@ -72,6 +72,10 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
         inPrivateMode = _inPrivateMode;
     }
 
+    function setShortsTracker(IShortsTracker _shortsTracker) external onlyGov {
+        shortsTracker = _shortsTracker;
+    }
+
     function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external onlyGov {
         require(shortsTrackerAveragePriceWeight <= BASIS_POINTS_DIVISOR, "GlpManager: invalid weight");
         shortsTrackerAveragePriceWeight = _shortsTrackerAveragePriceWeight;
