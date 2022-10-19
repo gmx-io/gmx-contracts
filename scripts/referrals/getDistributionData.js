@@ -4,8 +4,8 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const { ArgumentParser } = require('argparse');
 const ethers = require('ethers')
 
-const ARBITRUM_SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/gdev8317/gmx-arbitrum-referrals-staging'
-const AVALANCHE_SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/gdev8317/gmx-avalanche-referrals-staging'
+const ARBITRUM_SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/gmx-io/gmx-arbitrum-referrals'
+const AVALANCHE_SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/gmx-io/gmx-avalanche-referrals'
 
 const BigNumber = ethers.BigNumber
 const { formatUnits, parseUnits } = ethers.utils
