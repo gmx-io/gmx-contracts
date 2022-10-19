@@ -1314,6 +1314,9 @@ describe("Timelock", function () {
     await glpManager.setGov(timelock.address)
     expect(await glpManager.gov()).eq(timelock.address)
 
+    await expect(timelock.connect(user0).setShortsTrackerAveragePriceWeight(1234))
+      .to.be.revertedWith("Timelock: forbidden")
+
     expect(await glpManager.shortsTrackerAveragePriceWeight()).eq(0)
     await timelock.setShortsTrackerAveragePriceWeight(1234)
     expect(await glpManager.shortsTrackerAveragePriceWeight()).eq(1234)
@@ -1322,6 +1325,9 @@ describe("Timelock", function () {
   it("setGlpCooldownDuration", async () => {
     await glpManager.setGov(timelock.address)
     expect(await glpManager.gov()).eq(timelock.address)
+
+    await expect(timelock.connect(user0).setGlpCooldownDuration(3600))
+      .to.be.revertedWith("Timelock: forbidden")
 
     expect(await glpManager.cooldownDuration()).eq(86400)
     await timelock.setGlpCooldownDuration(3600)
