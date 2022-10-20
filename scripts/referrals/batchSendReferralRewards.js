@@ -7,7 +7,7 @@ let arbitrumFile
 if (process.env.ARBITRUM_FILE) {
   arbitrumFile = path.join(process.env.PWD, process.env.ARBITRUM_FILE)
 } else {
-  arbitrumFile = path.join(__dirname, "../distribution-data-arbitrum.json")
+  arbitrumFile = path.join(__dirname, "../../distribution-data-arbitrum.json")
 }
 console.log("Arbitrum file: %s", arbitrumFile)
 const arbitrumData = require(arbitrumFile)
@@ -16,7 +16,7 @@ let avalancheFile
 if (process.env.AVALANCHE_FILE) {
   avalancheFile = path.join(process.env.PWD, process.env.AVALANCHE_FILE)
 } else {
-  avalancheFile = path.join(__dirname, "../distribution-data-avalanche.json")
+  avalancheFile = path.join(__dirname, "../../distribution-data-avalanche.json")
 }
 console.log("Avalanche file: %s", avalancheFile)
 const avaxData = require(avalancheFile)
