@@ -1,8 +1,25 @@
+const path = require("path")
+
 const { deployContract, contractAt, sendTxn, processBatch, getFrameSigner } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
-const arbitrumData = require("../../distribution-data-arbitrum.json")
-const avaxData = require("../../distribution-data-avalanche.json")
+let arbitrumFile
+if (process.env.ARBITRUM_FILE) {
+  arbitrumFile = path.join(process.env.PWD, process.env.ARBITRUM_FILE)
+} else {
+  arbitrumFile = path.join(__dirname, "../distribution-data-arbitrum.json")
+}
+console.log("Arbitrum file: %s", arbitrumFile)
+const arbitrumData = require(arbitrumFile)
+
+let avalancheFile
+if (process.env.AVALANCHE_FILE) {
+  avalancheFile = path.join(process.env.PWD, process.env.AVALANCHE_FILE)
+} else {
+  avalancheFile = path.join(__dirname, "../distribution-data-avalanche.json")
+}
+console.log("Avalanche file: %s", avalancheFile)
+const avaxData = require(avalancheFile)
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];

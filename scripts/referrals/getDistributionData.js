@@ -237,7 +237,9 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp, accoun
     totalRebateUsd: totalRebateUsd.toString(),
     shareDivisor: SHARE_DIVISOR.toString(),
     referrers: [],
-    referrals: []
+    referrals: [],
+    gmxPrice,
+    esgmxRewards
   }
   console.log("\nTotal referral volume: %s ($%s)",
     totalReferralVolume.toString(),
@@ -329,13 +331,12 @@ async function queryDistributionData(network, fromTimestamp, toTimestamp, accoun
   }
   console.table(consoleData)
 
-  fs.writeFileSync(`./distribution-data-${network}.json`, JSON.stringify(output, null, 4))
+  const filename = `./distribution-data-${network}.json`
+  fs.writeFileSync(filename, JSON.stringify(output, null, 4))
+  console.log("Data saved to: %s", filename)
 }
 
 async function main() {
-  const FROM_TIMESTAMP = 1650402000
-  const TO_TIMESTAMP = parseInt(Date.now() / 1000)
-
   const parser = new ArgumentParser({
     description: 'Get distribution data'
   });
