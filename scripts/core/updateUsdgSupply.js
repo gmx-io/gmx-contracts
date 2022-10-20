@@ -5,6 +5,7 @@ const { toChainlinkPrice } = require("../../test/shared/chainlink")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+// TODO: update timelock address
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const timelock = await contractAt("Timelock", await vault.gov())
@@ -89,21 +90,13 @@ async function main() {
     // if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
     //   usdgAmount = adjustedMaxUsdgAmount
     // }
-
-    if (shouldSendTxn) {
-      await sendTxn(timelock.setTokenConfig(
-        vault.address,
-        tokenItem.address, // _token
-        tokenItem.tokenWeight, // _tokenWeight
-        tokenItem.minProfitBps, // _minProfitBps
-        expandDecimals(tokenItem.maxUsdgAmount, 18), // _maxUsdgAmount
-        expandDecimals(tokenItem.bufferAmount, tokenItem.decimals), // _bufferAmount
-        usdgAmount
-      ), `vault.setTokenConfig(${tokenItem.name}) ${tokenItem.address}`)
-    }
   }
 
   console.log("totalUsdgAmount", totalUsdgAmount.toString())
+
+  if (shouldSendTxn) {
+    await sendTxn(timelock.updateUsdgSupply(totalUsdgAmount), "timelock.updateUsdgSupply")
+  }
 }
 
 main()
