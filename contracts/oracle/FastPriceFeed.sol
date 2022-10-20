@@ -273,7 +273,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
         IPositionRouter _positionRouter = IPositionRouter(positionRouter);
         uint256 maxEndIndexForIncrease = _positionRouter.increasePositionRequestKeysStart().add(_maxIncreasePositions);
-        uint256 maxEndIndexForDecrease = _positionRouter.increasePositionRequestKeysStart().add(_maxDecreasePositions);
+        uint256 maxEndIndexForDecrease = _positionRouter.decreasePositionRequestKeysStart().add(_maxDecreasePositions);
 
         if (_endIndexForIncreasePositions > maxEndIndexForIncrease) {
             _endIndexForIncreasePositions = maxEndIndexForIncrease;
