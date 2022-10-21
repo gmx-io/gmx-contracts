@@ -5,13 +5,13 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 async function getArbValues() {
   const contracts = [
+    "0x199070DDfd1CFb69173aa2F7e20906F26B363004", // GmxVester
+    "0xA75287d2f8b217273E7FCD7E86eF07D33972042E", // GlpVester
     "0x321F653eED006AD1C29D174e17d96351BDe22649", // GlpManager
     "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258", // GLP
     "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA", // ES_GMX
     "0x35247165119B69A40edD5304969560D0ef486921", // BN_GMX
     "0x45096e7aA921f27590f8F19e457794EB09678141", // USDG
-    "0x199070DDfd1CFb69173aa2F7e20906F26B363004", // GmxVester
-    "0xA75287d2f8b217273E7FCD7E86eF07D33972042E", // GlpVester
   ]
 
   const trackers = [
@@ -30,13 +30,13 @@ async function getArbValues() {
 
 async function getAvaxValues() {
   const contracts = [
+    "0x472361d3cA5F49c8E633FB50385BfaD1e018b445", // GmxVester
+    "0x62331A7Bd1dfB3A7642B7db50B5509E57CA3154A", // GlpVester
     "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F", // GlpManager
     "0x01234181085565ed162a948b6a5e88758CD7c7b8", // GLP
     "0xFf1489227BbAAC61a9209A08929E4c2a526DdD17", // ES_GMX
     "0x8087a341D32D445d9aC8aCc9c14F5781E04A26d2", // BN_GMX
     "0xc0253c3cC6aa5Ab407b5795a04c28fB063273894", // USDG
-    "0x472361d3cA5F49c8E633FB50385BfaD1e018b445", // GmxVester
-    "0x62331A7Bd1dfB3A7642B7db50B5509E57CA3154A", // GlpVester
   ]
 
   const trackers = [
@@ -63,9 +63,10 @@ async function getValues() {
   }
 }
 
-async function signalSetGov(target, nextTimelock, signer) {
+async function setGov(target, nextTimelock, signer) {
     const prevTimelock = await contractAt("Timelock", await target.gov(), signer)
-    await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), `signalSetGov: ${target.address}, ${nextTimelock.address}`)
+    // await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), `signalSetGov: ${target.address}, ${nextTimelock.address}`)
+    await sendTxn(prevTimelock.setGov(target.address, nextTimelock.address), `setGov: ${target.address}, ${nextTimelock.address}`)
 }
 
 async function main() {
@@ -75,15 +76,15 @@ async function main() {
 
   for (let i = 0; i < contracts.length; i++) {
     const target = await contractAt("Governable", contracts[i])
-    await signalSetGov(target, nextTimelock, signer)
+    await setGov(target, nextTimelock, signer)
   }
 
   for (let i = 0; i < trackers.length; i++) {
     const rewardTracker = await contractAt("RewardTracker", trackers[i])
     const distributor = await contractAt("RewardDistributor", await rewardTracker.distributor())
 
-    await signalSetGov(rewardTracker, nextTimelock, signer)
-    await signalSetGov(distributor, nextTimelock, signer)
+    await setGov(rewardTracker, nextTimelock, signer)
+    await setGov(distributor, nextTimelock, signer)
   }
 }
 
