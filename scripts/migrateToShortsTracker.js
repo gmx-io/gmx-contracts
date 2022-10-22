@@ -1,6 +1,6 @@
 const fetch = require("node-fetch")
 
-const { contractAt } = require("./shared/helpers")
+const { getFrameSigner, contractAt } = require("./shared/helpers")
 const { bigNumberify } = require("../test/shared/utilities")
 
 const {
@@ -18,6 +18,8 @@ if (!AVAX_SERVER_ADMIN_API_KEY) {
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+let signer
 
 const arbitrumTestServerData = {
   "globalShortData": {
@@ -94,6 +96,7 @@ async function getArbValues() {
     serverHost: "https://gmx-server-mainnet.uw.r.appspot.com",
     serverAdminApiKey: ARBITRUM_SERVER_ADMIN_API_KEY,
     vaultAddress: "0x489ee077994b6658eafa855c308275ead8097c4a",
+    shortsTrackerAddress: "0xf58eEc83Ba28ddd79390B9e90C4d3EbfF1d434da",
     indexTokens: {
       "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": "WETH",
       "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": "BTC",
@@ -109,6 +112,7 @@ async function getAvaxValues() {
     serverHost: "https://gmx-avax-server.uc.r.appspot.com",
     serverAdminApiKey: AVAX_SERVER_ADMIN_API_KEY,
     vaultAddress: "0x9ab2de34a33fb459b538c43f251eb825645e8595",
+    shortsTrackerAddress: "0x9234252975484D75Fd05f3e4f7BdbEc61956D73a",
     indexTokens: {
       "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7": "WAVAX",
       "0x50b7545627a5162F82A992c33b87aDc75187B218": "BTC",
@@ -203,7 +207,7 @@ async function rollback() {
   await toggleOrdersExecution(serverHost, serverAdminApiKey, true)
   await toggleLiquidations(serverHost, serverAdminApiKey, true)
 
-  const shortsTracker = await getContractAt("ShortsTracker", shortsTrackerAddress)
+  const shortsTracker = await contractAt("ShortsTracker", shortsTrackerAddress, signer)
   if (await shortsTracker.isGlobalShortDataReady()) {
     // no need to send transaction if `isGlobalShortDataReady` is false
     await shortsTracker.setIsGlobalShortDataReady(false)
@@ -306,7 +310,7 @@ async function migrate() {
   serverData = await waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens)
   console.log("Data is up-to-date")
 
-  const shortsTracker = contractAt("ShortsTracker", shortsTrackerAddress)
+  const shortsTracker = contractAt("ShortsTracker", shortsTrackerAddress, signer)
   await initShortsTrackerData(shortsTracker, serverData)
   console.log("ShortTracker data is inited")
 
@@ -334,6 +338,7 @@ async function runMigration() {
 }
 
 async function main() {
+  signer = await getFrameSigner()
   const action = process.env.ACTION
   const validActions = new Set(["info", "migrate", "rollback"])
 
