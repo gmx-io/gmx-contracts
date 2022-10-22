@@ -34,10 +34,10 @@ async function getArbValues(signer) {
     "0x0FAE768Ef2191fDfCb2c698f691C49035A53eF0f", // Vovo GLP ETH down vault
     "0x2b8E28667A29A5Ab698b82e121F2b9Edd9271e93", // Vovo GLP BTC up vault
     "0x46d6dEE922f1d2C6421895Ba182120C784d986d3", // Vovo GLP BTC down vault
-    "0xC8d6d21995E00e17c5aaF07bBCde43f0ccd12725", // Jones ETH Hedging
-    "0xe36fA7dC99658C9B7E247471261b65A88077D349", // Jones gOHM Hedging
-    "0xB9bd050747357ce1fF4eFD314012ca94C07543E6", // Jones DPX Hedging
-    "0xe98f68F3380c990D3045B4ae29f3BCa0F3D02939", // Jones rDPX Hedging
+    "0x3327a5F041E821f476E00572ee0862fbcaa32993", // Jones ETH Hedging
+    "0x2F9980d6fb25bD972196B19E243e36Dbde60618B", // Jones gOHM Hedging
+    "0xC75417CB103D7008eCb07aa6fbf214eE2c127901", // Jones DPX Hedging
+    "0x37a86cB53981CC762709B2c402B0F790D58F95BF", // Jones rDPX Hedging
   ]
 
   return { vault, timelock, router, shortsTracker, weth, depositFee, orderBook, referralStorage, orderKeepers, liquidators, partnerContracts }
@@ -104,8 +104,12 @@ async function main() {
   }
 
   // positionManager only reads from referralStorage so it does not need to be set as a handler of referralStorage
-  await sendTxn(positionManager.setReferralStorage(referralStorage.address), "positionManager.setReferralStorage")
-  await sendTxn(positionManager.setShouldValidateIncreaseOrder(false), "positionManager.setShouldValidateIncreaseOrder(false)")
+  if ((await positionManager.referralStorage()).toLowerCase() != referralStorage.address.toLowerCase()) {
+    await sendTxn(positionManager.setReferralStorage(referralStorage.address), "positionManager.setReferralStorage")
+  }
+  if (await positionManager.shouldValidateIncreaseOrder()) {
+    await sendTxn(positionManager.setShouldValidateIncreaseOrder(false), "positionManager.setShouldValidateIncreaseOrder(false)")
+  }
 
   for (let i = 0; i < orderKeepers.length; i++) {
     const orderKeeper = orderKeepers[i]
@@ -137,11 +141,14 @@ async function main() {
   for (let i = 0; i < partnerContracts.length; i++) {
     const partnerContract = partnerContracts[i]
     if (!(await positionManager.isPartner(partnerContract))) {
-      await sendTxn(positionManager.setPartner(partnerContract, true), "positionManager.setPartner(partnerContract)")
+      await sendTxn(positionManager.setPartner(partnerContract, false), "positionManager.setPartner(partnerContract)")
     }
   }
 
-  await sendTxn(positionManager.setGov(await vault.gov()), "positionManager.setGov")
+  if ((await positionManager.gov()) != (await vault.gov())) {
+    await sendTxn(positionManager.setGov(await vault.gov()), "positionManager.setGov")
+  }
+
   console.log("done.")
 }
 
