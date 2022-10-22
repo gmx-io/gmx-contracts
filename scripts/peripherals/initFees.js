@@ -1,16 +1,16 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const {
-  ARBITRUM_API_KEY,
+  ARBITRUM_SERVER_ADMIN_API_KEY,
   ARBITRUM_FEE_URL,
-  AVAX_API_KEY,
+  AVAX_SERVER_ADMIN_API_KEY,
   AVAX_FEE_URL,
 } = require("../../env.json")
 
 const { postFees } = require("./updateFees")
 
 async function getArbValues() {
-  const apiKey = ARBITRUM_API_KEY
+  const apiKey = ARBITRUM_SERVER_ADMIN_API_KEY
   const feeUrl = ARBITRUM_FEE_URL
   const feeUsdRows = [
     { to: 1630514845, feeUsd: "32.47" },
@@ -77,7 +77,7 @@ async function getArbValues() {
 }
 
 async function getAvaxValues() {
-  const apiKey = AVAX_API_KEY
+  const apiKey = AVAX_SERVER_ADMIN_API_KEY
   const feeUrl = AVAX_FEE_URL
   const feeUsdRows = [
     { to: 1641430800, feeUsd: "10" },
