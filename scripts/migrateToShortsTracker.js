@@ -1,7 +1,19 @@
 const fetch = require("node-fetch")
 
-const { contractAt , sendTxn, callWithRetries } = require("./shared/helpers")
-const { expandDecimals, bigNumberify } = require("../test/shared/utilities")
+const { contractAt } = require("./shared/helpers")
+const { bigNumberify } = require("../test/shared/utilities")
+
+const {
+  ARBITRUM_SERVER_ADMIN_API_KEY,
+  AVAX_SERVER_ADMIN_API_KEY,
+} = require('../env.json')
+
+if (!ARBITRUM_SERVER_ADMIN_API_KEY) {
+  console.warn("WARN: ARBITRUM_SERVER_ADMIN_API_KEY is not set in env.json")
+}
+if (!AVAX_SERVER_ADMIN_API_KEY) {
+  console.warn("WARN: AVAX_SERVER_ADMIN_API_KEY is not set in env.json")
+}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -79,8 +91,8 @@ function sleep(ms) {
 
 async function getArbValues() {
   return {
-    serverHost: "http://localhost:8080",
-    serverAdminApiKey: "",
+    serverHost: "https://gmx-server-mainnet.uw.r.appspot.com",
+    serverAdminApiKey: ARBITRUM_SERVER_ADMIN_API_KEY,
     vaultAddress: "0x489ee077994b6658eafa855c308275ead8097c4a",
     indexTokens: {
       "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": "WETH",
@@ -89,14 +101,13 @@ async function getArbValues() {
       "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4": "LINK"
     },
     // serverData: arbitrumTestServerData,
-    oracleHost: "https://localhost:8008"
   }
 }
 
 async function getAvaxValues() {
   return {
-    serverHost: "http://localhost:8080",
-    serverAdminApiKey: "",
+    serverHost: "https://gmx-avax-server.uc.r.appspot.com",
+    serverAdminApiKey: AVAX_SERVER_ADMIN_API_KEY,
     vaultAddress: "0x9ab2de34a33fb459b538c43f251eb825645e8595",
     indexTokens: {
       "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7": "WAVAX",
@@ -104,7 +115,6 @@ async function getAvaxValues() {
       "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB": "WETH"
     },
     // serverData: avaxTestServerData,
-    oracleHost: "https://localhost:8008"
   }
 }
 
@@ -118,11 +128,11 @@ async function getValues() {
 }
 
 async function getGlobalShortDataFromServer(serverHost, serverAdminApiKey) {
-  const serverRes = await fetch(serverHost + "/positions/global_shorts_data", {
-    query: {
-      key: serverAdminApiKey
-    }
-  })
+  const url = `${serverHost}/positions/global_shorts_data?key=${encodeURIComponent(serverAdminApiKey)}`
+  const serverRes = await fetch(url)
+  if (serverRes.status === 404) {
+    throw new Error(`Server ${url} returned 404. key might be invalid`)
+  }
   return await serverRes.json()
 }
 
@@ -182,23 +192,16 @@ async function toggleOrdersExecution(serverHost, serverAdminApiKey, enabled) {
   return await postRequest(serverHost, "/orders/info", { key: serverAdminApiKey, executionDisabled: !enabled })
 }
 
-// async function togglePositionsExecution(oracleHost, positionsExecutionEnabled) {
-//   console.log("Toggling positions execution to", positionsExecutionEnabled)
-//   return await postRequest(oracleHost, "/toggle_positions_execution", { positionsExecutionEnabled })
-// }
-
 async function rollback() {
   console.warn("Rolling back")
   const {
     serverHost,
     serverAdminApiKey,
-    oracleHost,
     shortsTrackerAddress
   } = await getValues()
 
   await toggleOrdersExecution(serverHost, serverAdminApiKey, true)
   await toggleLiquidations(serverHost, serverAdminApiKey, true)
-  // await togglePositionsExecution(oracleHost, true)
 
   const shortsTracker = await getContractAt("ShortsTracker", shortsTrackerAddress)
   if (await shortsTracker.isGlobalShortDataReady()) {
@@ -233,17 +236,22 @@ async function waitJobsAreFinished(serverHost) {
   throw new Error("Jobs are not finished for too long")
 }
 
-async function waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokenAddresses) {
+async function waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey) {
   let vaultData
   let upToDate
-  for (let i = 0; i < 10; i++) {
+  const allowedSizeDifference = bigNumberify(1000, 30)
+  for (let i = 0; i < 5; i++) {
     serverData = await getGlobalShortDataFromServer(serverHost, serverAdminApiKey)
     const serverBlockNumber = serverData.info.lastBlockVault // positions are updated from Vault events
     console.log("checking if data is up-to-date by comparing server and Vault global short sizes. block number: %s attempt: %s", serverBlockNumber, i)
     vaultData = await getVaultData(vaultAddress, indexTokens, serverBlockNumber)
     upToDate = true
     for (const token of Object.keys(indexTokens)) {
-      if (!vaultData[token].size.eq(serverData.globalShortData[token].size)) {
+      const difference = vaultData[token].size.sub(serverData.globalShortData[token].size).abs()
+      if (difference.gt(allowedSizeDifference)) {
+        console.log("Difference is too big for token %s. Difference: %s (%s)",
+          token, difference.toString() / 1e30, difference.toString()
+        )
         upToDate = false
         break
       }
@@ -284,8 +292,8 @@ async function migrate() {
   Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, false),
     toggleLiquidations(serverHost, serverAdminApiKey, false),
-    // togglePositionsExecution(oracleHost, false)
   ])
+  console.log("Orders execution and liquidations are disabled")
 
   console.log("Wait for jobs to be finished...")
   await waitJobsAreFinished();
@@ -306,7 +314,6 @@ async function migrate() {
   Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, true),
     toggleLiquidations(serverHost, serverAdminApiKey, true),
-    // togglePositionsExecution(oracleHost, true)
   ])
   console.log("Done. Everything should operate as usual")
 }
@@ -327,6 +334,24 @@ async function runMigration() {
 }
 
 async function main() {
+  const action = process.env.ACTION
+  const validActions = new Set(["info", "migrate", "rollback"])
+
+  if (!validActions.has(action)) {
+    throw new Error(
+      `use env var ACTION to specify action: ${Array.from(validActions).join(", ")}. Provided: ${action}`
+    )
+  }
+
+  console.log("Running with action: %s", action)
+  if (action === "migrate") {
+    await runMigration()
+    return
+  } else if (action === "rollback") {
+    await rollback()
+    return
+  }
+
   console.log("retrieving global shorts data from server...")
   let {
     serverAdminApiKey,
