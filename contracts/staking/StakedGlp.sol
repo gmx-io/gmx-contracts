@@ -63,11 +63,11 @@ contract StakedGlp {
     }
 
     function balanceOf(address _account) external view returns (uint256) {
-        IRewardTracker(stakedGlpTracker).depositBalances(_account, glp);
+        return IRewardTracker(stakedGlpTracker).depositBalances(_account, glp);
     }
 
     function totalSupply() external view returns (uint256) {
-        IERC20(stakedGlpTracker).totalSupply();
+        return IERC20(stakedGlpTracker).totalSupply();
     }
 
     function _approve(address _owner, address _spender, uint256 _amount) private {
