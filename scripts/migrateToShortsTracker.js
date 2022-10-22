@@ -1,4 +1,4 @@
-const fetch = require("node-fetch")
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const { getFrameSigner, contractAt } = require("./shared/helpers")
 const { bigNumberify } = require("../test/shared/utilities")
@@ -338,7 +338,7 @@ async function runMigration() {
 }
 
 async function main() {
-  signer = await getFrameSigner()
+  // signer = await getFrameSigner()
   const action = process.env.ACTION
   const validActions = new Set(["info", "migrate", "rollback"])
 
