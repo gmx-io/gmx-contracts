@@ -24,6 +24,10 @@ const signers = {
   avax: new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(providers.avax)
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const readCsv = async (file) => {
   records = []
   const parser = fs
@@ -68,6 +72,7 @@ async function sendTxn(txnPromise, label) {
   console.info(`Sending ${label}...`)
   await txn.wait()
   console.info(`... Sent! ${txn.hash}`)
+  await sleep(1000)
   return txn
 }
 

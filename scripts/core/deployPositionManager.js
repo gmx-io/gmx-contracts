@@ -126,7 +126,7 @@ async function main() {
   }
 
   if (!(await timelock.isHandler(positionManager.address))) {
-    await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
+    await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionManager)")
   }
   if (!(await vault.isLiquidator(positionManager.address))) {
     await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
