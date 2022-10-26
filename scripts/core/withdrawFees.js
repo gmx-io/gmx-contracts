@@ -5,7 +5,7 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 // time check to avoid invalid fee withdrawals
-const time = 1666143626
+const time = 1666749099
 
 if (Date.now() / 1000 > time + 10 * 60) {
   throw new Error("invalid time")
@@ -61,7 +61,7 @@ async function withdrawFeesArb() {
     const vaultAmount = poolAmount.add(feeReserve)
 
     if (vaultAmount.gt(balance)) {
-      throw new Error("vaultAmount > vault.balance")
+      throw new Error("vaultAmount > vault.balance", vaultAmount.toString(), balance.toString())
     }
   }
 
@@ -84,7 +84,7 @@ async function withdrawFeesAvax() {
     const vaultAmount = poolAmount.add(feeReserve)
 
     if (vaultAmount.gt(balance)) {
-      throw new Error("vaultAmount > vault.balance")
+      throw new Error("vaultAmount > vault.balance", vaultAmount.toString(), balance.toString())
     }
   }
 
