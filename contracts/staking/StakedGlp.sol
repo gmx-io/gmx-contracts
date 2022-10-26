@@ -63,7 +63,7 @@ contract StakedGlp {
     }
 
     function balanceOf(address _account) external view returns (uint256) {
-        return IRewardTracker(stakedGlpTracker).depositBalances(_account, glp);
+        return IRewardTracker(feeGlpTracker).depositBalances(_account, glp);
     }
 
     function totalSupply() external view returns (uint256) {
