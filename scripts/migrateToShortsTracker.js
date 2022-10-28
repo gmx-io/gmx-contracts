@@ -19,8 +19,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-let signer
-
 const arbitrumTestServerData = {
   "globalShortData": {
   "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": {
@@ -207,6 +205,7 @@ async function rollback() {
   await toggleOrdersExecution(serverHost, serverAdminApiKey, true)
   await toggleLiquidations(serverHost, serverAdminApiKey, true)
 
+  const signer = await getFrameSigner()
   const shortsTracker = await contractAt("ShortsTracker", shortsTrackerAddress, signer)
   if (await shortsTracker.isGlobalShortDataReady()) {
     // no need to send transaction if `isGlobalShortDataReady` is false
@@ -310,6 +309,7 @@ async function migrate() {
   serverData = await waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens)
   console.log("Data is up-to-date")
 
+  const signer = await getFrameSigner()
   const shortsTracker = contractAt("ShortsTracker", shortsTrackerAddress, signer)
   await initShortsTrackerData(shortsTracker, serverData)
   console.log("ShortTracker data is inited")
@@ -338,7 +338,6 @@ async function runMigration() {
 }
 
 async function main() {
-  // signer = await getFrameSigner()
   const action = process.env.ACTION
   const validActions = new Set(["info", "migrate", "rollback"])
 
