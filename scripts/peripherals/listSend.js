@@ -2,11 +2,19 @@ const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 const { LIST } = require("../../data/batchSend/list")
 
+const {
+  ARBITRUM_URL,
+  ARBITRUM_PAYMENTS_KEY,
+} = require("../../env.json")
+
 async function main() {
+  const provider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
+  const wallet = new ethers.Wallet(ARBITRUM_PAYMENTS_KEY).connect(provider)
+
   const list = LIST
-  const usdc = await contractAt("Token", "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8")
+  const usdc = await contractAt("Token", "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", wallet)
   const usdcDecimals = 6
-  const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a")
+  const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", wallet)
   const gmxDecimals = 18
   const shouldSendTxn = false
 
