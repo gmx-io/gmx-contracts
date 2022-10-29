@@ -19,11 +19,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function getArbValues() {
   return {
     serverHost: "https://gmx-server-mainnet.uw.r.appspot.com",
