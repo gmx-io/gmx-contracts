@@ -1,7 +1,7 @@
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const { getFrameSigner, contractAt } = require("./shared/helpers")
-const { bigNumberify } = require("../test/shared/utilities")
+const { bigNumberify, expandDecimals } = require("../test/shared/utilities")
 
 const {
   ARBITRUM_SERVER_ADMIN_API_KEY,
@@ -31,7 +31,7 @@ async function getArbValues() {
       "0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0": "UNI",
       "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4": "LINK"
     },
-    allowedSizeDifference: 200
+    allowedSizeDifference: expandDecimals(200, 30)
   }
 }
 
@@ -214,7 +214,7 @@ async function validateServerIsUpToDate(serverHost, serverAdminApiKey) {
   const latestBlockNumber = await ethers.provider.getBlockNumber()
 
   if (latestBlockNumber - serverBlockNumber > 20) {
-    throw new Error(`Server block ${serverBlockNumber} is too far behind ${latestBlockNumber}. Skip migration`)
+    throw new Error(`Server block ${serverBlockNumber} is too far behind ${latestBlockNumber} (${latestBlockNumber - serverBlockNumber}). Skip migration`)
   }
 }
 
@@ -232,7 +232,7 @@ async function migrate() {
   await validateServerIsUpToDate(serverHost, serverAdminApiKey)
 
   console.log("Disable execution...")
-  Promise.all([
+  await Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, false),
     toggleLiquidations(serverHost, serverAdminApiKey, false),
   ])
@@ -243,19 +243,19 @@ async function migrate() {
   console.log("Jobs are finished")
 
   console.log("Wait 10s so execution/liquidation transactions are mined...") // in theory some stucked transaction can be mined after 10s
-  sleep(10000)
+  await sleep(10000)
 
   console.log("Wait for up-to-date data...")
   serverData = await waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens, allowedSizeDifference)
   console.log("Data is up-to-date")
 
   const signer = await getFrameSigner()
-  const shortsTracker = contractAt("ShortsTracker", shortsTrackerAddress, signer)
+  const shortsTracker = await contractAt("ShortsTracker", shortsTrackerAddress, signer)
   await initShortsTrackerData(shortsTracker, serverData)
   console.log("ShortTracker data is inited")
 
   console.log("Enable all operations back...")
-  Promise.all([
+  await Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, true),
     toggleLiquidations(serverHost, serverAdminApiKey, true),
   ])
