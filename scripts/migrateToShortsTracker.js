@@ -243,7 +243,7 @@ async function migrate() {
   console.log("Jobs are finished")
 
   console.log("Wait 10s so execution/liquidation transactions are mined...") // in theory some stucked transaction can be mined after 10s
-  sleep(10000)
+  await sleep(10000)
 
   console.log("Wait for up-to-date data...")
   serverData = await waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens, allowedSizeDifference)
