@@ -19,71 +19,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const arbitrumTestServerData = {
-  "globalShortData": {
-  "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": {
-  "delta": "1291436352900869959718723091630671430",
-  "size": "17766322254401628899306690888032032992",
-  "markPrice": "1329000000000000000000000000000000",
-  "averagePrice": "1433177893750930940960994934291824"
-  },
-  "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": {
-  "delta": "171657982864678725566285873097907090",
-  "size": "10947673002797675736689164303833950208",
-  "markPrice": "18902000000000000000000000000000000",
-  "averagePrice": "19203101955231715332335459732164498"
-  },
-  "0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0": {
-  "delta": "833369436775573307679245929105920",
-  "size": "19065591304930052590549424017400000",
-  "markPrice": "5389758000000000000000000000000",
-  "averagePrice": "5636116322167088669102916218686"
-  },
-  "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4": {
-  "delta": "5047138113676803689375610521707938",
-  "size": "70205168619114967620227957104650000",
-  "markPrice": "6885744000000000000000000000000",
-  "averagePrice": "7419113420681320602499291389228"
-  }
-  },
-  "info": {
-  "lastBlockVault": 25654316,
-  "lastBlockRouter": 25654317,
-  "lastBlockPositionRouter": 25654316,
-  "lastBlock": 16339881,
-  "lastBlockVaultNonPositions": 25654285
-  }
-}
-
-const avaxTestServerData = {
-  "globalShortData": {
-    "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB": {
-      "delta": "101955545305093195873215430623000774",
-      "size": "1986408109052146903978364449889270000",
-      "markPrice": "1328700000000000000000000000000000",
-      "averagePrice": "1400587367001433829816391336060376"
-    },
-    "0x50b7545627a5162F82A992c33b87aDc75187B218": {
-      "delta": "7648608121858278111293655676524919",
-      "size": "1075541156917627596788497900000000000",
-      "markPrice": "18898768000000000000000000000000000",
-      "averagePrice": "19034127377290270675680347242268633"
-    },
-    "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7": {
-      "delta": "35637717265326156733604564542565228",
-      "size": "635279247947363602986101875625900000",
-      "markPrice": "16620000000000000000000000000000",
-      "averagePrice": "17607754901292502029523509192142"
-    }
-  },
-  "info": {
-    "lastBlockVaultNonPositions": 20094557,
-    "lastBlockPositionRouter": 20094557,
-    "lastBlockVault": 20094557,
-    "lastBlockRouter": 20094557,
-    "lastBlock": 18753357
-  }
-}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -101,13 +36,14 @@ async function getArbValues() {
       "0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0": "UNI",
       "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4": "LINK"
     },
-    // serverData: arbitrumTestServerData,
+    allowedSizeDifference: 200
   }
 }
 
 async function getAvaxValues() {
   return {
     serverHost: "https://gmx-avax-server.uc.r.appspot.com",
+    // serverHost: "http://localhost:8080",
     serverAdminApiKey: AVAX_SERVER_ADMIN_API_KEY,
     vaultAddress: "0x9ab2de34a33fb459b538c43f251eb825645e8595",
     shortsTrackerAddress: "0x9234252975484D75Fd05f3e4f7BdbEc61956D73a",
@@ -116,7 +52,6 @@ async function getAvaxValues() {
       "0x50b7545627a5162F82A992c33b87aDc75187B218": "BTC",
       "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB": "WETH"
     },
-    // serverData: avaxTestServerData,
   }
 }
 
@@ -138,7 +73,8 @@ async function getGlobalShortDataFromServer(serverHost, serverAdminApiKey) {
   return await serverRes.json()
 }
 
-async function getVaultData(vault, indexTokens, blockNumber) {
+async function getVaultData(vaultAddress, indexTokens, blockNumber) {
+  const vault = await contractAt("Vault", vaultAddress)
   const indexTokenAddresses = Object.keys(indexTokens)
   const sizesPromise = Promise.all(indexTokenAddresses.map(token => {
     return vault.globalShortSizes(token, { blockTag: Number(blockNumber) })
@@ -172,15 +108,24 @@ async function getVaultData(vault, indexTokens, blockNumber) {
 }
 
 async function postRequest(serverHost, pathname, data) {
-  const res = await fetch(serverHost + pathname, {
+  const url = serverHost + pathname
+  const res = await fetch(url, {
     method: "POST",
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json"
+    }
   })
-  return await res.json()
+  if (res.status !== 200) {
+    throw new Error("Server returned " + res.status + ": " + text)
+  }
+  return await res.text()
 }
 
 async function getRequest(serverHost, pathname) {
-  const res = await fetch(serverHost + pathname)
+  const url = `${serverHost}${pathname}`
+  console.log("Request %s", url)
+  const res = await fetch(url)
   return await res.json()
 }
 
@@ -222,12 +167,12 @@ async function initShortsTrackerData(shortsTracker, serverData) {
   await tx.wait()
 }
 
-async function waitJobsAreFinished(serverHost) {
+async function waitJobsAreFinished(serverHost, serverAdminApiKey) {
   for (let i = 0; i < 10; i++) {
     await sleep(2000)
     const [ordersInfo, positionsInfo] = await Promise.all([
-      getRequest(serverHost, "/orders/info"),
-      getRequest(serverHost, "/positions/info")
+      getRequest(serverHost, `/orders/info?key=${encodeURIComponent(serverAdminApiKey)}`),
+      getRequest(serverHost, `/positions/info?key=${encodeURIComponent(serverAdminApiKey)}`)
     ])
     if (ordersInfo.executionStatus_0 === "idle"
       && ordersInfo.executionStatus_1 === "idle"
@@ -239,10 +184,9 @@ async function waitJobsAreFinished(serverHost) {
   throw new Error("Jobs are not finished for too long")
 }
 
-async function waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey) {
+async function waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens, allowedSizeDifference) {
   let vaultData
   let upToDate
-  const allowedSizeDifference = bigNumberify(1000, 30)
   for (let i = 0; i < 5; i++) {
     serverData = await getGlobalShortDataFromServer(serverHost, serverAdminApiKey)
     const serverBlockNumber = serverData.info.lastBlockVault // positions are updated from Vault events
@@ -284,8 +228,9 @@ async function migrate() {
     serverAdminApiKey,
     serverHost,
     vaultAddress,
-    indexTokens,
-    shortsTrackerAddress
+    shortsTrackerAddress,
+    allowedSizeDifference = 0,
+    indexTokens
   } = await getValues()
 
   console.log("Validate server block is up-to-date...")
@@ -299,14 +244,14 @@ async function migrate() {
   console.log("Orders execution and liquidations are disabled")
 
   console.log("Wait for jobs to be finished...")
-  await waitJobsAreFinished();
+  await waitJobsAreFinished(serverHost, serverAdminApiKey);
   console.log("Jobs are finished")
 
   console.log("Wait 10s so execution/liquidation transactions are mined...") // in theory some stucked transaction can be mined after 10s
   sleep(10000)
 
   console.log("Wait for up-to-date data...")
-  serverData = await waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens)
+  serverData = await waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens, allowedSizeDifference)
   console.log("Data is up-to-date")
 
   const signer = await getFrameSigner()
