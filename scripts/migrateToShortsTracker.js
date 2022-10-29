@@ -213,8 +213,8 @@ async function validateServerIsUpToDate(serverHost, serverAdminApiKey) {
   const serverBlockNumber = serverData.info.lastBlockVault // positions are updated from Vault events
   const latestBlockNumber = await ethers.provider.getBlockNumber()
 
-  if (latestBlockNumber - serverBlockNumber > 20) {
-    throw new Error(`Server block ${serverBlockNumber} is too far behind ${latestBlockNumber} (${latestBlockNumber - serverBlockNumber}). Skip migration`)
+  if (latestBlockNumber - serverBlockNumber > 100) {
+    throw new Error(`Server block ${serverBlockNumber} is too far behind ${latestBlockNumber}. Skip migration`)
   }
 }
 
