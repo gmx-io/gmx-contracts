@@ -232,7 +232,7 @@ async function migrate() {
   await validateServerIsUpToDate(serverHost, serverAdminApiKey)
 
   console.log("Disable execution...")
-  Promise.all([
+  await Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, false),
     toggleLiquidations(serverHost, serverAdminApiKey, false),
   ])
@@ -255,7 +255,7 @@ async function migrate() {
   console.log("ShortTracker data is inited")
 
   console.log("Enable all operations back...")
-  Promise.all([
+  await Promise.all([
     toggleOrdersExecution(serverHost, serverAdminApiKey, true),
     toggleLiquidations(serverHost, serverAdminApiKey, true),
   ])
