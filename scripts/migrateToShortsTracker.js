@@ -73,8 +73,7 @@ async function getGlobalShortDataFromServer(serverHost, serverAdminApiKey) {
   return await serverRes.json()
 }
 
-async function getVaultData(vaultAddress, indexTokens, blockNumber) {
-  const vault = await contractAt("Vault", vaultAddress)
+async function getVaultData(vault, indexTokens, blockNumber) {
   const indexTokenAddresses = Object.keys(indexTokens)
   const sizesPromise = Promise.all(indexTokenAddresses.map(token => {
     return vault.globalShortSizes(token, { blockTag: Number(blockNumber) })
@@ -187,11 +186,12 @@ async function waitJobsAreFinished(serverHost, serverAdminApiKey) {
 async function waitForUpToDateData(vaultAddress, serverHost, serverAdminApiKey, indexTokens, allowedSizeDifference) {
   let vaultData
   let upToDate
+  const vault = await contractAt("Vault", vaultAddress)
   for (let i = 0; i < 5; i++) {
     serverData = await getGlobalShortDataFromServer(serverHost, serverAdminApiKey)
     const serverBlockNumber = serverData.info.lastBlockVault // positions are updated from Vault events
     console.log("checking if data is up-to-date by comparing server and Vault global short sizes. block number: %s attempt: %s", serverBlockNumber, i)
-    vaultData = await getVaultData(vaultAddress, indexTokens, serverBlockNumber)
+    vaultData = await getVaultData(vault, indexTokens, serverBlockNumber)
     upToDate = true
     for (const token of Object.keys(indexTokens)) {
       const difference = vaultData[token].size.sub(serverData.globalShortData[token].size).abs()
