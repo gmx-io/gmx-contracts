@@ -250,7 +250,7 @@ async function migrate() {
   console.log("Data is up-to-date")
 
   const signer = await getFrameSigner()
-  const shortsTracker = contractAt("ShortsTracker", shortsTrackerAddress, signer)
+  const shortsTracker = await contractAt("ShortsTracker", shortsTrackerAddress, signer)
   await initShortsTrackerData(shortsTracker, serverData)
   console.log("ShortTracker data is inited")
 
