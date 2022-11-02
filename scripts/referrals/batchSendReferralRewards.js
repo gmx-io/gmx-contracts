@@ -3,6 +3,12 @@ const path = require("path")
 const { deployContract, contractAt, sendTxn, processBatch, getFrameSigner } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
+const ethPrice = "1590"
+const avaxPrice = "18"
+const gmxPrice = "42"
+
+const shouldSendTxn = false
+
 let arbitrumFile
 if (process.env.ARBITRUM_FILE) {
   arbitrumFile = path.join(process.env.PWD, process.env.ARBITRUM_FILE)
@@ -23,12 +29,6 @@ const avaxData = require(avalancheFile)
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
-
-const ethPrice = "1483"
-const avaxPrice = "17"
-const gmxPrice = "38"
-
-const shouldSendTxn = false
 
 const { AddressZero } = ethers.constants
 
