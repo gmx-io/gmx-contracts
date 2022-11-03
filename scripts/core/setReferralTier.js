@@ -2,52 +2,60 @@ const { contractAt , sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 const { toUsd } = require("../../test/shared/units")
 
-const network = (process.env.HARDHAT_NETWORK || 'mainnet');
-const tokens = require('./tokens')[network];
+const {
+  ARBITRUM_URL,
+  ARBITRUM_DEPLOY_KEY,
+  AVAX_URL,
+  AVAX_DEPLOY_KEY,
+} = require("../../env.json")
 
 async function getArbValues() {
-  const referralStorage = await contractAt("ReferralStorage", "0xe6fab3F0c7199b0d34d7FbE83394fc0e0D06e99d")
+  const provider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
+  const wallet = new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(provider)
+  const referralStorage = await contractAt("ReferralStorage", "0xe6fab3F0c7199b0d34d7FbE83394fc0e0D06e99d", wallet)
 
-  return { referralStorage }
+  return { referralStorage, wallet }
 }
 
 async function getAvaxValues() {
-  const referralStorage = await contractAt("ReferralStorage", "0x827ED045002eCdAbEb6e2b0d1604cf5fC3d322F8")
+  const provider = new ethers.providers.JsonRpcProvider(AVAX_URL)
+  const wallet = new ethers.Wallet(AVAX_DEPLOY_KEY).connect(provider)
+  const referralStorage = await contractAt("ReferralStorage", "0x827ED045002eCdAbEb6e2b0d1604cf5fC3d322F8", wallet)
 
-  return { referralStorage }
+  return { referralStorage, wallet }
 }
 
-async function getValues() {
-  if (network === "arbitrum") {
-    return getArbValues()
-  }
-
-  if (network === "avax") {
-    return getAvaxValues()
-  }
+async function getNetworkValues() {
+  return [
+    await getArbValues(),
+    await getAvaxValues()
+  ]
 }
 
 async function updateAccount(account) {
-  const { referralStorage } = await getValues()
-  const timelock = await contractAt("Timelock", await referralStorage.gov())
-  const tier = 2 // tier 1, 2, 3
+  const networkValues = await getNetworkValues()
+  for (let i = 0; i < networkValues.length; i++) {
+    const { referralStorage, wallet } = networkValues[i]
+    const timelock = await contractAt("Timelock", await referralStorage.gov(), wallet)
+    const tier = 2 // tier 1, 2, 3
 
-  console.log("account", account)
+    console.log("account", account)
 
-  const currentTier = (await referralStorage.referrerTiers(account)).add(1)
-  console.log("currentTier", currentTier.toString())
+    const currentTier = (await referralStorage.referrerTiers(account)).add(1)
+    console.log("currentTier", currentTier.toString())
 
-  if (!currentTier.eq(1)) {
-    throw new Error("Current tier is more than 1")
+    if (!currentTier.eq(1)) {
+      throw new Error("Current tier is more than 1")
+    }
+
+    console.log("updating to tier", tier)
+    await sendTxn(timelock.setReferrerTier(referralStorage.address, account, tier - 1), "timelock.setReferrerTier")
   }
-
-  console.log("updating to tier", tier)
-  await sendTxn(timelock.setReferrerTier(referralStorage.address, account, tier - 1), "timelock.setReferrerTier")
 }
 
 async function main() {
   const accounts = [
-    "0xa052163E1B81571F91b5FD9DB2C201D86e5bf1B5",
+    "0x2d6693a2Ca35638aB46bd72cd10C57AF2067AA60",
   ]
 
   for (let i = 0; i < accounts.length; i++) {
