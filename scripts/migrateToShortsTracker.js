@@ -213,8 +213,8 @@ async function validateServerIsUpToDate(serverHost, serverAdminApiKey) {
   const serverBlockNumber = serverData.info.lastBlockVault // positions are updated from Vault events
   const latestBlockNumber = await ethers.provider.getBlockNumber()
 
-  if (latestBlockNumber - serverBlockNumber > 20) {
-    throw new Error(`Server block ${serverBlockNumber} is too far behind ${latestBlockNumber} (${latestBlockNumber - serverBlockNumber}). Skip migration`)
+  if (latestBlockNumber - serverBlockNumber > 100) {
+    throw new Error(`Server block ${serverBlockNumber} is too far behind ${latestBlockNumber}. Skip migration`)
   }
 }
 
@@ -279,13 +279,21 @@ async function runMigration() {
 
 async function main() {
   const action = process.env.ACTION
-  const validActions = new Set(["info", "migrate", "rollback"])
+  const validActions = new Set(["info", "migrate", "rollback", "disable", "enable"])
 
   if (!validActions.has(action)) {
     throw new Error(
       `use env var ACTION to specify action: ${Array.from(validActions).join(", ")}. Provided: ${action}`
     )
   }
+
+  let {
+    serverAdminApiKey,
+    serverHost,
+    vaultAddress,
+    indexTokens,
+    serverData
+  } = await getValues()
 
   console.log("Running with action: %s", action)
   if (action === "migrate") {
@@ -294,16 +302,21 @@ async function main() {
   } else if (action === "rollback") {
     await rollback()
     return
+  } else if (action === "disable") {
+    await Promise.all([
+      toggleOrdersExecution(serverHost, serverAdminApiKey, false),
+      toggleLiquidations(serverHost, serverAdminApiKey, false),
+    ])
+    return
+  } else if (action === "enable") {
+    await Promise.all([
+      toggleOrdersExecution(serverHost, serverAdminApiKey, true),
+      toggleLiquidations(serverHost, serverAdminApiKey, true),
+    ])
+    return
   }
 
   console.log("retrieving global shorts data from server...")
-  let {
-    serverAdminApiKey,
-    serverHost,
-    vaultAddress,
-    indexTokens,
-    serverData
-  } = await getValues()
 
   if (!serverData) {
     serverData = await getGlobalShortDataFromServer(serverHost, serverAdminApiKey)

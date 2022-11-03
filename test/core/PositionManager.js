@@ -991,7 +991,7 @@ describe("PositionManager next short data calculations", function () {
     expect(await vault.globalShortSizes(btc.address), 1).to.be.equal(0)
   })
 
-  it("updates global short average prices on position increases as Vault does", async () => {
+  it("updates global short average prices on position increases as Vault does, no price spread", async () => {
     await shortsTracker.setIsGlobalShortDataReady(true)
     expect(await shortsTracker.globalShortAveragePrices(btc.address)).to.be.equal(0)
     expect(await vault.globalShortAveragePrices(btc.address)).to.be.equal(0)
@@ -1001,6 +1001,57 @@ describe("PositionManager next short data calculations", function () {
 
     await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(100, 18), 0, toUsd(1000), false, toNormalizedPrice(60000))
     expect(await shortsTracker.globalShortAveragePrices(btc.address)).to.be.equal(await vault.globalShortAveragePrices(btc.address))
+
+    let shortsTrackerAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+    let vaultAveragePrice = await vault.globalShortAveragePrices(btc.address)
+
+    console.log('ST avg price', shortsTrackerAveragePrice / 1e30)
+    console.log('Vault avg price', vaultAveragePrice / 1e30)
+
+    let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+    console.log('position avg price', position[2] / 1e30)
+  })
+
+  it.only("updates global short average prices on position increases, price spread enabled", async () => {
+    await shortsTracker.setIsGlobalShortDataReady(true)
+    // expect(await shortsTracker.globalShortAveragePrices(btc.address)).to.be.equal(0)
+    // expect(await vault.globalShortAveragePrices(btc.address)).to.be.equal(0)
+    //
+      //
+
+    function getSign(isPlus) {
+      return isPlus ? "+" : "-"
+    }
+
+    async function logIt(label) {
+      console.log("\n--- log it %s ---", label)
+      let shortsTrackerAveragePrice = await shortsTracker.globalShortAveragePrices(btc.address)
+      let shortsTrackerDelta = await shortsTracker.getGlobalShortDelta(btc.address)
+      console.log('ST %s avg price %s delta %s%s', label, shortsTrackerAveragePrice / 1e30, getSign(shortsTrackerDelta[0]), shortsTrackerDelta[1] / 1e30)
+      let vaultAveragePrice = await vault.globalShortAveragePrices(btc.address)
+      let vaultDelta = await vault.getGlobalShortDelta(btc.address)
+      console.log('Vault %s avg price %s delta: %s%s', label, vaultAveragePrice / 1e30, getSign(vaultDelta[0]), vaultDelta[1] / 1e30)
+
+      let position = await vault.getPosition(user0.address, dai.address, btc.address, false)
+      let delta = await vault.getPositionDelta(user0.address, dai.address, btc.address, false)
+      console.log('position %s avg price: %s pnl: %s%s', label, position[2] / 1e30, getSign(delta[0]), delta[1] / 1e30)
+      console.log("--- /")
+    }
+
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(50000))
+    await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(500, 18), 0, toUsd(1000), false, toNormalizedPrice(50000))
+    // expect(await shortsTracker.globalShortAveragePrices(btc.address)).to.be.equal(await vault.globalShortAveragePrices(btc.address))
+
+    await btcPriceFeed.setLatestAnswer(toChainlinkPrice(48000))
+    await logIt(1)
+
+    await vaultPriceFeed.setSpreadBasisPoints(btc.address, 50) // 0.5%
+    await logIt(2)
+
+    await positionManager.connect(user0).increasePosition([dai.address], btc.address, expandDecimals(500, 18), 0, toUsd(1000), false, toNormalizedPrice(47760))
+
+    // expect(shortsTrackerAveragePrice).to.be.equal(vaultAveragePrice)
+    await logIt(3)
   })
 
   function expectAumsAreEqual(aum0, aum1, label) {
