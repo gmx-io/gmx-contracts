@@ -5,7 +5,7 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
 // time check to avoid invalid fee withdrawals
-const time = 1666749099
+const time = 1667353070
 
 if (Date.now() / 1000 > time + 10 * 60) {
   throw new Error("invalid time")

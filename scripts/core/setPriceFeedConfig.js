@@ -37,19 +37,15 @@ async function getValues() {
 }
 
 async function main() {
-  const signer = await getFrameSigner()
-
   const { vaultPriceFeed, fastPriceTokens } = await getValues()
   const secondaryPriceFeed = await contractAt("FastPriceFeed", await vaultPriceFeed.secondaryPriceFeed())
-  const timelock = await contractAt("PriceFeedTimelock", await secondaryPriceFeed.gov(), signer)
 
-  await sendTxn(timelock.setMaxDeviationBasisPoints(secondaryPriceFeed.address, 250), "timelock.setMaxDeviationBasisPoints")
-  await sendTxn(timelock.setPriceDataInterval(secondaryPriceFeed.address, 1 * 60), "timelock.setPriceDataInterval")
-  await sendTxn(timelock.setMaxCumulativeDeltaDiffs(
-    secondaryPriceFeed.address,
-    fastPriceTokens.map(t => t.address),
-    fastPriceTokens.map(t => t.maxCumulativeDeltaDiff)
-  ), "secondaryPriceFeed.setMaxCumulativeDeltaDiffs")
+  console.log("secondaryPriceFeed", secondaryPriceFeed.address)
+  console.log("setMaxDeviationBasisPoints", 1000)
+  console.log("setPriceDataInterval", 1 * 60)
+  console.log("setMaxCumulativeDeltaDiffs")
+  console.log("[", fastPriceTokens.map(t => `"${t.address}"`).join(",\n"), "]")
+  console.log("[", fastPriceTokens.map(t => t.maxCumulativeDeltaDiff).join(",\n"), "]")
 }
 
 main()
