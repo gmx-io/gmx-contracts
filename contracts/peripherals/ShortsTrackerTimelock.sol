@@ -6,53 +6,172 @@ import "../core/interfaces/IShortsTracker.sol";
 
 pragma solidity 0.6.12;
 
-contract ShortsTrackerTimelock is Governable {
+contract ShortsTrackerTimelock {
     using SafeMath for uint256;
 
-    event GlobalShortAveragePriceUpdated(address indexed token, uint256 oldAveragePrice, uint256 newAveragePrice);
-    event SetHandler(address indexed handler, bool isHandler);
-    event SetMaxAveragePriceChange(address token, uint256 maxAveragePriceChange);
-    event SetUpdateDelay(uint256 updateDelay);
-    event SetIsGlobalShortDataReady(bool isGlobalShortDataReady);
+    uint256 public constant MAX_BUFFER = 5 days;
+
+    mapping (bytes32 => uint256) public pendingActions;
+
+    address public admin;
+    uint256 public buffer;
 
     mapping (address => bool) public isHandler;
     mapping (address => uint256) public lastUpdated;
     mapping (address => uint256) public maxAveragePriceChange;
-    uint256 public updateDelay;
+    uint256 public averagePriceUpdateDelay;
 
-    constructor(uint256 _updateDelay) public {
-        updateDelay = _updateDelay;
+    event GlobalShortAveragePriceUpdated(address indexed token, uint256 oldAveragePrice, uint256 newAveragePrice);
+
+    event SignalSetGov(address target, address gov);
+    event SetGov(address target, address gov);
+
+    event SignalSetAdmin(address admin);
+    event SetAdmin(address admin);
+
+    event SignalSetHandler(address indexed handler, bool isHandler);
+    event SetHandler(address indexed handler, bool isHandler);
+
+    event SignalSetMaxAveragePriceChange(address token, uint256 maxAveragePriceChange);
+    event SetMaxAveragePriceChange(address token, uint256 maxAveragePriceChange);
+
+    event SignalSetAveragePriceUpdateDelay(uint256 averagePriceUpdateDelay);
+    event SetAveragePriceUpdateDelay(uint256 averagePriceUpdateDelay);
+
+    event SignalSetIsGlobalShortDataReady(address target, bool isGlobalShortDataReady);
+    event SetIsGlobalShortDataReady(address target, bool isGlobalShortDataReady);
+
+    event SignalPendingAction(bytes32 action);
+    event ClearAction(bytes32 action);
+
+    constructor(uint256 _buffer, uint256 _averagePriceUpdateDelay) public {
+        admin = msg.sender;
+        buffer = _buffer;
+        averagePriceUpdateDelay = _averagePriceUpdateDelay;
     }
 
-    modifier onlyHandler() {
-        require(isHandler[msg.sender] || msg.sender == gov, "ShortsTrackerTimelock: forbidden");
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "ShortsTrackerTimelock: admin forbidden");
         _;
     }
 
-    function setHandler(address _handler, bool _isActive) external onlyGov {
-        require(_handler != address(0), "ShortsTrackerTimelock: invalid _handler");
+    modifier onlyHandler() {
+        require(isHandler[msg.sender] || msg.sender == admin, "ShortsTrackerTimelock: handler forbidden");
+        _;
+    }
+
+    function setBuffer(uint256 _buffer) external onlyAdmin {
+        require(_buffer <= MAX_BUFFER, "ShortsTrackerTimelock: invalid buffer");
+        require(_buffer > buffer, "ShortsTrackerTimelock: buffer cannot be decreased");
+        buffer = _buffer;
+    }
+
+    function signalSetAdmin(address _admin) external onlyAdmin {
+        require(_admin != address(0), "ShortsTrackerTimelock: invalid admin");
+
+        bytes32 action = keccak256(abi.encodePacked("setAdmin", _admin));
+        _setPendingAction(action);
+
+        emit SignalSetAdmin(_admin);
+    }
+
+    function setAdmin(address _admin) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setAdmin", _admin));
+        _validateAction(action);
+        _clearAction(action);
+
+        admin = _admin;
+
+        emit SetAdmin(_admin);
+    }
+
+    function signalSetHandler(address _handler, bool _isActive) external onlyAdmin {
+        require(_handler != address(0), "ShortsTrackerTimelock: invalid handler");
+
+        bytes32 action = keccak256(abi.encodePacked("setHandler", _handler, _isActive));
+        _setPendingAction(action);
+
+        emit SignalSetHandler(_handler, _isActive);
+    }
+
+    function setHandler(address _handler, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setHandler", _handler, _isActive));
+        _validateAction(action);
+        _clearAction(action);
+
         isHandler[_handler] = _isActive;
 
         emit SetHandler(_handler, _isActive);
     }
 
-    function setUpdateDelay(uint256 _updateDelay) external onlyGov {
-        updateDelay = _updateDelay;
+    function signalSetGov(address _shortsTracker, address _gov) external onlyAdmin {
+        require(_gov != address(0), "ShortsTrackerTimelock: invalid gov");
 
-        emit SetUpdateDelay(_updateDelay);
+        bytes32 action = keccak256(abi.encodePacked("setGov", _shortsTracker, _gov));
+        _setPendingAction(action);
+
+        emit SignalSetGov(_shortsTracker, _gov);
     }
 
-    function setMaxAveragePriceChange(address _token, uint256 _maxAveragePriceChange) external onlyGov {
-        require(_maxAveragePriceChange <= 10000, "ShortsTrackerTimelock: invalid _maxAveragePriceChange");
+    function setGov(address _shortsTracker, address _gov) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setGov", _shortsTracker, _gov));
+        _validateAction(action);
+        _clearAction(action);
+
+        Governable(_shortsTracker).setGov(_gov);
+
+        emit SetGov(_shortsTracker, _gov);
+    }
+
+    function signalSetAveragePriceUpdateDelay(uint256 _averagePriceUpdateDelay) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setAveragePriceUpdateDelay", _averagePriceUpdateDelay));
+        _setPendingAction(action);
+
+        emit SignalSetAveragePriceUpdateDelay(_averagePriceUpdateDelay);
+    }
+
+    function setAveragePriceUpdateDelay(uint256 _averagePriceUpdateDelay) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setAveragePriceUpdateDelay", _averagePriceUpdateDelay));
+        _validateAction(action);
+        _clearAction(action);
+
+        averagePriceUpdateDelay = _averagePriceUpdateDelay;
+
+        emit SetAveragePriceUpdateDelay(_averagePriceUpdateDelay);
+    }
+
+    function signalSetMaxAveragePriceChange(address _token, uint256 _maxAveragePriceChange) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setMaxAveragePriceChange", _token, _maxAveragePriceChange));
+        _setPendingAction(action);
+
+        emit SignalSetMaxAveragePriceChange(_token, _maxAveragePriceChange);
+    }
+
+    function setMaxAveragePriceChange(address _token, uint256 _maxAveragePriceChange) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setMaxAveragePriceChange", _token, _maxAveragePriceChange));
+        _validateAction(action);
+        _clearAction(action);
+
         maxAveragePriceChange[_token] = _maxAveragePriceChange;
 
         emit SetMaxAveragePriceChange(_token, _maxAveragePriceChange);
     }
 
-    function setIsGlobalShortDataReady(IShortsTracker _shortsTracker, bool value) external onlyGov {
-        _shortsTracker.setIsGlobalShortDataReady(value);
+    function signalSetIsGlobalShortDataReady(IShortsTracker _shortsTracker, bool _value) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setIsGlobalShortDataReady", address(_shortsTracker), _value));
+        _setPendingAction(action);
 
-        emit SetIsGlobalShortDataReady(value);
+        emit SignalSetIsGlobalShortDataReady(address(_shortsTracker), _value);
+    }
+
+    function setIsGlobalShortDataReady(IShortsTracker _shortsTracker, bool _value) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setIsGlobalShortDataReady", address(_shortsTracker), _value));
+        _validateAction(action);
+        _clearAction(action);
+
+        _shortsTracker.setIsGlobalShortDataReady(_value);
+
+        emit SetIsGlobalShortDataReady(address(_shortsTracker), _value);
     }
 
     function setGlobalShortAveragePrices(IShortsTracker _shortsTracker, address[] calldata _tokens, uint256[] calldata _averagePrices) external onlyHandler {
@@ -65,7 +184,7 @@ contract ShortsTrackerTimelock is Governable {
             uint256 diff = newAveragePrice > oldAveragePrice ? newAveragePrice.sub(oldAveragePrice) : oldAveragePrice.sub(newAveragePrice);
             require(diff.mul(10000).div(oldAveragePrice) < maxAveragePriceChange[token], "ShortsTrackerTimelock: too big change");
 
-            require(block.timestamp >= lastUpdated[token].add(updateDelay), "ShortsTrackerTimelock: too early");
+            require(block.timestamp >= lastUpdated[token].add(averagePriceUpdateDelay), "ShortsTrackerTimelock: too early");
             lastUpdated[token] = block.timestamp;
 
             emit GlobalShortAveragePriceUpdated(token, oldAveragePrice, newAveragePrice);
@@ -74,7 +193,20 @@ contract ShortsTrackerTimelock is Governable {
         _shortsTracker.setInitData(_tokens, _averagePrices);
     }
 
-    function setShortsTrackerGov(IShortsTracker _shortsTracker, address _gov) external onlyGov {
-        Governable(address(_shortsTracker)).setGov(_gov);
+    function _setPendingAction(bytes32 _action) private {
+        require(pendingActions[_action] == 0, "ShortsTrackerTimelock: action already signalled");
+        pendingActions[_action] = block.timestamp.add(buffer);
+        emit SignalPendingAction(_action);
+    }
+
+    function _validateAction(bytes32 _action) private view {
+        require(pendingActions[_action] != 0, "ShortsTrackerTimelock: action not signalled");
+        require(pendingActions[_action] < block.timestamp, "ShortsTrackerTimelock: action time not yet passed");
+    }
+
+    function _clearAction(bytes32 _action) private {
+        require(pendingActions[_action] != 0, "ShortsTrackerTimelock: invalid _action");
+        delete pendingActions[_action];
+        emit ClearAction(_action);
     }
 }
