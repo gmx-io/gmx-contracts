@@ -159,8 +159,8 @@ module.exports = {
       bufferAmount: 65000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 50 * 1000 * 1000,
-      maxGlobalShortSize: 45 * 1000 * 1000,
+      maxGlobalLongSize: 55 * 1000 * 1000,
+      maxGlobalShortSize: 50 * 1000 * 1000,
     },
     usdc: {
       name: "usdc",
