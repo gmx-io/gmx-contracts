@@ -22,7 +22,7 @@ describe("ShortsTracker", function () {
   it("inits", async function () {
     expect(await shortsTrackerTimelock.admin()).to.eq(deployer.address)
     expect(await shortsTrackerTimelock.buffer()).to.eq(60)
-    expect(await shortsTrackerTimelock.updateDelay()).to.eq(300)
+    expect(await shortsTrackerTimelock.averagePriceUpdateDelay()).to.eq(300)
   })
 
   it("setBuffer", async () => {
@@ -149,6 +149,20 @@ describe("ShortsTracker", function () {
     expect(await shortsTracker.isGlobalShortDataReady()).to.be.false
     await shortsTrackerTimelock.setIsGlobalShortDataReady(shortsTracker.address, true)
     expect(await shortsTracker.isGlobalShortDataReady()).to.be.true
+  })
+
+  it("disableIsGlobalShortDataReady", async () => {
+    await shortsTrackerTimelock.signalSetGov(shortsTracker.address, user0.address)
+    await network.provider.send("evm_increaseTime", [61])
+    await shortsTrackerTimelock.setGov(shortsTracker.address, user0.address)
+    expect(await shortsTracker.gov()).to.eq(user0.address)
+
+    await shortsTracker.connect(user0).setInitData([eth.address, btc.address], [toUsd(1600), toUsd(20500)])
+    await shortsTracker.connect(user0).setGov(shortsTrackerTimelock.address)
+
+    expect(await shortsTracker.isGlobalShortDataReady()).to.be.true
+    await shortsTrackerTimelock.disableIsGlobalShortDataReady(shortsTracker.address)
+    expect(await shortsTracker.isGlobalShortDataReady()).to.be.false
   })
 
   it("setGlobalShortAveragePrices", async () => {

@@ -174,6 +174,12 @@ contract ShortsTrackerTimelock {
         emit SetIsGlobalShortDataReady(address(_shortsTracker), _value);
     }
 
+    function disableIsGlobalShortDataReady(IShortsTracker _shortsTracker) external onlyAdmin {
+        _shortsTracker.setIsGlobalShortDataReady(false);
+
+        emit SetIsGlobalShortDataReady(address(_shortsTracker), false);
+    }
+
     function setGlobalShortAveragePrices(IShortsTracker _shortsTracker, address[] calldata _tokens, uint256[] calldata _averagePrices) external onlyHandler {
         _shortsTracker.setIsGlobalShortDataReady(false);
 
