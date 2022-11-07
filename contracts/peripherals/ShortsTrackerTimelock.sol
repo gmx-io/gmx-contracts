@@ -30,7 +30,6 @@ contract ShortsTrackerTimelock {
     event SignalSetAdmin(address admin);
     event SetAdmin(address admin);
 
-    event SignalSetHandler(address indexed handler, bool isHandler);
     event SetHandler(address indexed handler, bool isHandler);
 
     event SignalSetMaxAveragePriceChange(address token, uint256 maxAveragePriceChange);
@@ -86,20 +85,7 @@ contract ShortsTrackerTimelock {
         emit SetAdmin(_admin);
     }
 
-    function signalSetHandler(address _handler, bool _isActive) external onlyAdmin {
-        require(_handler != address(0), "ShortsTrackerTimelock: invalid handler");
-
-        bytes32 action = keccak256(abi.encodePacked("setHandler", _handler, _isActive));
-        _setPendingAction(action);
-
-        emit SignalSetHandler(_handler, _isActive);
-    }
-
     function setHandler(address _handler, bool _isActive) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("setHandler", _handler, _isActive));
-        _validateAction(action);
-        _clearAction(action);
-
         isHandler[_handler] = _isActive;
 
         emit SetHandler(_handler, _isActive);

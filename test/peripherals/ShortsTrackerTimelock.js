@@ -55,25 +55,12 @@ describe("ShortsTracker", function () {
   })
 
   it("setHandler", async () => {
-    await expect(shortsTrackerTimelock.connect(user0).signalSetHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
     await expect(shortsTrackerTimelock.connect(user0).setHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
 
-    await expect(shortsTrackerTimelock.setHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
-
-    await expect(shortsTrackerTimelock.signalSetHandler(ethers.constants.AddressZero, true)).to.be.revertedWith("ShortsTrackerTimelock: invalid handler")
-    await shortsTrackerTimelock.signalSetHandler(user0.address, true)
-    await expect(shortsTrackerTimelock.setHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
-
-    await network.provider.send("evm_increaseTime", [58])
-    await expect(shortsTrackerTimelock.setHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
-
-    await network.provider.send("evm_increaseTime", [1])
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.false
     await shortsTrackerTimelock.setHandler(user0.address, true)
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.true
 
-    await shortsTrackerTimelock.signalSetHandler(user0.address, false)
-    await network.provider.send("evm_increaseTime", [60])
     await shortsTrackerTimelock.setHandler(user0.address, false)
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.false
   })
@@ -185,8 +172,6 @@ describe("ShortsTracker", function () {
     await expect(shortsTrackerTimelock.connect(handler).setGlobalShortAveragePrices(shortsTracker.address, [eth.address], [toUsd(1602)]))
       .to.be.revertedWith("ShortsTrackerTimelock: handler forbidden")
 
-    await shortsTrackerTimelock.signalSetHandler(handler.address, true)
-    await network.provider.send("evm_increaseTime", [61])
     await shortsTrackerTimelock.setHandler(handler.address, true)
     await expect(shortsTrackerTimelock.connect(handler).setGlobalShortAveragePrices(shortsTracker.address, [eth.address], [toUsd(1602)]))
       .to.be.revertedWith("ShortsTrackerTimelock: too big change")
