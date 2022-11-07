@@ -9,6 +9,7 @@ pragma solidity 0.6.12;
 contract ShortsTrackerTimelock {
     using SafeMath for uint256;
 
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
     uint256 public constant MAX_BUFFER = 5 days;
 
     mapping (bytes32 => uint256) public pendingActions;
@@ -44,8 +45,8 @@ contract ShortsTrackerTimelock {
     event SignalPendingAction(bytes32 action);
     event ClearAction(bytes32 action);
 
-    constructor(uint256 _buffer, uint256 _averagePriceUpdateDelay) public {
-        admin = msg.sender;
+    constructor(address _admin, uint256 _buffer, uint256 _averagePriceUpdateDelay) public {
+        admin = _admin;
         buffer = _buffer;
         averagePriceUpdateDelay = _averagePriceUpdateDelay;
     }
@@ -188,7 +189,7 @@ contract ShortsTrackerTimelock {
             uint256 oldAveragePrice = _shortsTracker.globalShortAveragePrices(token);
             uint256 newAveragePrice = _averagePrices[i];
             uint256 diff = newAveragePrice > oldAveragePrice ? newAveragePrice.sub(oldAveragePrice) : oldAveragePrice.sub(newAveragePrice);
-            require(diff.mul(10000).div(oldAveragePrice) < maxAveragePriceChange[token], "ShortsTrackerTimelock: too big change");
+            require(diff.mul(BASIS_POINTS_DIVISOR).div(oldAveragePrice) < maxAveragePriceChange[token], "ShortsTrackerTimelock: too big change");
 
             require(block.timestamp >= lastUpdated[token].add(averagePriceUpdateDelay), "ShortsTrackerTimelock: too early");
             lastUpdated[token] = block.timestamp;
@@ -207,7 +208,7 @@ contract ShortsTrackerTimelock {
 
     function _validateAction(bytes32 _action) private view {
         require(pendingActions[_action] != 0, "ShortsTrackerTimelock: action not signalled");
-        require(pendingActions[_action] < block.timestamp, "ShortsTrackerTimelock: action time not yet passed");
+        require(pendingActions[_action] <= block.timestamp, "ShortsTrackerTimelock: action time not yet passed");
     }
 
     function _clearAction(bytes32 _action) private {

@@ -1,7 +1,8 @@
 const {
   deployContract,
   contractAt,
-  sendTxn
+  sendTxn,
+  getFrameSigner
 } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
 const { toUsd } = require("../../test/shared/units");
@@ -44,14 +45,24 @@ async function getValues() {
 }
 
 async function main() {
+  const signer = await getFrameSigner()
+
+  const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
   const { shortsTrackerAddress, updateGov, config } = await getValues()
 
-  const shortsTrackerTimelock = await deployContract("ShortsTrackerTimelock", [config.updateDelay])
+  // TODO: increase buffer
+  const buffer = 0 // 0 seconds
+  let shortsTrackerTimelock = await deployContract("ShortsTrackerTimelock", [admin, buffer, config.updateDelay])
+  shortsTrackerTimelock = await contractAt("ShortsTrackerTimelock", shortsTrackerTimelock.address, signer)
   const shortsTracker = await contractAt("ShortsTracker", shortsTrackerAddress)
 
   if (Object.keys(config.tokens).length) {
     console.log("Setting tokens")
     for (const token of Object.values(config.tokens)) {
+      await sendTxn(
+        shortsTrackerTimelock.signalSetMaxAveragePriceChange(token.address, token.maxAveragePriceChange),
+        `shortsTrackerTimelock.signalSetMaxAveragePriceChange ${token.address} ${token.maxAveragePriceChange}`
+      )
       await sendTxn(
         shortsTrackerTimelock.setMaxAveragePriceChange(token.address, token.maxAveragePriceChange),
         `shortsTrackerTimelock.setMaxAveragePriceChange ${token.address} ${token.maxAveragePriceChange}`

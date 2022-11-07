@@ -15,7 +15,7 @@ describe("ShortsTracker", function () {
   beforeEach(async function () {
     vault = await deployContract("VaultTest", [])
     shortsTracker = await deployContract("ShortsTracker", [vault.address])
-    shortsTrackerTimelock = await deployContract("ShortsTrackerTimelock", [60, 300])
+    shortsTrackerTimelock = await deployContract("ShortsTrackerTimelock", [deployer.address, 60, 300])
     await shortsTracker.setGov(shortsTrackerTimelock.address)
   })
 
@@ -45,7 +45,7 @@ describe("ShortsTracker", function () {
     await shortsTrackerTimelock.signalSetAdmin(user0.address)
     await expect(shortsTrackerTimelock.setAdmin(user0.address)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
-    await network.provider.send("evm_increaseTime", [59])
+    await network.provider.send("evm_increaseTime", [58])
     await expect(shortsTrackerTimelock.setAdmin(user0.address)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [1])
@@ -64,7 +64,7 @@ describe("ShortsTracker", function () {
     await shortsTrackerTimelock.signalSetHandler(user0.address, true)
     await expect(shortsTrackerTimelock.setHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
-    await network.provider.send("evm_increaseTime", [59])
+    await network.provider.send("evm_increaseTime", [58])
     await expect(shortsTrackerTimelock.setHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [1])
@@ -73,7 +73,7 @@ describe("ShortsTracker", function () {
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.true
 
     await shortsTrackerTimelock.signalSetHandler(user0.address, false)
-    await network.provider.send("evm_increaseTime", [61])
+    await network.provider.send("evm_increaseTime", [60])
     await shortsTrackerTimelock.setHandler(user0.address, false)
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.false
   })
@@ -88,7 +88,7 @@ describe("ShortsTracker", function () {
     await shortsTrackerTimelock.signalSetGov(shortsTracker.address, user0.address)
     await expect(shortsTrackerTimelock.setGov(shortsTracker.address, user0.address)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
-    await network.provider.send("evm_increaseTime", [59])
+    await network.provider.send("evm_increaseTime", [58])
     await expect(shortsTrackerTimelock.setGov(shortsTracker.address, user0.address)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [1])
@@ -106,7 +106,7 @@ describe("ShortsTracker", function () {
     await shortsTrackerTimelock.signalSetAveragePriceUpdateDelay(60)
     await expect(shortsTrackerTimelock.setAveragePriceUpdateDelay(60)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
-    await network.provider.send("evm_increaseTime", [59])
+    await network.provider.send("evm_increaseTime", [58])
     await expect(shortsTrackerTimelock.setAveragePriceUpdateDelay(60)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [1])
@@ -124,7 +124,7 @@ describe("ShortsTracker", function () {
     await shortsTrackerTimelock.signalSetMaxAveragePriceChange(eth.address, 10)
     await expect(shortsTrackerTimelock.setMaxAveragePriceChange(eth.address, 10)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
-    await network.provider.send("evm_increaseTime", [59])
+    await network.provider.send("evm_increaseTime", [58])
     await expect(shortsTrackerTimelock.setMaxAveragePriceChange(eth.address, 10)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [1])
@@ -142,7 +142,7 @@ describe("ShortsTracker", function () {
     await shortsTrackerTimelock.signalSetIsGlobalShortDataReady(shortsTracker.address, true)
     await expect(shortsTrackerTimelock.setIsGlobalShortDataReady(shortsTracker.address, true)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
-    await network.provider.send("evm_increaseTime", [59])
+    await network.provider.send("evm_increaseTime", [58])
     await expect(shortsTrackerTimelock.setIsGlobalShortDataReady(shortsTracker.address, true)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [1])
