@@ -15,7 +15,7 @@ describe("ShortsTracker", function () {
   beforeEach(async function () {
     vault = await deployContract("VaultTest", [])
     shortsTracker = await deployContract("ShortsTracker", [vault.address])
-    shortsTrackerTimelock = await deployContract("ShortsTrackerTimelock", [deployer.address, 60, 300])
+    shortsTrackerTimelock = await deployContract("ShortsTrackerTimelock", [deployer.address, 60, 300, 0])
     await shortsTracker.setGov(shortsTrackerTimelock.address)
   })
 
@@ -103,21 +103,21 @@ describe("ShortsTracker", function () {
   })
 
   it("setMaxAveragePriceChange", async () => {
-    await expect(shortsTrackerTimelock.connect(user0).signalSetMaxAveragePriceChange(eth.address, 10)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
-    await expect(shortsTrackerTimelock.connect(user0).setMaxAveragePriceChange(eth.address, 10)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
+    await expect(shortsTrackerTimelock.connect(user0).signalSetMaxAveragePriceChange(10)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
+    await expect(shortsTrackerTimelock.connect(user0).setMaxAveragePriceChange(10)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
 
-    await expect(shortsTrackerTimelock.setMaxAveragePriceChange(eth.address, 10)).to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
+    await expect(shortsTrackerTimelock.setMaxAveragePriceChange(10)).to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
 
-    await shortsTrackerTimelock.signalSetMaxAveragePriceChange(eth.address, 10)
-    await expect(shortsTrackerTimelock.setMaxAveragePriceChange(eth.address, 10)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
+    await shortsTrackerTimelock.signalSetMaxAveragePriceChange(10)
+    await expect(shortsTrackerTimelock.setMaxAveragePriceChange(10)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [58])
-    await expect(shortsTrackerTimelock.setMaxAveragePriceChange(eth.address, 10)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
+    await expect(shortsTrackerTimelock.setMaxAveragePriceChange(10)).to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
 
     await network.provider.send("evm_increaseTime", [1])
-    expect(await shortsTrackerTimelock.maxAveragePriceChange(eth.address)).to.eq(0)
-    await shortsTrackerTimelock.setMaxAveragePriceChange(eth.address, 10)
-    expect(await shortsTrackerTimelock.maxAveragePriceChange(eth.address)).to.eq(10)
+    expect(await shortsTrackerTimelock.maxAveragePriceChange()).to.eq(0)
+    await shortsTrackerTimelock.setMaxAveragePriceChange(10)
+    expect(await shortsTrackerTimelock.maxAveragePriceChange()).to.eq(10)
   })
 
   it("setIsGlobalShortDataReady", async () => {
@@ -164,10 +164,10 @@ describe("ShortsTracker", function () {
     await shortsTracker.connect(user0).setGov(shortsTrackerTimelock.address)
     expect(await shortsTracker.gov()).to.eq(shortsTrackerTimelock.address)
 
-    await shortsTrackerTimelock.signalSetMaxAveragePriceChange(eth.address, 10)
+    await shortsTrackerTimelock.signalSetMaxAveragePriceChange(10)
     await network.provider.send("evm_increaseTime", [61])
-    await shortsTrackerTimelock.setMaxAveragePriceChange(eth.address, 10)
-    expect(await shortsTrackerTimelock.maxAveragePriceChange(eth.address)).to.eq(10)
+    await shortsTrackerTimelock.setMaxAveragePriceChange(10)
+    expect(await shortsTrackerTimelock.maxAveragePriceChange()).to.eq(10)
 
     await expect(shortsTrackerTimelock.connect(handler).setGlobalShortAveragePrices(shortsTracker.address, [eth.address], [toUsd(1602)]))
       .to.be.revertedWith("ShortsTrackerTimelock: handler forbidden")

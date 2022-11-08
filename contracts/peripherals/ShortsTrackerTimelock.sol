@@ -19,8 +19,8 @@ contract ShortsTrackerTimelock {
 
     mapping (address => bool) public isHandler;
     mapping (address => uint256) public lastUpdated;
-    mapping (address => uint256) public maxAveragePriceChange;
     uint256 public averagePriceUpdateDelay;
+    uint256 public maxAveragePriceChange;
 
     event GlobalShortAveragePriceUpdated(address indexed token, uint256 oldAveragePrice, uint256 newAveragePrice);
 
@@ -32,8 +32,8 @@ contract ShortsTrackerTimelock {
 
     event SetHandler(address indexed handler, bool isHandler);
 
-    event SignalSetMaxAveragePriceChange(address token, uint256 maxAveragePriceChange);
-    event SetMaxAveragePriceChange(address token, uint256 maxAveragePriceChange);
+    event SignalSetMaxAveragePriceChange(uint256 maxAveragePriceChange);
+    event SetMaxAveragePriceChange(uint256 maxAveragePriceChange);
 
     event SignalSetAveragePriceUpdateDelay(uint256 averagePriceUpdateDelay);
     event SetAveragePriceUpdateDelay(uint256 averagePriceUpdateDelay);
@@ -44,10 +44,16 @@ contract ShortsTrackerTimelock {
     event SignalPendingAction(bytes32 action);
     event ClearAction(bytes32 action);
 
-    constructor(address _admin, uint256 _buffer, uint256 _averagePriceUpdateDelay) public {
+    constructor(
+        address _admin,
+        uint256 _buffer,
+        uint256 _averagePriceUpdateDelay,
+        uint256 _maxAveragePriceChange
+    ) public {
         admin = _admin;
         buffer = _buffer;
         averagePriceUpdateDelay = _averagePriceUpdateDelay;
+        maxAveragePriceChange = _maxAveragePriceChange;
     }
 
     modifier onlyAdmin() {
@@ -127,21 +133,21 @@ contract ShortsTrackerTimelock {
         emit SetAveragePriceUpdateDelay(_averagePriceUpdateDelay);
     }
 
-    function signalSetMaxAveragePriceChange(address _token, uint256 _maxAveragePriceChange) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("setMaxAveragePriceChange", _token, _maxAveragePriceChange));
+    function signalSetMaxAveragePriceChange(uint256 _maxAveragePriceChange) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setMaxAveragePriceChange", _maxAveragePriceChange));
         _setPendingAction(action);
 
-        emit SignalSetMaxAveragePriceChange(_token, _maxAveragePriceChange);
+        emit SignalSetMaxAveragePriceChange(_maxAveragePriceChange);
     }
 
-    function setMaxAveragePriceChange(address _token, uint256 _maxAveragePriceChange) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("setMaxAveragePriceChange", _token, _maxAveragePriceChange));
+    function setMaxAveragePriceChange(uint256 _maxAveragePriceChange) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setMaxAveragePriceChange", _maxAveragePriceChange));
         _validateAction(action);
         _clearAction(action);
 
-        maxAveragePriceChange[_token] = _maxAveragePriceChange;
+        maxAveragePriceChange = _maxAveragePriceChange;
 
-        emit SetMaxAveragePriceChange(_token, _maxAveragePriceChange);
+        emit SetMaxAveragePriceChange(_maxAveragePriceChange);
     }
 
     function signalSetIsGlobalShortDataReady(IShortsTracker _shortsTracker, bool _value) external onlyAdmin {
@@ -175,7 +181,7 @@ contract ShortsTrackerTimelock {
             uint256 oldAveragePrice = _shortsTracker.globalShortAveragePrices(token);
             uint256 newAveragePrice = _averagePrices[i];
             uint256 diff = newAveragePrice > oldAveragePrice ? newAveragePrice.sub(oldAveragePrice) : oldAveragePrice.sub(newAveragePrice);
-            require(diff.mul(BASIS_POINTS_DIVISOR).div(oldAveragePrice) < maxAveragePriceChange[token], "ShortsTrackerTimelock: too big change");
+            require(diff.mul(BASIS_POINTS_DIVISOR).div(oldAveragePrice) < maxAveragePriceChange, "ShortsTrackerTimelock: too big change");
 
             require(block.timestamp >= lastUpdated[token].add(averagePriceUpdateDelay), "ShortsTrackerTimelock: too early");
             lastUpdated[token] = block.timestamp;
