@@ -41,7 +41,7 @@ contract ShortsTracker is Governable, IShortsTracker {
         globalShortAveragePrices[_token] = _averagePrice;
     }
 
-    function setIsGlobalShortDataReady(bool value) external onlyGov {
+    function setIsGlobalShortDataReady(bool value) override external onlyGov {
         isGlobalShortDataReady = value;
     }
 
@@ -89,7 +89,7 @@ contract ShortsTracker is Governable, IShortsTracker {
     }
 
 
-    function setInitData(address[] calldata _tokens, uint256[] calldata _averagePrices) external onlyGov {
+    function setInitData(address[] calldata _tokens, uint256[] calldata _averagePrices) override external onlyGov {
         require(!isGlobalShortDataReady, "ShortsTracker: already migrated");
 
         for (uint256 i = 0; i < _tokens.length; i++) {

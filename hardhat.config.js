@@ -43,6 +43,9 @@ task("accounts", "Prints the list of accounts", async () => {
  */
 module.exports = {
   networks: {
+    localhost: {
+      timeout: 120000
+    },
     hardhat: {
       allowUnlimitedContractSize: true
     },
