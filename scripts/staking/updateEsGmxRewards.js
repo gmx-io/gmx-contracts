@@ -5,7 +5,7 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
 const shouldSendTxn = true
 
-const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("18,505"), 18)
+const monthlyEsGmxForGlpOnArb = expandDecimals(toInt("0"), 18)
 const monthlyEsGmxForGlpOnAvax = expandDecimals(toInt("0"), 18)
 
 async function getStakedAmounts() {

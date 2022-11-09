@@ -72,7 +72,7 @@ async function sendTxn(txnPromise, label) {
   console.info(`Sending ${label}...`)
   await txn.wait()
   console.info(`... Sent! ${txn.hash}`)
-  await sleep(1000)
+  await sleep(2000)
   return txn
 }
 
