@@ -141,7 +141,7 @@ module.exports = {
       bufferAmount: 2000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 35 * 1000 * 1000,
+      maxGlobalLongSize: 30 * 1000 * 1000,
       maxGlobalShortSize: 35 * 1000 * 1000,
     },
     eth: {
@@ -265,7 +265,7 @@ module.exports = {
       isStrictStable: true,
       tokenWeight: 5000,
       minProfitBps: 0,
-      maxUsdgAmount: 24 * 1000 * 1000,
+      maxUsdgAmount: 25 * 1000 * 1000,
       bufferAmount: 6 * 1000 * 1000,
       isStable: true,
       isShortable: false
@@ -288,7 +288,7 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 7000,
       minProfitBps: 0,
-      maxUsdgAmount: 7 * 1000 *1000,
+      maxUsdgAmount: 6 * 1000 *1000,
       bufferAmount: 200000,
       isStable: false,
       isShortable: true,
@@ -322,7 +322,7 @@ module.exports = {
       fastPricePrecision: 1000,
       maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
-      tokenWeight: 9000,
+      tokenWeight: 8000,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 * 1000,
       bufferAmount: 200,
@@ -339,7 +339,7 @@ module.exports = {
       fastPricePrecision: 1000,
       maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
-      tokenWeight: 14000,
+      tokenWeight: 15000,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 * 1000,
       bufferAmount: 100,
@@ -371,7 +371,7 @@ module.exports = {
       tokenWeight: 17000,
       minProfitBps: 0,
       maxUsdgAmount: 70 * 1000 * 1000,
-      bufferAmount: 13 * 1000 * 1000,
+      bufferAmount: 10 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },

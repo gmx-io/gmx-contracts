@@ -110,6 +110,10 @@ async function getAvaxValues() {
     {
       address: "0x7858A4C42C619a68df6E95DF7235a9Ec6F0308b9", // liquidator
       targetFunds: "300"
+    },
+    {
+      address: "0x02270a816fcca45ce078c8b3de0346eebc90b227", // shorts tracker keeper
+      targetFunds: "25"
     }
   ]
 
