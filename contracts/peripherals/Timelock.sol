@@ -368,15 +368,15 @@ contract Timelock is ITimelock {
     function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyKeeperAndAbove {
         require(_accounts.length == _amounts.length, "Timelock: invalid lengths");
 
-        if (!IHandlerTarget(_vester).isHandler(address(this))) {
-            IHandlerTarget(_vester).setHandler(address(this), true);
-        }
+        IHandlerTarget(_vester).setHandler(address(this), true);
 
         for (uint256 i = 0; i < _accounts.length; i++) {
             address account = _accounts[i];
             uint256 amount = _amounts[i];
             IVester(_vester).setBonusRewards(account, amount);
         }
+
+        IHandlerTarget(_vester).setHandler(address(this), false);
     }
 
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {
