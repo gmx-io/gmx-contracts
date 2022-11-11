@@ -311,6 +311,7 @@ module.exports = {
       bufferAmount: 5500,
       isStable: false,
       isShortable: true,
+      maxGlobalLongSize: 15 * 1000 * 1000,
       maxGlobalShortSize: 10 * 1000 * 1000
     },
     btc: {
@@ -328,6 +329,7 @@ module.exports = {
       bufferAmount: 200,
       isStable: false,
       isShortable: true,
+      maxGlobalLongSize: 10 * 1000 * 1000,
       maxGlobalShortSize: 1 * 1000 * 1000
     },
     btcb: {
@@ -345,6 +347,7 @@ module.exports = {
       bufferAmount: 100,
       isStable: false,
       isShortable: true,
+      maxGlobalLongSize: 15 * 1000 * 1000,
       maxGlobalShortSize: 10 * 1000 * 1000
     },
     mim: {
