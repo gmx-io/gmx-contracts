@@ -8,8 +8,8 @@ async function getArbValues() {
   const tokenManager = { address: "0xddDc546e07f1374A07b270b7d863371e575EA96A" }
   const glpManager = { address: "0x321F653eED006AD1C29D174e17d96351BDe22649" }
 
-  const positionRouter = { address: "0x3D6bA331e3D9702C5e8A8d254e5d8a285F223aba" }
-  const positionManager = { address: "0x956618e5B6996919eB6B943aBf36910DdabC9a0f" }
+  const positionRouter = { address: "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868" }
+  const positionManager = { address: "0x75E42e6f01baf1D6022bEa862A28774a9f8a4A0C" }
   const gmx = { address: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" }
 
   return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
@@ -20,8 +20,8 @@ async function getAvaxValues() {
   const tokenManager = { address: "0x8b25Ba1cAEAFaB8e9926fabCfB6123782e3B4BC2" }
   const glpManager = { address: "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F" }
 
-  const positionRouter = { address: "0x195256074192170d1530527abC9943759c7167d8" }
-  const positionManager = { address: "0xAaf69ca8d44d74EAD76a86f25001cfC44515e94E" }
+  const positionRouter = { address: "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8" }
+  const positionManager = { address: "0xA21B83E579f4315951bA658654c371520BDcB866" }
   const gmx = { address: "0x62edc0692BD897D2295872a9FFCac5425011c661" }
 
   return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
@@ -65,7 +65,7 @@ async function main() {
   await sendTxn(deployedTimelock.setContractHandler(positionManager.address, true), "deployedTimelock.setContractHandler(positionManager)")
 
   // // update gov of vault
-  const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
+  // const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
 
   // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
   // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
