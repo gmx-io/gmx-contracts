@@ -1,0 +1,24 @@
+For the medium risk issue highlighted by Quantstamp regarding the Timelock contracts.
+
+High impact functions require two transactions to execute:
+
+1. Signal transaction
+2. 24 hour delay
+3. Finalize transaction
+
+The signal transactions can be initiated by the admin of the Timelock.
+
+If the admin signals a malicious transaction, during the 24 hour delay, the multi-sig of the Timelock can change the admin, which will prevent the malicious transaction from being finalized.
+
+The current multi-sig holders: https://github.com/gmx-io/gmx-contracts/blob/master/scripts/access/deployTokenManager.js.
+
+Timelocks can be monitored by anyone, reporting of a malicious timelock transaction is also covered under the GMX Immunefi bounty: https://immunefi.com/bounty/gmx/.
+
+Docs on this and on setting up monitoring https://gmx-io.notion.site/GMX-Technical-Overview-47fc5ed832e243afb9e97e8a4a036353.
+
+The Timelock contracts allow some configuration to be changed without a two step process, for example, setting of open interest caps and token weights.
+
+This is to allow the platform to adapt quickly if needed, ideally we want to minimize the need for active adjustments and we are working towards that, we've spent a lot of time improving the contracts towards this goal.
+
+These improvements are in https://github.com/gmx-io/gmx-synthetics which is currently undergoing audit.
+The improved contracts automate most processes, isolate risks for LPs, provide better protection against price manipulation, allowing active adjustments to no longer be needed for things like weights and caps
