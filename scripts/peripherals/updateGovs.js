@@ -22,8 +22,9 @@ async function getArbValues() {
     "0x4e971a87900b931fF39d1Aad67697F49835400b6", // FeeGlpTracker
   ]
 
-  const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const nextTimelock = { address: await vault.gov() }
+  // const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
+  // const nextTimelock = { address: await vault.gov() }
+  const nextTimelock = { address: "0x4339B1D36c5B7aED73859d4758a99308DF767071" }
 
   return { contracts, trackers, nextTimelock }
 }
@@ -47,8 +48,9 @@ async function getAvaxValues() {
     "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", // FeeGlpTracker
   ]
 
-  const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const nextTimelock = { address: await vault.gov() }
+  // const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
+  // const nextTimelock = { address: await vault.gov() }
+  const nextTimelock = { address: "0x28A6AC1f61837050AB97a2721dD9f522ad51D119" }
 
   return { contracts, trackers, nextTimelock }
 }
@@ -65,8 +67,8 @@ async function getValues() {
 
 async function setGov(target, nextTimelock, signer) {
     const prevTimelock = await contractAt("Timelock", await target.gov(), signer)
-    // await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), `signalSetGov: ${target.address}, ${nextTimelock.address}`)
-    await sendTxn(prevTimelock.setGov(target.address, nextTimelock.address), `setGov: ${target.address}, ${nextTimelock.address}`)
+    await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), `signalSetGov: ${target.address}, ${nextTimelock.address}`)
+    // await sendTxn(prevTimelock.setGov(target.address, nextTimelock.address), `setGov: ${target.address}, ${nextTimelock.address}`)
 }
 
 async function main() {
