@@ -86,9 +86,10 @@ async function main() {
     totalUsdgAmount = totalUsdgAmount.add(usdgAmount)
 
     const adjustedMaxUsdgAmount = expandDecimals(tokenItem.maxUsdgAmount, 18)
-    // if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
-    //   usdgAmount = adjustedMaxUsdgAmount
-    // }
+    if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
+      console.warn(`usdgAmount for ${tokenItem.name} was adjusted from ${usdgAmount.toString()} to ${adjustedMaxUsdgAmount.toString()}`)
+      usdgAmount = adjustedMaxUsdgAmount
+    }
 
     if (shouldSendTxn) {
       await sendTxn(timelock.setTokenConfig(
