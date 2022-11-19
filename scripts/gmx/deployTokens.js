@@ -1,14 +1,19 @@
-const { deployContract, contractAt, writeTmpAddresses } = require("../shared/helpers")
+const {
+  deployContract,
+  contractAt,
+  writeTmpAddresses,
+} = require("../shared/helpers");
 
 async function main() {
   // await deployContract("EsGMX", [])
-  // await deployContract("GLP", [])
-  await deployContract("MintableBaseToken", ["esGMX IOU", "esGMX:IOU", 0])
+  const olp = await deployContract("OLP", []);
+  // await deployContract("MintableBaseToken", ["esGMX IOU", "esGMX:IOU", 0])
+  writeTmpAddresses({ OLP: olp.address });
 }
 
 main()
   .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
