@@ -18,6 +18,14 @@ async function getAvaxValues() {
   }
 }
 
+async function getArbValues() {
+  return {
+    handlers: [
+      "0x75f6250b9CeED446b2F25385832dF08DB45a90b0", // X Shorts Tracker Keeper
+    ]
+  }
+}
+
 async function getValues() {
   if (network === "localhost") {
     return await getLocalhostValues()
@@ -25,6 +33,10 @@ async function getValues() {
 
   if (network === "avax") {
     return await getAvaxValues()
+  }
+
+  if (network === "arbitrum") {
+    return await getArbValues()
   }
 
   throw new Error("No values for network " + network)
