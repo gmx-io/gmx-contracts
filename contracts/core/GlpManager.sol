@@ -24,10 +24,10 @@ contract GlpManager is ReentrancyGuard, Governable, IGlpManager {
     uint256 public constant MAX_COOLDOWN_DURATION = 48 hours;
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
-    IVault public vault;
+    IVault public override vault;
     IShortsTracker public shortsTracker;
     address public override usdg;
-    address public glp;
+    address public override glp;
 
     uint256 public override cooldownDuration;
     mapping (address => uint256) public override lastAddedAt;
