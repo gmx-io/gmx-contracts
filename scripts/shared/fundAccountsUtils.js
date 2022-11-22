@@ -69,6 +69,10 @@ async function getArbValues() {
     {
       address: "0x44311c91008DDE73dE521cd25136fD37d616802c", // liquidator
       targetFunds: "15"
+    },
+    {
+      address: "0x75f6250b9CeED446b2F25385832dF08DB45a90b0", // shorts tracker keeper
+      targetFunds: "2"
     }
   ]
 
