@@ -141,6 +141,7 @@ contract Timelock is ITimelock {
 
         IHandlerTarget(_rewardRouter.feeGlpTracker()).setHandler(rewardRouter, true);
         IHandlerTarget(_rewardRouter.stakedGlpTracker()).setHandler(rewardRouter, true);
+        IHandlerTarget(glpManager).setHandler(rewardRouter, true);
     }
 
     function setKeeper(address _keeper, bool _isActive) external onlyAdmin {
