@@ -67,8 +67,8 @@ async function getValues() {
 
 async function setGov(target, nextTimelock, signer) {
     const prevTimelock = await contractAt("Timelock", await target.gov(), signer)
-    await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), `signalSetGov: ${target.address}, ${nextTimelock.address}`)
-    // await sendTxn(prevTimelock.setGov(target.address, nextTimelock.address), `setGov: ${target.address}, ${nextTimelock.address}`)
+    // await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), `signalSetGov: ${target.address}, ${nextTimelock.address}`)
+    await sendTxn(prevTimelock.setGov(target.address, nextTimelock.address), `setGov: ${target.address}, ${nextTimelock.address}`)
 }
 
 async function main() {

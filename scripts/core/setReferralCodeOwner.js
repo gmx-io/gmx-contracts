@@ -29,8 +29,9 @@ async function getValues() {
 
 async function main() {
   const { referralStorage } = await getValues()
+  const timelock = await contractAt("Timelock", await referralStorage.gov())
 
-  const code = "discount"
+  const code = "example"
   const encodedCode = ethers.utils.formatBytes32String(code)
   const account = await referralStorage.codeOwners(encodedCode)
   console.log("current account", account)
@@ -39,8 +40,8 @@ async function main() {
     throw new Error("Code already taken")
   }
 
-  const newAccount = "0x43e37ae780aac89aadd10097bd90d5a79e1192ed"
-  await sendTxn(referralStorage.govSetCodeOwner(encodedCode, newAccount), "referralStorage.govSetCodeOwner")
+  const newAccount = "<address>"
+  await sendTxn(timelock.govSetCodeOwner(referralStorage.address, encodedCode, newAccount), "referralStorage.govSetCodeOwner")
 }
 
 main()
