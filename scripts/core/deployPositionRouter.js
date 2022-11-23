@@ -12,13 +12,39 @@ const { toUsd } = require("../../test/shared/units");
 const network = process.env.HARDHAT_NETWORK || "mainnet";
 const tokens = require("./tokens")[network];
 
-async function getTestnetValues(singer) {
+async function getTestnetValues(signer) {
   const vault = await contractAt(
     "Vault",
     "0xA57F00939D8597DeF1965FF4708921c56D9A36f3"
   );
 
-  const timelock = await contractAt("Timelock");
+  const timelock = await contractAt(
+    "Timelock",
+    "0x8D0De55e339b8CC62eC98A05aA46b6F352dE4054"
+  );
+  const router = await contractAt("Router", await vault.router());
+  const weth = await contractAt("WETH", tokens.nativeToken.address);
+
+  const referralStorage = await contractAt(
+    "ReferralStorage",
+    "0xcFB491149F0a037EfcF5A0323cc460C8a83635Fa"
+  );
+  const shortsTracker = await contractAt(
+    "ShortsTracker",
+    "0x230a476D100Bba2f76edBDF1300df3f963d943Dd"
+  );
+  const depositFee = "30"; // 0.3%
+  const minExecutionFee = "100000000000000"; // 0.0001 ETH
+  return {
+    vault,
+    timelock,
+    router,
+    weth,
+    referralStorage,
+    shortsTracker,
+    depositFee,
+    minExecutionFee,
+  };
 }
 
 async function getArbValues(signer) {
@@ -102,7 +128,6 @@ async function getValues(signer) {
 
 async function main() {
   const signer = await getFrameSigner();
-
   const {
     vault,
     timelock,
@@ -116,8 +141,7 @@ async function main() {
 
   const referralStorageGov = await contractAt(
     "Timelock",
-    await referralStorage.gov(),
-    signer
+    await referralStorage.gov()
   );
 
   const positionRouterArgs = [
@@ -128,39 +152,44 @@ async function main() {
     depositFee,
     minExecutionFee,
   ];
-  const positionRouter = await deployContract(
+  // const positionRouter = await deployContract(
+  //   "PositionRouter",
+  //   positionRouterArgs
+  // );
+  const positionRouter = await contractAt(
     "PositionRouter",
-    positionRouterArgs
+    "0x9B25fb7d0af7B36d9dF9b872d1e80D42F0278168"
   );
 
-  await sendTxn(
-    positionRouter.setReferralStorage(referralStorage.address),
-    "positionRouter.setReferralStorage"
-  );
-  await sendTxn(
-    referralStorageGov.signalSetHandler(
-      referralStorage.address,
-      positionRouter.address,
-      true
-    ),
-    "referralStorage.signalSetHandler(positionRouter)"
-  );
+  // await sendTxn(
+  //   positionRouter.setReferralStorage(referralStorage.address),
+  //   "positionRouter.setReferralStorage"
+  // );
 
-  await sendTxn(
-    shortsTracker.setHandler(positionRouter.address, true),
-    "shortsTracker.setHandler(positionRouter)"
-  );
+  // await sendTxn(
+  //   referralStorageGov.signalSetHandler(
+  //     referralStorage.address,
+  //     positionRouter.address,
+  //     true
+  //   ),
+  //   "referralStorage.signalSetHandler(positionRouter)"
+  // );
 
-  await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin");
+  // await sendTxn(
+  //   shortsTracker.setHandler(positionRouter.address, true),
+  //   "shortsTracker.setHandler(positionRouter)"
+  // );
 
-  await sendTxn(
-    positionRouter.setDelayValues(1, 180, 30 * 60),
-    "positionRouter.setDelayValues"
-  );
-  await sendTxn(
-    timelock.setContractHandler(positionRouter.address, true),
-    "timelock.setContractHandler(positionRouter)"
-  );
+  // await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin");
+
+  // await sendTxn(
+  //   positionRouter.setDelayValues(1, 180, 30 * 60),
+  //   "positionRouter.setDelayValues"
+  // );
+  // await sendTxn(
+  //   timelock.setContractHandler(positionRouter.address, true),
+  //   "timelock.setContractHandler(positionRouter)"
+  // );
 
   await sendTxn(
     positionRouter.setGov(await vault.gov()),

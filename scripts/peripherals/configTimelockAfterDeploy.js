@@ -1,8 +1,8 @@
 const {
   deployContract,
   contractAt,
+  sendTxn,
   getFrameSigner,
-  writeTmpAddresses,
 } = require("../shared/helpers");
 const { expandDecimals } = require("../../test/shared/utilities");
 
@@ -107,12 +107,21 @@ async function getValues() {
 }
 
 async function main() {
+  const signer = await getFrameSigner();
+
   const admin =
-    network === "bsc" ? "" : "0x2CC6D07871A1c0655d6A7c9b0Ad24bED8f940517";
+    network === "bsc" ? "" : "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b";
   const buffer = 24 * 60 * 60;
   const maxTokenSupply = expandDecimals("13250000", 18);
 
-  const { tokenManager, glpManager } = await getValues();
+  const {
+    vault,
+    tokenManager,
+    glpManager,
+    positionRouter,
+    positionManager,
+    gmx,
+  } = await getValues();
   const mintReceiver = tokenManager;
 
   const timelock = await deployContract(
@@ -129,7 +138,64 @@ async function main() {
     ],
     "Timelock"
   );
-  writeTmpAddresses({ Timelock: timelock.address });
+
+  const deployedTimelock = await contractAt(
+    "Timelock",
+    timelock.address,
+    signer
+  );
+
+  await sendTxn(
+    deployedTimelock.setShouldToggleIsLeverageEnabled(true),
+    "deployedTimelock.setShouldToggleIsLeverageEnabled(true)"
+  );
+  await sendTxn(
+    deployedTimelock.setContractHandler(positionRouter.address, true),
+    "deployedTimelock.setContractHandler(positionRouter)"
+  );
+  await sendTxn(
+    deployedTimelock.setContractHandler(positionManager.address, true),
+    "deployedTimelock.setContractHandler(positionManager)"
+  );
+
+  // // update gov of vault
+  // const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
+
+  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
+  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
+
+  const signers = [
+    "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
+    "0xD7941C4Ca57a511F21853Bbc7FBF8149d5eCb398", // G
+    "0xfb481D70f8d987c1AE3ADc90B7046e39eb6Ad64B", // kr
+    "0x99Aa3D1b3259039E8cB4f0B33d0Cfd736e1Bf49E", // quat
+    "0x6091646D0354b03DD1e9697D33A7341d8C93a6F5", // xhiroz
+  ];
+
+  for (let i = 0; i < signers.length; i++) {
+    const signer = signers[i];
+    await sendTxn(
+      deployedTimelock.setContractHandler(signer, true),
+      `deployedTimelock.setContractHandler(${signer})`
+    );
+  }
+
+  const keepers = [
+    "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8", // X
+  ];
+
+  for (let i = 0; i < keepers.length; i++) {
+    const keeper = keepers[i];
+    await sendTxn(
+      deployedTimelock.setKeeper(keeper, true),
+      `deployedTimelock.setKeeper(${keeper})`
+    );
+  }
+
+  await sendTxn(
+    deployedTimelock.signalApprove(gmx.address, admin, "1000000000000000000"),
+    "deployedTimelock.signalApprove"
+  );
 }
 
 main()

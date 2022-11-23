@@ -22,7 +22,7 @@ const {
   POLYGON_DEPLOY_KEY,
   POLYGON_URL,
   MAINNET_URL,
-  MAINNET_DEPLOY_KEY
+  MAINNET_DEPLOY_KEY,
 } = require("./env.json");
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -97,6 +97,7 @@ module.exports = {
       arbitrumOne: ARBISCAN_API_KEY,
       avalanche: SNOWTRACE_API_KEY,
       bsc: BSCSCAN_API_KEY,
+      bscTestnet: BSCSCAN_API_KEY,
       polygon: POLYGONSCAN_API_KEY,
     },
   },
