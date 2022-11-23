@@ -39,7 +39,8 @@ async function getValues() {
 async function main() {
   const { nativeToken, glp, feeGlpTracker, stakedGlpTracker, glpManager } = await getValues()
 
-  await deployContract("RewardRouterV2", [
+  const rewardRouter = await deployContract("RewardRouterV2", [])
+  await sendTxn(rewardRouter.initialize(
     nativeToken.address, // _weth
     AddressZero, // _gmx
     AddressZero, // _esGmx
@@ -53,7 +54,7 @@ async function main() {
     glpManager.address, // _glpManager
     AddressZero, // _gmxVester
     AddressZero // glpVester
-  ], "RewardRouterV2")
+  ), "rewardRouter.initialize")
 }
 
 main()
