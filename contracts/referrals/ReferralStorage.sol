@@ -19,14 +19,14 @@ contract ReferralStorage is Governable, IReferralStorage {
 
     uint256 public constant BASIS_POINTS = 10000;
 
-    mapping (address => uint256) public referrerDiscountShares; // to override default value in tier
-    mapping (address => uint256) public referrerTiers; // link between user <> tier
+    mapping (address => uint256) public override referrerDiscountShares; // to override default value in tier
+    mapping (address => uint256) public override referrerTiers; // link between user <> tier
     mapping (uint256 => Tier) public tiers;
 
     mapping (address => bool) public isHandler;
 
     mapping (bytes32 => address) public override codeOwners;
-    mapping (address => bytes32) public traderReferralCodes;
+    mapping (address => bytes32) public override traderReferralCodes;
 
     event SetHandler(address handler, bool isActive);
     event SetTraderReferralCode(address account, bytes32 code);
