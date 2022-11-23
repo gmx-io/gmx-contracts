@@ -23,8 +23,8 @@ async function getAvaxValues() {
   const timelock = await contractAt("Timelock", await vault.gov())
   const reader = await contractAt("Reader", "0x2eFEE1950ededC65De687b40Fd30a7B5f4544aBd")
 
-  const { avax, eth, btc, btcb, usdce, usdc } = tokens
-  const tokenArr = [ avax, eth, btc, btcb, usdce, usdc ]
+  const { avax, eth, btcb, btc, usdc, usdce } = tokens
+  const tokenArr = [ avax, eth, btcb, btc, usdc, usdce ]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, avax.address, 1, tokenArr.map(t => t.address))
 
