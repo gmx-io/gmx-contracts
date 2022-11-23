@@ -137,11 +137,11 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 15000,
       minProfitBps: 0,
-      maxUsdgAmount: 65 * 1000 *1000,
+      maxUsdgAmount: 70 * 1000 *1000,
       bufferAmount: 2000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 20 * 1000 * 1000,
+      maxGlobalLongSize: 40 * 1000 * 1000,
       maxGlobalShortSize: 30 * 1000 * 1000,
     },
     eth: {
@@ -159,7 +159,7 @@ module.exports = {
       bufferAmount: 65000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 25 * 1000 * 1000,
+      maxGlobalLongSize: 45 * 1000 * 1000,
       maxGlobalShortSize: 60 * 1000 * 1000,
     },
     usdc: {
@@ -314,24 +314,6 @@ module.exports = {
       maxGlobalLongSize: 15 * 1000 * 1000,
       maxGlobalShortSize: 10 * 1000 * 1000
     },
-    btc: {
-      name: "btc",
-      address: "0x50b7545627a5162f82a992c33b87adc75187b218",
-      decimals: 8,
-      priceFeed: "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
-      priceDecimals: 8,
-      fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
-      isStrictStable: false,
-      tokenWeight: 3000,
-      minProfitBps: 0,
-      maxUsdgAmount: 4 * 1000 * 1000,
-      bufferAmount: 100,
-      isStable: false,
-      isShortable: true,
-      maxGlobalLongSize: 10 * 1000 * 1000,
-      maxGlobalShortSize: 1 * 1000 * 1000
-    },
     btcb: {
       name: "btcb",
       address: "0x152b9d0FdC40C096757F570A51E494bd4b943E50",
@@ -350,6 +332,24 @@ module.exports = {
       maxGlobalLongSize: 15 * 1000 * 1000,
       maxGlobalShortSize: 10 * 1000 * 1000
     },
+    btc: {
+      name: "btc",
+      address: "0x50b7545627a5162f82a992c33b87adc75187b218",
+      decimals: 8,
+      priceFeed: "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
+      priceDecimals: 8,
+      fastPricePrecision: 1000,
+      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      isStrictStable: false,
+      tokenWeight: 3000,
+      minProfitBps: 0,
+      maxUsdgAmount: 4 * 1000 * 1000,
+      bufferAmount: 100,
+      isStable: false,
+      isShortable: true,
+      maxGlobalLongSize: 10 * 1000 * 1000,
+      maxGlobalShortSize: 1 * 1000 * 1000
+    },
     mim: {
       name: "mim",
       address: "0x130966628846BFd36ff31a822705796e8cb8C18D",
@@ -364,20 +364,6 @@ module.exports = {
       isStable: true,
       isShortable: false
     },
-    usdce: {
-      name: "usdce",
-      address: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-      decimals: 6,
-      priceFeed: "0xF096872672F44d6EBA71458D74fe67F9a77a23B9",
-      priceDecimals: 8,
-      isStrictStable: true,
-      tokenWeight: 10000,
-      minProfitBps: 0,
-      maxUsdgAmount: 70 * 1000 * 1000,
-      bufferAmount: 5 * 1000 * 1000,
-      isStable: true,
-      isShortable: false
-    },
     usdc: {
       name: "usdc",
       address: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
@@ -385,10 +371,24 @@ module.exports = {
       priceFeed: "0xF096872672F44d6EBA71458D74fe67F9a77a23B9",
       priceDecimals: 8,
       isStrictStable: true,
-      tokenWeight: 40000,
+      tokenWeight: 45000,
       minProfitBps: 0,
       maxUsdgAmount: 50 * 1000 * 1000,
       bufferAmount: 15 * 1000 * 1000,
+      isStable: true,
+      isShortable: false
+    },
+    usdce: {
+      name: "usdce",
+      address: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+      decimals: 6,
+      priceFeed: "0xF096872672F44d6EBA71458D74fe67F9a77a23B9",
+      priceDecimals: 8,
+      isStrictStable: true,
+      tokenWeight: 5000,
+      minProfitBps: 0,
+      maxUsdgAmount: 10 * 1000 * 1000,
+      bufferAmount: 2 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },
