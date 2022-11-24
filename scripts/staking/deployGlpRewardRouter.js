@@ -2,7 +2,7 @@ const { deployContract, contractAt, sendTxn, getFrameSigner } = require("../shar
 const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
-const tokens = require('./tokens')[network];
+const tokens = require('../core/tokens')[network];
 
 const { AddressZero } = ethers.constants
 
@@ -11,7 +11,7 @@ async function getArbValues() {
   const glp = { address: "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258" }
   const feeGlpTracker = { address: "0x4e971a87900b931fF39d1Aad67697F49835400b6" }
   const stakedGlpTracker = { address: "0x1aDDD80E6039594eE970E5872D247bf0414C8903" }
-  const glpManager = { address: "" }
+  const glpManager = { address: "0x3963FfC9dff443c2A94f21b129D429891E32ec18" }
 
   return { nativeToken, glp, feeGlpTracker, stakedGlpTracker, glpManager }
 }
@@ -21,7 +21,7 @@ async function getAvaxValues() {
   const glp = { address: "0x01234181085565ed162a948b6a5e88758CD7c7b8" }
   const feeGlpTracker = { address: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F" }
   const stakedGlpTracker = { address: "0x9e295B5B976a184B14aD8cd72413aD846C299660" }
-  const glpManager = { address: "" }
+  const glpManager = { address: "0xD152c7F25db7F4B95b7658323c5F33d176818EE4" }
 
   return { nativeToken, glp, feeGlpTracker, stakedGlpTracker, glpManager }
 }
