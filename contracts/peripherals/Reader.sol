@@ -13,6 +13,7 @@ import "../amm/interfaces/IPancakeFactory.sol";
 
 import "../staking/interfaces/IVester.sol";
 import "../access/Governable.sol";
+import "../peripherals/Timelock.sol";
 
 contract Reader is Governable {
     using SafeMath for uint256;
@@ -266,6 +267,25 @@ contract Reader is Governable {
             amounts[i * propsLength + 3] = _priceFeed.getPrimaryPrice(token, false);
             amounts[i * propsLength + 4] = _priceFeed.isAdjustmentAdditive(token) ? 1 : 0;
             amounts[i * propsLength + 5] = _priceFeed.adjustmentBasisPoints(token);
+        }
+
+        return amounts;
+    }
+
+    function getPrices(Timelock _timelock, IVaultPriceFeed _priceFeed, address[] memory _tokens) public view returns (uint256[] memory) {
+        uint256 propsLength = 7;
+
+        uint256[] memory amounts = new uint256[](_tokens.length * propsLength);
+
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            address token = _tokens[i];
+            amounts[i * propsLength] = _priceFeed.getPrice(token, true, true, false);
+            amounts[i * propsLength + 1] = _priceFeed.getPrice(token, false, true, false);
+            amounts[i * propsLength + 2] = _priceFeed.getPrimaryPrice(token, true);
+            amounts[i * propsLength + 3] = _priceFeed.getPrimaryPrice(token, false);
+            amounts[i * propsLength + 4] = _priceFeed.isAdjustmentAdditive(token) ? 1 : 0;
+            amounts[i * propsLength + 5] = _priceFeed.adjustmentBasisPoints(token);
+            amounts[i * propsLength + 6] = _timelock.priceRecommendation(token);
         }
 
         return amounts;
