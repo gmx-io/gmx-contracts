@@ -50,7 +50,6 @@ contract TimeDistributor is IDistributor {
         }
 
         tokensPerInterval[_receiver] = _amount;
-        _updateLastDistributionTime(_receiver);
         emit TokensPerIntervalChange(_receiver, _amount);
     }
 
