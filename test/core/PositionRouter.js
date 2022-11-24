@@ -53,12 +53,13 @@ describe("PositionRouter", function () {
 
     vault = await deployContract("Vault", [])
     timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      AddressZero,
-      tokenManager.address,
-      mintReceiver.address,
-      expandDecimals(1000, 18),
+      wallet.address, // _admin
+      5 * 24 * 60 * 60, // _buffer
+      ethers.constants.AddressZero, // _tokenManager
+      ethers.constants.AddressZero, // _mintReceiver
+      ethers.constants.AddressZero, // _glpManager
+      ethers.constants.AddressZero, // _rewardRouter
+      expandDecimals(1000, 18), // _maxTokenSupply
       10, // marginFeeBasisPoints 0.1%
       500, // maxMarginFeeBasisPoints 5%
     ])

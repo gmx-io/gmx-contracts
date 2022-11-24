@@ -80,14 +80,15 @@ describe("RewardRouterV2", function () {
     glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, ethers.constants.AddressZero, 24 * 60 * 60])
 
     timelock = await deployContract("Timelock", [
-      wallet.address,
-      10,
-      tokenManager.address,
-      tokenManager.address,
-      glpManager.address,
-      expandDecimals(1000000, 18),
-      10,
-      100
+      wallet.address, // _admin
+      10, // _buffer
+      tokenManager.address, // _tokenManager
+      tokenManager.address, // _mintReceiver
+      glpManager.address, // _glpManager
+      user0.address, // _rewardRouter
+      expandDecimals(1000000, 18), // _maxTokenSupply
+      10, // marginFeeBasisPoints
+      100 // maxMarginFeeBasisPoints
     ])
 
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)

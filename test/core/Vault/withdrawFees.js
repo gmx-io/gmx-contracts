@@ -177,14 +177,15 @@ describe("Vault.withdrawFees", function () {
       .to.be.revertedWith("Vault: forbidden")
 
     const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      user0.address,
-      user1.address,
-      user2.address,
-      expandDecimals(1000, 18),
-      10,
-      100
+      wallet.address, // _admin
+      5 * 24 * 60 * 60, // _buffer
+      user0.address, // _tokenManager
+      user1.address, // _mintReceiver
+      user2.address, // _glpManager
+      user3.address, // _rewardRouter
+      expandDecimals(1000, 18), // _maxTokenSupply
+      10, // marginFeeBasisPoints
+      100 // maxMarginFeeBasisPoints
     ])
     await vault.setGov(timelock.address)
 
@@ -257,14 +258,15 @@ describe("Vault.withdrawFees", function () {
       .to.be.revertedWith("Vault: forbidden")
 
     const timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      user0.address,
-      user1.address,
-      user2.address,
-      expandDecimals(1000, 18),
-      10,
-      100
+      wallet.address, // _admin
+      5 * 24 * 60 * 60, // _buffer
+      user0.address, // _tokenManager
+      user1.address, // _mintReceiver
+      user2.address, // _glpManager
+      user3.address, // _rewardRouter
+      expandDecimals(1000, 18), // _maxTokenSupply
+      10, // marginFeeBasisPoints
+      100 // maxMarginFeeBasisPoints
     ])
     await vault.setGov(timelock.address)
 
