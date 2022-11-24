@@ -9,13 +9,14 @@ import "../libraries/utils/ReentrancyGuard.sol";
 import "../libraries/utils/Address.sol";
 
 import "./interfaces/IRewardTracker.sol";
+import "./interfaces/IRewardRouterV2.sol";
 import "./interfaces/IVester.sol";
 import "../tokens/interfaces/IMintable.sol";
 import "../tokens/interfaces/IWETH.sol";
 import "../core/interfaces/IGlpManager.sol";
 import "../access/Governable.sol";
 
-contract RewardRouterV2 is ReentrancyGuard, Governable {
+contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Address for address payable;
@@ -34,8 +35,8 @@ contract RewardRouterV2 is ReentrancyGuard, Governable {
     address public bonusGmxTracker;
     address public feeGmxTracker;
 
-    address public stakedGlpTracker;
-    address public feeGlpTracker;
+    address public override stakedGlpTracker;
+    address public override feeGlpTracker;
 
     address public glpManager;
 

@@ -123,14 +123,15 @@ describe("PositionManager core", function () {
 
     deployTimelock = async () => {
       return await deployContract("Timelock", [
-        wallet.address,
-        5 * 24 * 60 * 60,
-        ethers.constants.AddressZero,
-        ethers.constants.AddressZero,
-        ethers.constants.AddressZero,
-        expandDecimals(1000, 18),
-        10,
-        100
+        wallet.address, // _admin
+        5 * 24 * 60 * 60, // _buffer
+        ethers.constants.AddressZero, // _tokenManager
+        ethers.constants.AddressZero, // _mintReceiver
+        ethers.constants.AddressZero, // _glpManager
+        ethers.constants.AddressZero, // _rewardRouter
+        expandDecimals(1000, 18), // _maxTokenSupply
+        10, // _marginFeeBasisPoints
+        100 // _maxMarginFeeBasisPoints
       ])
     }
   })
@@ -889,14 +890,15 @@ describe("PositionManager next short data calculations", function () {
     await router.connect(user2).approvePlugin(positionManager.address)
 
     timelock = await deployContract("Timelock", [
-      wallet.address,
-      5 * 24 * 60 * 60,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      expandDecimals(1000, 18),
-      10,
-      100
+      wallet.address, // _admin
+      5 * 24 * 60 * 60, // _buffer
+      ethers.constants.AddressZero, // _tokenManager
+      ethers.constants.AddressZero, // _mintReceiver
+      ethers.constants.AddressZero, // _glpManager
+      ethers.constants.AddressZero, // _rewardRouter
+      expandDecimals(1000, 18), // _maxTokenSupply
+      10, // _marginFeeBasisPoints
+      100 // _maxMarginFeeBasisPoints
     ])
     await timelock.setContractHandler(positionManager.address, true)
     await timelock.setShouldToggleIsLeverageEnabled(true)

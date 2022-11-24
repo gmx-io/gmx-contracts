@@ -77,6 +77,7 @@ describe("PriceFeedTimelock", function () {
       tokenManager.address, // tokenManager
       mintReceiver.address, // mintReceiver
       glpManager.address, // glpManager
+      user0.address, // rewardRouter
       expandDecimals(1000, 18), // maxTokenSupply
       50, // marginFeeBasisPoints 0.5%
       500, // maxMarginFeeBasisPoints 5%
@@ -158,14 +159,15 @@ describe("PriceFeedTimelock", function () {
 
   it("setBuffer", async () => {
     const timelock0 = await deployContract("Timelock", [
-      user1.address,
-      3 * 24 * 60 * 60,
-      rewardManager.address,
-      tokenManager.address,
-      mintReceiver.address,
-      1000,
-      10,
-      100
+      user1.address, // _admin
+      3 * 24 * 60 * 60, // _buffer
+      tokenManager.address, // _tokenManager
+      mintReceiver.address, // _mintReceiver
+      user0.address, // _glpManager
+      user1.address, // _rewardRouter
+      1000, // _maxTokenSupply
+      10, // marginFeeBasisPoints
+      100 // maxMarginFeeBasisPoints
     ])
     await expect(timelock0.connect(user0).setBuffer(3 * 24 * 60 * 60 - 10))
       .to.be.revertedWith("Timelock: forbidden")

@@ -7,24 +7,26 @@ async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const tokenManager = { address: "0xddDc546e07f1374A07b270b7d863371e575EA96A" }
   const glpManager = { address: "0x321F653eED006AD1C29D174e17d96351BDe22649" }
+  const rewardRouter = { address: "0xB95DB5B167D75e6d04227CfFFA61069348d271F5" }
 
   const positionRouter = { address: "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868" }
   const positionManager = { address: "0x75E42e6f01baf1D6022bEa862A28774a9f8a4A0C" }
   const gmx = { address: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" }
 
-  return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
+  return { vault, tokenManager, glpManager, rewardRouter, positionRouter, positionManager, gmx }
 }
 
 async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
   const tokenManager = { address: "0x8b25Ba1cAEAFaB8e9926fabCfB6123782e3B4BC2" }
   const glpManager = { address: "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F" }
+  const rewardRouter = { address: "0xB70B91CE0771d3f4c81D87660f71Da31d48eB3B3" }
 
   const positionRouter = { address: "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8" }
   const positionManager = { address: "0xA21B83E579f4315951bA658654c371520BDcB866" }
   const gmx = { address: "0x62edc0692BD897D2295872a9FFCac5425011c661" }
 
-  return { vault, tokenManager, glpManager, positionRouter, positionManager, gmx }
+  return { vault, tokenManager, glpManager, rewardRouter, positionRouter, positionManager, gmx }
 }
 
 async function getValues() {
@@ -44,13 +46,14 @@ async function main() {
   const buffer = 24 * 60 * 60
   const maxTokenSupply = expandDecimals("13250000", 18)
 
-  const { vault, tokenManager, glpManager, positionRouter, positionManager, gmx } = await getValues()
+  const { vault, tokenManager, glpManager, rewardRouter, positionRouter, positionManager, gmx } = await getValues()
   const mintReceiver = tokenManager
 
   const timelock = await deployContract("Timelock", [
     admin,
     buffer,
     tokenManager.address,
+    rewardRouter.address,
     mintReceiver.address,
     glpManager.address,
     maxTokenSupply,
