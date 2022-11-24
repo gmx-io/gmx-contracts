@@ -73,7 +73,7 @@ async function main() {
   // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
   // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
 
-  const signers = [
+  const handlers = [
     "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
     "0xD7941C4Ca57a511F21853Bbc7FBF8149d5eCb398", // G
     "0xfb481D70f8d987c1AE3ADc90B7046e39eb6Ad64B", // kr
@@ -81,9 +81,9 @@ async function main() {
     "0x6091646D0354b03DD1e9697D33A7341d8C93a6F5" // xhiroz
   ]
 
-  for (let i = 0; i < signers.length; i++) {
-    const signer = signers[i]
-    await sendTxn(deployedTimelock.setContractHandler(signer, true), `deployedTimelock.setContractHandler(${signer})`)
+  for (let i = 0; i < handlers.length; i++) {
+    const handler = handlers[i]
+    await sendTxn(deployedTimelock.setContractHandler(handler, true), `deployedTimelock.setContractHandler(${handler})`)
   }
 
   const keepers = [
