@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const parse = require("csv-parse");
-const { BSC_TESTNET_URL } = require("../../env.json");
 
 const network = process.env.HARDHAT_NETWORK || "mainnet";
 
@@ -13,16 +12,21 @@ const {
   AVAX_URL,
   ARBITRUM_DEPLOY_KEY,
   AVAX_DEPLOY_KEY,
+  BSC_TESTNET_DEPLOY_KEY,
+  BSC_TESTNET_URL,
 } = require("../../env.json");
+const { ethers } = require("hardhat");
 
 const providers = {
   arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL),
+  testnet: new ethers.providers.JsonRpcProvider(BSC_TESTNET_URL),
 };
 
 const signers = {
   arbitrum: new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(providers.arbitrum),
   avax: new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(providers.avax),
+  testnet: new ethers.Wallet(BSC_TESTNET_DEPLOY_KEY).connect(providers.testnet),
 };
 
 function sleep(ms) {
