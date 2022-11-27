@@ -15,6 +15,7 @@ contract Competition is Governable {
         uint start;
         uint end;
         uint maxTeamSize;
+        uint8 competitionType;
         mapping(address => Team) teams;
         mapping(string => bool) teamNames;
         mapping(address => address) memberTeams;
@@ -30,8 +31,8 @@ contract Competition is Governable {
     event JoinRequestCanceled(uint index, address member);
     event JoinRequestApproved(uint index, address member, address leader);
     event MemberRemoved(uint index, address leader, address member);
-    event CompetitionCreated(uint index, uint start, uint end, uint maxTeamSize);
-    event CompetitionUpdated(uint index, uint start, uint end, uint maxTeamSize);
+    event CompetitionCreated(uint index, uint start, uint end, uint maxTeamSize, uint8 competitionType);
+    event CompetitionUpdated(uint index, uint start, uint end, uint maxTeamSize, uint8 competitionType);
     event CompetitionRemoved(uint index);
 
     modifier registrationIsOpen(uint competitionIndex) {
@@ -49,26 +50,32 @@ contract Competition is Governable {
         _;
     }
 
+    modifier teamsAreAllowed(uint index) {
+        require(competitions[competitionIndex].competitionType !== 0, "Competition: Team are not allowed.");
+        _;
+    }
+
     constructor(IReferralStorage _referralStorage) public {
         referralStorage = _referralStorage;
     }
 
-    function createCompetition(uint start, uint end, uint maxTeamSize) external onlyGov {
+    function createCompetition(uint start, uint end, uint maxTeamSize, uint8 competitionType) external onlyGov {
         _validateCompetitionParameters(start, end, maxTeamSize);
 
-        competitions.push(Competition(start, end, maxTeamSize));
+        competitions.push(Competition(start, end, maxTeamSize, competitionType));
 
         emit CompetitionCreated(competitions.length - 1, start, end, maxTeamSize);
     }
 
-    function updateCompetition(uint index, uint start, uint end, uint maxTeamSize) external onlyGov competitionExists(index) {
+    function updateCompetition(uint index, uint start, uint end, uint maxTeamSize, uint8 competitionType) external onlyGov competitionExists(index) {
         _validateCompetitionParameters(start, end, maxTeamSize);
 
         competitions[index].start = start;
         competitions[index].end = end;
         competitions[index].maxTeamSize = maxTeamSize;
+        competitions[index].competitionType = competitionType;
 
-        emit CompetitionUpdated(index, start, end, maxTeamSize);
+        emit CompetitionUpdated(index, start, end, maxTeamSize, competitionType);
     }
 
     function removeCompetition(uint index) external onlyGov competitionExists(index) {
@@ -79,7 +86,7 @@ contract Competition is Governable {
         emit CompetitionRemoved(index);
     }
 
-    function createTeam(uint competitionIndex, string calldata name) external registrationIsOpen(competitionIndex) isNotMember(competitionIndex) {
+    function createTeam(uint competitionIndex, string calldata name) external registrationIsOpen(competitionIndex) isNotMember(competitionIndex) teamsAreAllowed(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
         require(!competition.teamNames[name], "Competition: Team name already registered.");
@@ -95,7 +102,7 @@ contract Competition is Governable {
         emit TeamCreated(competitionIndex, msg.sender, name);
     }
 
-    function createJoinRequest(uint competitionIndex, address leaderAddress, bytes32 referralCode) external registrationIsOpen(competitionIndex) isNotMember(competitionIndex) {
+    function createJoinRequest(uint competitionIndex, address leaderAddress, bytes32 referralCode) external registrationIsOpen(competitionIndex) isNotMember(competitionIndex) teamsAreAllowed(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
         require(competition.memberTeams[msg.sender] == address(0), "Competition: You can't join multiple teams.");
@@ -111,7 +118,7 @@ contract Competition is Governable {
         emit JoinRequestCreated(competitionIndex, msg.sender, leaderAddress, referralCode);
     }
 
-    function approveJoinRequest(uint competitionIndex, address[] calldata memberAddresses) external registrationIsOpen(competitionIndex) {
+    function approveJoinRequest(uint competitionIndex, address[] calldata memberAddresses) external registrationIsOpen(competitionIndex) teamsAreAllowed(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
         for (uint i = 0; i < memberAddresses.length; i++) {
@@ -132,12 +139,12 @@ contract Competition is Governable {
         }
     }
 
-    function cancelJoinRequest(uint competitionIndex) external registrationIsOpen(competitionIndex) {
+    function cancelJoinRequest(uint competitionIndex) external registrationIsOpen(competitionIndex) teamsAreAllowed(competitionIndex) {
         competitions[competitionIndex].joinRequests[msg.sender] = address(0);
         emit JoinRequestCanceled(competitionIndex, msg.sender);
     }
 
-    function removeMember(uint competitionIndex, address leaderAddress, address memberAddress) external registrationIsOpen(competitionIndex) {
+    function removeMember(uint competitionIndex, address leaderAddress, address memberAddress) external registrationIsOpen(competitionIndex) teamsAreAllowed(competitionIndex) {
         Competition storage competition = competitions[competitionIndex];
 
         require(competition.memberTeams[memberAddress] == msg.sender || memberAddress == msg.sender, "Competition: You are not allowed to remove this member.");
