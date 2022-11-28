@@ -141,7 +141,7 @@ module.exports = {
       bufferAmount: 2000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 45 * 1000 * 1000,
+      maxGlobalLongSize: 25 * 1000 * 1000,
       maxGlobalShortSize: 30 * 1000 * 1000,
     },
     eth: {
@@ -159,7 +159,7 @@ module.exports = {
       bufferAmount: 65000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 60 * 1000 * 1000,
+      maxGlobalLongSize: 40 * 1000 * 1000,
       maxGlobalShortSize: 60 * 1000 * 1000,
     },
     usdc: {
@@ -323,7 +323,7 @@ module.exports = {
       fastPricePrecision: 1000,
       maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
-      tokenWeight: 20000,
+      tokenWeight: 22000,
       minProfitBps: 0,
       maxUsdgAmount: 30 * 1000 * 1000,
       bufferAmount: 300,
@@ -341,14 +341,14 @@ module.exports = {
       fastPricePrecision: 1000,
       maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
-      tokenWeight: 3000,
+      tokenWeight: 1000,
       minProfitBps: 0,
-      maxUsdgAmount: 4 * 1000 * 1000,
+      maxUsdgAmount: 500 * 1000,
       bufferAmount: 100,
       isStable: false,
       isShortable: true,
       maxGlobalLongSize: 10 * 1000 * 1000,
-      maxGlobalShortSize: 1 * 1000 * 1000
+      maxGlobalShortSize: 1000
     },
     mim: {
       name: "mim",

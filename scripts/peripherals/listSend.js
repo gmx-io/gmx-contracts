@@ -5,18 +5,23 @@ const { LIST } = require("../../data/batchSend/list")
 const {
   ARBITRUM_URL,
   ARBITRUM_PAYMENTS_KEY,
+  AVAX_URL,
+  AVAX_PAYMENTS_KEY,
 } = require("../../env.json")
 
 async function main() {
-  const provider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
-  const wallet = new ethers.Wallet(ARBITRUM_PAYMENTS_KEY).connect(provider)
+  const arbProvider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
+  const arbWallet = new ethers.Wallet(ARBITRUM_PAYMENTS_KEY).connect(arbProvider)
+
+  const avaxProvider = new ethers.providers.JsonRpcProvider(AVAX_URL)
+  const avaxWallet = new ethers.Wallet(AVAX_PAYMENTS_KEY).connect(avaxProvider)
 
   const list = LIST
-  const usdc = await contractAt("Token", "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", wallet)
+  const usdc = await contractAt("Token", "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", avaxWallet)
   const usdcDecimals = 6
-  const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", wallet)
+  const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", arbWallet)
   const gmxDecimals = 18
-  const shouldSendTxn = false
+  const shouldSendTxn = true
 
   const minCount = 0
   let count = 0
