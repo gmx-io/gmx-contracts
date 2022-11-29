@@ -6,7 +6,7 @@ const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
   const tokenManager = { address: "0xddDc546e07f1374A07b270b7d863371e575EA96A" }
-  const glpManager = { address: "0x321F653eED006AD1C29D174e17d96351BDe22649" }
+  const glpManager = { address: "0x3963FfC9dff443c2A94f21b129D429891E32ec18" }
   const rewardRouter = { address: "0xB95DB5B167D75e6d04227CfFFA61069348d271F5" }
 
   const positionRouter = { address: "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868" }
@@ -19,7 +19,7 @@ async function getArbValues() {
 async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
   const tokenManager = { address: "0x8b25Ba1cAEAFaB8e9926fabCfB6123782e3B4BC2" }
-  const glpManager = { address: "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F" }
+  const glpManager = { address: "0xD152c7F25db7F4B95b7658323c5F33d176818EE4" }
   const rewardRouter = { address: "0xB70B91CE0771d3f4c81D87660f71Da31d48eB3B3" }
 
   const positionRouter = { address: "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8" }
@@ -50,13 +50,13 @@ async function main() {
   const mintReceiver = tokenManager
 
   const timelock = await deployContract("Timelock", [
-    admin,
-    buffer,
-    tokenManager.address,
-    rewardRouter.address,
-    mintReceiver.address,
-    glpManager.address,
-    maxTokenSupply,
+    admin, // admin
+    buffer, // buffer
+    tokenManager.address, // tokenManager
+    mintReceiver.address, // mintReceiver
+    glpManager.address, // glpManager
+    rewardRouter.address, // rewardRouter
+    maxTokenSupply, // maxTokenSupply
     10, // marginFeeBasisPoints 0.1%
     500 // maxMarginFeeBasisPoints 5%
   ], "Timelock")

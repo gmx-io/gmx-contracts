@@ -142,7 +142,7 @@ module.exports = {
       isStable: false,
       isShortable: true,
       maxGlobalLongSize: 25 * 1000 * 1000,
-      maxGlobalShortSize: 30 * 1000 * 1000,
+      maxGlobalShortSize: 25 * 1000 * 1000,
     },
     eth: {
       name: "eth",
@@ -160,7 +160,7 @@ module.exports = {
       isStable: false,
       isShortable: true,
       maxGlobalLongSize: 40 * 1000 * 1000,
-      maxGlobalShortSize: 60 * 1000 * 1000,
+      maxGlobalShortSize: 40 * 1000 * 1000,
     },
     usdc: {
       name: "usdc",
