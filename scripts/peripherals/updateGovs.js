@@ -3,8 +3,10 @@ const { expandDecimals } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
+// TODO: update GlpManager addresses
 async function getArbValues() {
   const contracts = [
+    "0x489ee077994B6658eAfA855C308275EAd8097C4A", // Vault
     "0x199070DDfd1CFb69173aa2F7e20906F26B363004", // GmxVester
     "0xA75287d2f8b217273E7FCD7E86eF07D33972042E", // GlpVester
     "0x321F653eED006AD1C29D174e17d96351BDe22649", // GlpManager
@@ -22,15 +24,14 @@ async function getArbValues() {
     "0x4e971a87900b931fF39d1Aad67697F49835400b6", // FeeGlpTracker
   ]
 
-  // const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  // const nextTimelock = { address: await vault.gov() }
-  const nextTimelock = { address: "0x4339B1D36c5B7aED73859d4758a99308DF767071" }
+  const nextTimelock = { address: "0x09fEc993Be76230296Ce8C3B8EDafd32B6240126" }
 
   return { contracts, trackers, nextTimelock }
 }
 
 async function getAvaxValues() {
   const contracts = [
+    "0x9ab2De34A33fB459b538c43f251eB825645e8595", // Vault
     "0x472361d3cA5F49c8E633FB50385BfaD1e018b445", // GmxVester
     "0x62331A7Bd1dfB3A7642B7db50B5509E57CA3154A", // GlpVester
     "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F", // GlpManager
@@ -48,9 +49,7 @@ async function getAvaxValues() {
     "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", // FeeGlpTracker
   ]
 
-  // const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  // const nextTimelock = { address: await vault.gov() }
-  const nextTimelock = { address: "0x28A6AC1f61837050AB97a2721dD9f522ad51D119" }
+  const nextTimelock = { address: "0xb10817448e630177a6a2ECc10E4e9977dBcE67E5" }
 
   return { contracts, trackers, nextTimelock }
 }
@@ -67,6 +66,10 @@ async function getValues() {
 
 async function setGov(target, nextTimelock, signer) {
     const prevTimelock = await contractAt("Timelock", await target.gov(), signer)
+    if (prevTimelock.address === nextTimelock.address) {
+      console.info("gov already set to nextTimelock, skipping", target.address)
+      return
+    }
     // await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), `signalSetGov: ${target.address}, ${nextTimelock.address}`)
     await sendTxn(prevTimelock.setGov(target.address, nextTimelock.address), `setGov: ${target.address}, ${nextTimelock.address}`)
 }

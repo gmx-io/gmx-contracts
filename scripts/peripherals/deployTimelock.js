@@ -50,13 +50,13 @@ async function main() {
   const mintReceiver = tokenManager
 
   const timelock = await deployContract("Timelock", [
-    admin,
-    buffer,
-    tokenManager.address,
-    rewardRouter.address,
-    mintReceiver.address,
-    glpManager.address,
-    maxTokenSupply,
+    admin, // admin
+    buffer, // buffer
+    tokenManager.address, // tokenManager
+    mintReceiver.address, // mintReceiver
+    glpManager.address, // glpManager
+    rewardRouter.address, // rewardRouter
+    maxTokenSupply, // maxTokenSupply
     10, // marginFeeBasisPoints 0.1%
     500 // maxMarginFeeBasisPoints 5%
   ], "Timelock")
