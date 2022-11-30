@@ -117,7 +117,7 @@ async function getAvaxValues() {
     },
     {
       address: "0x02270a816fcca45ce078c8b3de0346eebc90b227", // shorts tracker keeper
-      targetFunds: "25"
+      targetFunds: "50"
     }
   ]
 
