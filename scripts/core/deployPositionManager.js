@@ -141,7 +141,7 @@ async function main() {
   for (let i = 0; i < partnerContracts.length; i++) {
     const partnerContract = partnerContracts[i]
     if (!(await positionManager.isPartner(partnerContract))) {
-      await sendTxn(positionManager.setPartner(partnerContract, false), "positionManager.setPartner(partnerContract)")
+      await sendTxn(positionManager.setPartner(partnerContract, true), "positionManager.setPartner(partnerContract)")
     }
   }
 
