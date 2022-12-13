@@ -20,7 +20,8 @@ async function getArbValues() {
     ["GmxVester", "0x199070DDfd1CFb69173aa2F7e20906F26B363004", "Vester"],
     ["GlpVester", "0xA75287d2f8b217273E7FCD7E86eF07D33972042E", "Vester"],
     // GlpManager methods: isHandler
-    ["GlpManager", "0x3963FfC9dff443c2A94f21b129D429891E32ec18", "GlpManager"],
+    ["Old GlpManager", "0x321F653eED006AD1C29D174e17d96351BDe22649", "GlpManager"],
+    ["New GlpManager", "0x3963FfC9dff443c2A94f21b129D429891E32ec18", "GlpManager"],
     // MintableBaseToken methods: isHandler, isMinter
     ["GLP", "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258", "MintableBaseToken"],
     ["GMX", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", "MintableBaseToken"],
@@ -50,7 +51,8 @@ async function getAvaxValues() {
     ["GmxVester", "0x472361d3cA5F49c8E633FB50385BfaD1e018b445", "Vester"],
     ["GlpVester", "0x62331A7Bd1dfB3A7642B7db50B5509E57CA3154A", "Vester"],
     // GlpManager methods: isHandler
-    ["GlpManager", "0xD152c7F25db7F4B95b7658323c5F33d176818EE4", "GlpManager"],
+    ["Old GlpManager", "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F", "GlpManager"],
+    ["New GlpManager", "0xD152c7F25db7F4B95b7658323c5F33d176818EE4", "GlpManager"],
     // MintableBaseToken methods: isHandler, isMinter
     ["GLP", "0x01234181085565ed162a948b6a5e88758CD7c7b8", "MintableBaseToken"],
     ["GMX", "0x62edc0692BD897D2295872a9FFCac5425011c661", "MintableBaseToken"],

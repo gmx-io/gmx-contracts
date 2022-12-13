@@ -591,12 +591,12 @@ contract Timelock is ITimelock {
     function _mint(address _token, address _receiver, uint256 _amount) private {
         IMintable mintable = IMintable(_token);
 
-        if (!mintable.isMinter(address(this))) {
-            mintable.setMinter(address(this), true);
-        }
+        mintable.setMinter(address(this), true);
 
         mintable.mint(_receiver, _amount);
         require(IERC20(_token).totalSupply() <= maxTokenSupply, "Timelock: maxTokenSupply exceeded");
+
+        mintable.setMinter(address(this), false);
     }
 
     function _setPendingAction(bytes32 _action) private {
