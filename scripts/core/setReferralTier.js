@@ -55,8 +55,7 @@ async function updateAccount(account) {
 
 async function main() {
   const accounts = [
-    "0x2fD798a8fcc64Ba1Bc62bF363A6A28F63e93D5b8",
-    "0x8Bcf10D5bD8a0FF835221dD2a9C794B435c52813"
+    "0x5324C74357efa1A77e2768B81617DefaD2D33D36"
   ]
 
   for (let i = 0; i < accounts.length; i++) {

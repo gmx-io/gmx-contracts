@@ -9,7 +9,8 @@ async function getArbValues() {
     "0x489ee077994B6658eAfA855C308275EAd8097C4A", // Vault
     "0x199070DDfd1CFb69173aa2F7e20906F26B363004", // GmxVester
     "0xA75287d2f8b217273E7FCD7E86eF07D33972042E", // GlpVester
-    "0x321F653eED006AD1C29D174e17d96351BDe22649", // GlpManager
+    "0x321F653eED006AD1C29D174e17d96351BDe22649", // GlpManager 1
+    "0x3963FfC9dff443c2A94f21b129D429891E32ec18", // GlpManager 2
     "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258", // GLP
     "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA", // ES_GMX
     "0x35247165119B69A40edD5304969560D0ef486921", // BN_GMX
@@ -24,7 +25,7 @@ async function getArbValues() {
     "0x4e971a87900b931fF39d1Aad67697F49835400b6", // FeeGlpTracker
   ]
 
-  const nextTimelock = { address: "0x09fEc993Be76230296Ce8C3B8EDafd32B6240126" }
+  const nextTimelock = { address: "0xe7E740Fa40CA16b15B621B49de8E9F0D69CF4858" }
 
   return { contracts, trackers, nextTimelock }
 }
@@ -34,7 +35,8 @@ async function getAvaxValues() {
     "0x9ab2De34A33fB459b538c43f251eB825645e8595", // Vault
     "0x472361d3cA5F49c8E633FB50385BfaD1e018b445", // GmxVester
     "0x62331A7Bd1dfB3A7642B7db50B5509E57CA3154A", // GlpVester
-    "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F", // GlpManager
+    "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F", // GlpManager 1
+    "0xD152c7F25db7F4B95b7658323c5F33d176818EE4", // GlpManager 1
     "0x01234181085565ed162a948b6a5e88758CD7c7b8", // GLP
     "0xFf1489227BbAAC61a9209A08929E4c2a526DdD17", // ES_GMX
     "0x8087a341D32D445d9aC8aCc9c14F5781E04A26d2", // BN_GMX
@@ -49,7 +51,7 @@ async function getAvaxValues() {
     "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", // FeeGlpTracker
   ]
 
-  const nextTimelock = { address: "0xb10817448e630177a6a2ECc10E4e9977dBcE67E5" }
+  const nextTimelock = { address: "0x8Ea12810271a0fD70bBEB8614B8735621abC3718" }
 
   return { contracts, trackers, nextTimelock }
 }

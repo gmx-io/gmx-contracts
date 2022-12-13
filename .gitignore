@@ -10,6 +10,7 @@ data/batchSend
 data/nft
 data/snapshotBalance
 data/holders
+data/contractList
 flattened
 distribution-data*.json
 **/.DS_Store
