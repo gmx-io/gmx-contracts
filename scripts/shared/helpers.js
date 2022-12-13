@@ -189,5 +189,6 @@ module.exports = {
   readTmpAddresses,
   callWithRetries,
   processBatch,
-  updateTokensPerInterval
+  updateTokensPerInterval,
+  sleep
 }
