@@ -1,36 +1,45 @@
 {
-  "name": "gmx-contracts",
-  "version": "1.0.0",
-  "description": "",
-  "files": [
-    "contracts/**/*.sol"
-  ],
-  "scripts": {
-    "test": "npx hardhat test",
-    "compile": "hardhat compile",
-    "typechain": "hardhat typechain"
-  },
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.1",
-    "@nomiclabs/hardhat-etherscan": "^3.0.3",
-    "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "@typechain/ethers-v5": "^7.0.1",
-    "@typechain/hardhat": "^2.3.0",
-    "argparse": "2.0.1",
-    "chai": "^4.3.0",
-    "ethers": "^5.4.6",
-    "ethereum-waffle": "^3.4.4",
-    "hardhat": "^2.6.1",
-    "hardhat-contract-sizer": "^2.0.3",
-    "node-fetch": "3.2.3",
-    "typechain": "^5.1.2"
-  },
-  "dependencies": {
-    "@uniswap/sdk-core": "^3.0.1",
-    "@uniswap/v3-sdk": "^3.8.2",
-    "bn.js": "^5.2.0",
-    "csv-parse": "^4.16.3"
-  }
+    "name": "gmx-contracts",
+    "version": "1.0.0",
+    "description": "",
+    "files": [
+        "contracts/**/*.sol"
+    ],
+    "scripts": {
+        "test": "hardhat test",
+        "compile": "hardhat compile",
+        "typechain": "hardhat typechain",
+        "coverage": "hardhat coverage && open-cli ./coverage/index.html",
+        "prettier": "prettier --write *.js *.ts *.json test/**/*.ts contracts/**/*.sol",
+        "flat": "hardhat run scripts/flat.ts Greeter.sol",
+        "dev": "vite --config web3/vite.config.ts",
+        "build": "vue-tsc --noEmit && vite build",
+        "preview": "vite preview",
+        "prepare": "husky install"
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@boringcrypto/hardhat-framework": "boringcrypto/hardhat-framework",
+        "@nomiclabs/hardhat-ethers": "^2.0.1",
+        "@nomiclabs/hardhat-etherscan": "^3.0.3",
+        "@nomiclabs/hardhat-waffle": "^2.0.1",
+        "@typechain/ethers-v5": "^7.0.1",
+        "@typechain/hardhat": "^2.3.0",
+        "argparse": "2.0.1",
+        "chai": "^4.3.0",
+        "ethereum-waffle": "^3.4.4",
+        "ethers": "^5.4.6",
+        "hardhat": "^2.6.1",
+        "hardhat-contract-sizer": "^2.0.3",
+        "node-fetch": "3.2.3",
+        "typechain": "^5.1.2",
+        "husky": "^8.0.0"
+    },
+    "dependencies": {
+        "@uniswap/sdk-core": "^3.0.1",
+        "@uniswap/v3-sdk": "^3.8.2",
+        "bn.js": "^5.2.0",
+        "csv-parse": "^4.16.3"
+    }
 }

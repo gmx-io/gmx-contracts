@@ -23,6 +23,15 @@ async function getAvaxValues() {
   return { vault, usdg, glp, shortsTracker }
 }
 
+async function getTestnetValues(){
+  const vault = { address: "0xA57F00939D8597DeF1965FF4708921c56D9A36f3" }
+  const usdg = { address: "0x3eE22225949541aaACCBd1B43289147fb3ad97f1" }
+  const glp = { address: "0xC6012955CEF9137FE9B1C01361c41FBf7E8dFfD9" }
+  const shortsTracker = { address: "0x230a476D100Bba2f76edBDF1300df3f963d943Dd" }
+
+  return { vault, usdg, glp, shortsTracker }
+}
+
 async function getValues() {
   if (network === "arbitrum") {
     return getArbValues()
@@ -30,6 +39,10 @@ async function getValues() {
 
   if (network === "avax") {
     return getAvaxValues()
+  }
+
+  if (network ==="testnet"){
+    return getTestnetValues()
   }
 }
 

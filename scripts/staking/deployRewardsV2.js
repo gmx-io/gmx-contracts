@@ -1,77 +1,85 @@
-const { deployContract, contractAt, sendTxn } = require("../shared/helpers")
-const { expandDecimals } = require("../../test/shared/utilities")
+const { deployContract, contractAt, sendTxn } = require("../shared/helpers");
+const { expandDecimals } = require("../../test/shared/utilities");
 
 async function main() {
-  const admin = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
-  const buffer = 60 * 60
-  const rewardManager = await deployContract("RewardManager", [])
-  const tokenManager = { address: "0x4E29d2ee6973E5Bd093df40ef9d0B28BD56C9e4E" }
-  const mintReceiver = { address: "0x50F22389C10FcC3bA9B1AB9BCDafE40448a357FB" }
-  const maxTokenSupply = expandDecimals("13250000", 18)
+  const admin = { address: "0x2CC6D07871A1c0655d6A7c9b0Ad24bED8f940517" };
+  const buffer = 60 * 60;
+  const tokenManager = {
+    address: "0x15f54d599ADF24b809de9B9C917061Ce0cB7617f",
+  };
+  const rewardManager = tokenManager;
+  const maxTokenSupply = expandDecimals("13250000", 18);
+  const marginFeeBasisPoints = 10;
+  const maxMarginFeeBasisPoints = 500;
 
-  const weth = await contractAt("Token", "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
+  const weth = await contractAt(
+    "Token",
+    "0x612777Eea37a44F7a95E3B101C39e1E2695fa6C2"
+  );
 
-  const gmx = { address: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" }
-  const esGmx = { address: "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA" }
-  const bnGmx = { address: "0x35247165119B69A40edD5304969560D0ef486921" }
-  const glp = { address: "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258" }
-  const stakedGmxTracker = { address: "0x908C4D94D34924765f1eDc22A1DD098397c59dD4" }
-  const bonusGmxTracker = { address: "0x4d268a7d4C16ceB5a606c173Bd974984343fea13" }
-  const feeGmxTracker = { address: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F" }
-  const feeGlpTracker = { address: "0x4e971a87900b931fF39d1Aad67697F49835400b6" }
-  const stakedGlpTracker = { address: "0x1aDDD80E6039594eE970E5872D247bf0414C8903" }
-  const glpManager = { address: "0x321F653eED006AD1C29D174e17d96351BDe22649" }
-  const stakedGmxDistributor = { address: "0x23208B91A98c7C1CD9FE63085BFf68311494F193" }
-  const stakedGlpDistributor = { address: "0x60519b48ec4183a61ca2B8e37869E675FD203b34" }
+  const gmx = { address: "0xab1d62E6a2d4Db62DbB39Dc00544537b6b424659" };
+  const esGmx = { address: "0x8A4271871980a31a3Ee87E3727057e68B43DcC59" };
+  const bnGmx = { address: "0xcD7a09723E1FF43facbC3aE804A97165c5450C89" };
+  const glp = { address: "0xC6012955CEF9137FE9B1C01361c41FBf7E8dFfD9" };
+  const stakedGmxTracker = {
+    address: "0xd2254Cde748E4ABf53dF5B82e87C0C0ee366C8C5",
+  };
+  const bonusGmxTracker = {
+    address: "0x4e30C59431681800A23CD0E4dcdA651A92ef247e",
+  };
+  const feeGmxTracker = {
+    address: "0x710F155CCA8df2DC653356272d8186b5fAF406cc",
+  };
+  const feeGlpTracker = {
+    address: "0x7f6f651B06effdd643b88f52fb2A829E49C21498",
+  };
+  const stakedGlpTracker = {
+    address: "0xE3eEC80bE8A4fa19F880aD0057fB3C9E55e337b8",
+  };
+  const glpManager = { address: "0xD3ce791f179C7e6DCF641F98417fC10f47Fc986b" };
+  const stakedGmxDistributor = {
+    address: "0x4980dF9955868fBB580b6c2D7D68Cbf61E00850c",
+  };
+  const stakedGlpDistributor = {
+    address: "0xf9063fBC9481C13EB23883473E8B435857039d88",
+  };
 
   const timelock = await deployContract("Timelock", [
     admin.address,
     buffer,
     rewardManager.address,
     tokenManager.address,
-    mintReceiver.address,
-    maxTokenSupply
-  ])
-
-  const vestingDuration = 365 * 24 * 60 * 60
-
-  const gmxVester = await deployContract("Vester", [
-    "Vested GMX", // _name
-    "vGMX", // _symbol
-    vestingDuration, // _vestingDuration
-    esGmx.address, // _esToken
-    feeGmxTracker.address, // _pairToken
-    gmx.address, // _claimableToken
-    stakedGmxTracker.address, // _rewardTracker
-  ])
-
-  const glpVester = await deployContract("Vester", [
-    "Vested GLP", // _name
-    "vGLP", // _symbol
-    vestingDuration, // _vestingDuration
-    esGmx.address, // _esToken
-    stakedGlpTracker.address, // _pairToken
-    gmx.address, // _claimableToken
-    stakedGlpTracker.address, // _rewardTracker
-  ])
-
-  const rewardRouter = await deployContract("RewardRouterV2", [])
-
-  await rewardRouter.initialize(
-    weth.address,
-    gmx.address,
-    esGmx.address,
-    bnGmx.address,
-    glp.address,
-    stakedGmxTracker.address,
-    bonusGmxTracker.address,
-    feeGmxTracker.address,
-    feeGlpTracker.address,
-    stakedGlpTracker.address,
     glpManager.address,
-    gmxVester.address,
-    glpVester.address
-  )
+    maxTokenSupply,
+    marginFeeBasisPoints,
+    maxMarginFeeBasisPoints,
+  ]);
+
+  const vestingDuration = 365 * 24 * 60 * 60;
+
+  const gmxVester = { address: "0xa03ef7935189001e8f6134b230dcfa7b419cf915" };
+
+  const glpVester = { address: "0x5e45a3359499701cafba0e1af161c7d7b386129b" };
+
+  const rewardRouter = {
+    address: "0x662634108dc549FE0d38291F5c4971a557525A5E",
+  };
+
+  // await rewardRouter.initialize(
+  //   weth.address,
+  //   gmx.address,
+  //   esGmx.address,
+  //   bnGmx.address,
+  //   glp.address,
+  //   stakedGmxTracker.address,
+  //   bonusGmxTracker.address,
+  //   feeGmxTracker.address,
+  //   feeGlpTracker.address,
+  //   stakedGlpTracker.address,
+  //   glpManager.address,
+  //   gmxVester.address,
+  //   glpVester.address
+  // );
 
   await rewardManager.initialize(
     timelock.address,
@@ -88,7 +96,7 @@ async function main() {
     bnGmx.address,
     gmxVester.address,
     glpVester.address
-  )
+  );
 
   // await rewardManager.updateEsGmxHandlers()
   // await rewardManager.enableRewardRouter()
@@ -96,7 +104,7 @@ async function main() {
 
 main()
   .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

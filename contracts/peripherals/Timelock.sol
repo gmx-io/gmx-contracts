@@ -15,7 +15,6 @@ import "../tokens/interfaces/IBaseToken.sol";
 import "../tokens/interfaces/IMintable.sol";
 import "../tokens/interfaces/IUSDG.sol";
 import "../staking/interfaces/IVester.sol";
-import "../staking/interfaces/IRewardRouterV2.sol";
 
 import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
@@ -34,7 +33,6 @@ contract Timelock is ITimelock {
     address public tokenManager;
     address public mintReceiver;
     address public glpManager;
-    address public rewardRouter;
     uint256 public maxTokenSupply;
 
     uint256 public marginFeeBasisPoints;
@@ -92,7 +90,6 @@ contract Timelock is ITimelock {
         address _tokenManager,
         address _mintReceiver,
         address _glpManager,
-        address _rewardRouter,
         uint256 _maxTokenSupply,
         uint256 _marginFeeBasisPoints,
         uint256 _maxMarginFeeBasisPoints
@@ -103,7 +100,6 @@ contract Timelock is ITimelock {
         tokenManager = _tokenManager;
         mintReceiver = _mintReceiver;
         glpManager = _glpManager;
-        rewardRouter = _rewardRouter;
         maxTokenSupply = _maxTokenSupply;
 
         marginFeeBasisPoints = _marginFeeBasisPoints;
@@ -121,27 +117,6 @@ contract Timelock is ITimelock {
 
     function setContractHandler(address _handler, bool _isActive) external onlyAdmin {
         isHandler[_handler] = _isActive;
-    }
-
-    function initGlpManager() external onlyAdmin {
-        IGlpManager _glpManager = IGlpManager(glpManager);
-
-        IMintable glp = IMintable(_glpManager.glp());
-        glp.setMinter(glpManager, true);
-
-        IUSDG usdg = IUSDG(_glpManager.usdg());
-        usdg.addVault(glpManager);
-
-        IVault vault = _glpManager.vault();
-        vault.setManager(glpManager, true);
-    }
-
-    function initRewardRouter() external onlyAdmin {
-        IRewardRouterV2 _rewardRouter = IRewardRouterV2(rewardRouter);
-
-        IHandlerTarget(_rewardRouter.feeGlpTracker()).setHandler(rewardRouter, true);
-        IHandlerTarget(_rewardRouter.stakedGlpTracker()).setHandler(rewardRouter, true);
-        IHandlerTarget(glpManager).setHandler(rewardRouter, true);
     }
 
     function setKeeper(address _keeper, bool _isActive) external onlyAdmin {
@@ -327,15 +302,6 @@ contract Timelock is ITimelock {
         IUSDG(usdg).removeVault(address(this));
     }
 
-    function setShortsTrackerAveragePriceWeight(uint256 _shortsTrackerAveragePriceWeight) external onlyAdmin {
-        IGlpManager(glpManager).setShortsTrackerAveragePriceWeight(_shortsTrackerAveragePriceWeight);
-    }
-
-    function setGlpCooldownDuration(uint256 _cooldownDuration) external onlyAdmin {
-        require(_cooldownDuration < 2 hours, "Timelock: invalid _cooldownDuration");
-        IGlpManager(glpManager).setCooldownDuration(_cooldownDuration);
-    }
-
     function setMaxGlobalShortSize(address _vault, address _token, uint256 _amount) external onlyAdmin {
         IVault(_vault).setMaxGlobalShortSize(_token, _amount);
     }
@@ -394,15 +360,15 @@ contract Timelock is ITimelock {
     function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyKeeperAndAbove {
         require(_accounts.length == _amounts.length, "Timelock: invalid lengths");
 
-        IHandlerTarget(_vester).setHandler(address(this), true);
+        if (!IHandlerTarget(_vester).isHandler(address(this))) {
+            IHandlerTarget(_vester).setHandler(address(this), true);
+        }
 
         for (uint256 i = 0; i < _accounts.length; i++) {
             address account = _accounts[i];
             uint256 amount = _amounts[i];
             IVester(_vester).setBonusRewards(account, amount);
         }
-
-        IHandlerTarget(_vester).setHandler(address(this), false);
     }
 
     function transferIn(address _sender, address _token, uint256 _amount) external onlyAdmin {

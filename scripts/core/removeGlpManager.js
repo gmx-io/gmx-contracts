@@ -10,15 +10,15 @@ async function main() {
     nativeToken
   } = tokens
 
-  const vault = await contractAt("Vault", "0xDE3590067c811b6F023b557ed45E4f1067859663")
-  const usdg = await contractAt("USDG", "0x45096e7aA921f27590f8F19e457794EB09678141")
-  const glp = await contractAt("GLP", "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258")
+  const vault = await contractAt("Vault", "0xA57F00939D8597DeF1965FF4708921c56D9A36f3")
+  const usdg = await contractAt("USDG", "0x3eE22225949541aaACCBd1B43289147fb3ad97f1")
+  const glp = await contractAt("OLP", "0xC6012955CEF9137FE9B1C01361c41FBf7E8dFfD9")
 
-  const glpManager = await contractAt("GlpManager", "0x91425Ac4431d068980d497924DD540Ae274f3270")
+  const glpManager = await contractAt("GlpManager", "0xD3ce791f179C7e6DCF641F98417fC10f47Fc986b")
 
-  await sendTxn(glp.setMinter(glpManager.address, false), "glp.setMinter")
-  await sendTxn(usdg.removeVault(glpManager.address), "usdg.removeVault")
-  await sendTxn(vault.setManager(glpManager.address, false), "vault.setManager")
+  await sendTxn(glp.setMinter(glpManager.address, true), "glp.setMinter")
+  await sendTxn(usdg.addVault(glpManager.address), "usdg.removeVault")
+  await sendTxn(vault.setManager(glpManager.address, true), "vault.setManager")
 }
 
 main()
