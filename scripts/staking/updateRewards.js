@@ -11,12 +11,12 @@ async function getArbValues(signer) {
     {
       name: "feeGmxTracker",
       address: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
-      transferAmount: "555"
+      transferAmount: "302"
     },
     {
       name: "feeGlpTracker",
       address: "0x4e971a87900b931fF39d1Aad67697F49835400b6",
-      transferAmount: "1265"
+      transferAmount: "701"
     }
   ]
 
@@ -31,12 +31,12 @@ async function getAvaxValues(signer) {
     {
       name: "feeGmxTracker",
       address: "0x4d268a7d4C16ceB5a606c173Bd974984343fea13",
-      transferAmount: "3721"
+      transferAmount: "2023"
     },
     {
       name: "feeGlpTracker",
       address: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
-      transferAmount: "11688"
+      transferAmount: "5150"
     }
   ]
 
