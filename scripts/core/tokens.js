@@ -141,7 +141,7 @@ module.exports = {
       bufferAmount: 2000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 13 * 1000 * 1000,
+      maxGlobalLongSize: 18 * 1000 * 1000,
       maxGlobalShortSize: 35 * 1000 * 1000,
     },
     eth: {
@@ -159,7 +159,7 @@ module.exports = {
       bufferAmount: 65000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 35 * 1000 * 1000,
+      maxGlobalLongSize: 40 * 1000 * 1000,
       maxGlobalShortSize: 60 * 1000 * 1000,
     },
     usdc: {
@@ -172,7 +172,7 @@ module.exports = {
       tokenWeight: 39000,
       minProfitBps: 0,
       maxUsdgAmount: 185 * 1000 * 1000,
-      bufferAmount: 150 * 1000 * 1000,
+      bufferAmount: 145 * 1000 * 1000,
       isStable: true,
       isShortable: false
     },
@@ -343,7 +343,7 @@ module.exports = {
       isStrictStable: false,
       tokenWeight: 3000,
       minProfitBps: 0,
-      maxUsdgAmount: 5 * 1000 * 1000,
+      maxUsdgAmount: 3.5 * 1000 * 1000,
       bufferAmount: 100,
       isStable: false,
       isShortable: true,
