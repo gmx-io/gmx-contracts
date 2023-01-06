@@ -14,6 +14,52 @@ const tokens = require("./tokens")[network];
 
 const depositFee = 30; // 0.3%
 
+async function getBscValues(signer) {
+  const vault = await contractAt(
+    "Vault",
+    "0x547a29352421e7273eA18Acce5fb8aa308290523"
+  );
+  const timelock = await contractAt("Timelock", await vault.gov());
+  const router = await contractAt("Router", await vault.router());
+  const shortsTracker = await contractAt(
+    "ShortsTracker",
+    "0xc8982ffB4d5d3BA9265F550b690F9Cf015ca8eE8"
+  );
+  const weth = await contractAt("WETH", tokens.nativeToken.address);
+  const orderBook = await contractAt(
+    "OrderBook",
+    "0xD489f81161EEb415fC078464535d3F7280Cc14F1"
+  );
+  const referralStorage = await contractAt(
+    "ReferralStorage",
+    "0xB393A3d6456305628339461264e7EFbABB38086d"
+  );
+
+  const orderKeepers = [
+    { address: "0xe6fd8f16CA620854289571FBBB7eE743437fc027" },
+  ];
+  const liquidators = [
+    { address: "0x8588bBa54C5fF7209cd23068E2113e825AA4CA7F" },
+  ];
+
+  const partnerContracts = [
+  ];
+
+  return {
+    vault,
+    timelock,
+    router,
+    shortsTracker,
+    weth,
+    depositFee,
+    orderBook,
+    referralStorage,
+    orderKeepers,
+    liquidators,
+    partnerContracts,
+  };
+}
+
 async function getTestnetValues(signer) {
   const vault = await contractAt(
     "Vault",
@@ -191,6 +237,10 @@ async function getValues(signer) {
 
   if (network === "testnet") {
     return getTestnetValues(signer);
+  }
+
+  if (network === "bsc") {
+    return getBscValues(signer)
   }
 }
 

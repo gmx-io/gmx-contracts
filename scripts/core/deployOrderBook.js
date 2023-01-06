@@ -20,9 +20,9 @@ async function main() {
     usdg = "0x3eE22225949541aaACCBd1B43289147fb3ad97f1";
   }
   if (network === "bsc") {
-    router = "";
-    vault = "";
-    usdg = "";
+    router = "0x8F6C84bF4fD74cE28E2fEC88111A4a26095d1aDF";
+    vault = "0x547a29352421e7273eA18Acce5fb8aa308290523";
+    usdg = "0xB502B9C5d94d76d2623227Fb0c652d2734DeF7Cd";
   }
   // Arbitrum mainnet addresses
   await sendTxn(

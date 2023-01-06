@@ -5,6 +5,40 @@ const { toUsd } = require("../../test/shared/units")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+async function getBscValues(){
+  const { btc, bnb, busd, eth} = tokens
+  const tokenArr = [btc, bnb, busd, eth]
+  const fastPriceTokens = []
+
+  const priceFeedTimelock = { address: "0x51d2E6c7B6cc67875D388aDbE2BB7A8238EA6353" }
+
+  const updater1 = { address: "0xe6fd8f16CA620854289571FBBB7eE743437fc027" }
+  // const updater2 = { address: "0x8588bBa54C5fF7209cd23068E2113e825AA4CA7F" }
+  // const keeper1 = { address: "0x5405415765D1aAaC6Fe7E287967B87E5598Aab8C" }
+  // const keeper2 = { address: "0x3f321C9303cAE0Cb02631e92f52190482b8Fa0A6" }
+  const updaters = [updater1.address]
+
+  const tokenManager = { address: "0x7D52Fc0564e13c8D515e1e1C17CCB7aFafAd37F3" }
+
+  const positionRouter = await contractAt("PositionRouter", "0xf5D769Fc5A274812e81a12bD900EFCD29c6EaE78")
+
+  // const fastPriceEvents = await contractAt("FastPriceEvents", "0xf71d18652C3975e75fddd07396869f1ccA184C5a")
+  const fastPriceEvents = await deployContract("FastPriceEvents", [])
+
+  // const chainlinkFlags = { address: "0x3C14e07Edd0dC67442FA96f1Ec6999c57E810a83" }
+
+  return {
+    fastPriceTokens,
+    fastPriceEvents,
+    tokenManager,
+    positionRouter,
+    // chainlinkFlags,
+    tokenArr,
+    updaters,
+    priceFeedTimelock
+  }
+}
+
 async function getTestnetValues(){
   const { btc, bnb, busd} = tokens
   const tokenArr = [btc, bnb, busd]
@@ -116,6 +150,10 @@ async function getValues(signer) {
   if (network === "testnet") {
     return getTestnetValues()
   }
+
+  if (network === "bsc") {
+    return getBscValues()
+  }
 }
 
 async function main() {
@@ -127,7 +165,6 @@ async function main() {
     fastPriceEvents,
     tokenManager,
     positionRouter,
-    chainlinkFlags,
     tokenArr,
     updaters,
     priceFeedTimelock
@@ -149,8 +186,8 @@ async function main() {
   }
 
   const secondaryPriceFeed = await deployContract("FastPriceFeed", [
-    5 * 60, // _priceDuration
-    60 * 60, // _maxPriceUpdateDelay
+    5 * 60 * 60, // _priceDuration  10 hours
+    12 * 60 * 60, // _maxPriceUpdateDelay 12 hours
     1, // _minBlockInterval
     250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
@@ -193,6 +230,8 @@ async function main() {
   await sendTxn(secondaryPriceFeed.setSpreadBasisPointsIfInactive(50), "secondaryPriceFeed.setSpreadBasisPointsIfInactive")
   await sendTxn(secondaryPriceFeed.setSpreadBasisPointsIfChainError(500), "secondaryPriceFeed.setSpreadBasisPointsIfChainError")
   await sendTxn(secondaryPriceFeed.setMaxCumulativeDeltaDiffs(fastPriceTokens.map(t => t.address), fastPriceTokens.map(t => t.maxCumulativeDeltaDiff)), "secondaryPriceFeed.setMaxCumulativeDeltaDiffs")
+
+
   await sendTxn(secondaryPriceFeed.setPriceDataInterval(1 * 60), "secondaryPriceFeed.setPriceDataInterval")
 
   await sendTxn(positionRouter.setPositionKeeper(secondaryPriceFeed.address, true), "positionRouter.setPositionKeeper(secondaryPriceFeed)")

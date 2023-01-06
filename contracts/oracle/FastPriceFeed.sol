@@ -36,7 +36,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
-    uint256 public constant MAX_PRICE_DURATION = 30 minutes;
+    uint256 public constant MAX_PRICE_DURATION = 300 minutes;
 
     bool public isInitialized;
     bool public isSpreadEnabled = false;

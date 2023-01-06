@@ -9,6 +9,34 @@ const { expandDecimals } = require("../../test/shared/utilities");
 
 const network = process.env.HARDHAT_NETWORK || "mainnet";
 
+async function getBscValues() {
+  const vault = await contractAt(
+    "Vault",
+    "0x547a29352421e7273eA18Acce5fb8aa308290523"
+  );
+  const tokenManager = {
+    address: "0x7D52Fc0564e13c8D515e1e1C17CCB7aFafAd37F3",
+  };
+  const glpManager = { address: "0x7fc55B3C5f15f1B9664170DF18C57e13bB1B7D39" };
+
+
+  const positionManager = {
+    address: "0x32Ca0C28cCef0BC31991EE4Ac286C27679e57222",
+  };
+  const open = { address: "0x27a339d9B59b21390d7209b78a839868E319301B" };
+  // const rewardRouter = { address:"0x662634108dc549FE0d38291F5c4971a557525A5E" }
+
+  return {
+    vault,
+    tokenManager,
+    glpManager,
+    // positionRouter,
+    positionManager,
+    open,
+    // rewardRouter
+  };
+}
+
 async function getTestnetValues() {
   const vault = await contractAt(
     "Vault",
@@ -77,16 +105,20 @@ async function getValues() {
   if (network === "testnet") {
     return getTestnetValues();
   }
+
+  if (network === "bsc") {
+    return getBscValues();
+  }
 }
 
 async function main() {
   const signer = await getFrameSigner()
-
-  const admin = "0x2CC6D07871A1c0655d6A7c9b0Ad24bED8f940517"
-  const buffer = network === "testnet"? 5 * 60 : 24 * 60 * 60
+  // Deployer
+  const admin = network === "testnet" ? "0x2CC6D07871A1c0655d6A7c9b0Ad24bED8f940517" : "0x5678917FfEb77827Aafc33419E99DaCd707313a9"
+  const buffer = network === "testnet"? 5 * 60 : 5 * 60
   const maxTokenSupply = expandDecimals("13250000", 18)
 
-  const { vault, tokenManager, glpManager, rewardRouter, positionRouter, positionManager, gmx } = await getValues()
+  const { tokenManager, glpManager, open } = await getValues()
   const mintReceiver = tokenManager
 
   const timelock = await deployContract("Timelock", [
@@ -103,8 +135,8 @@ async function main() {
   const deployedTimelock = await contractAt("Timelock", timelock.address)
 
   await sendTxn(deployedTimelock.setShouldToggleIsLeverageEnabled(true), "deployedTimelock.setShouldToggleIsLeverageEnabled(true)")
-  await sendTxn(deployedTimelock.setContractHandler(positionRouter.address, true), "deployedTimelock.setContractHandler(positionRouter)")
-  await sendTxn(deployedTimelock.setContractHandler(positionManager.address, true), "deployedTimelock.setContractHandler(positionManager)")
+  // await sendTxn(deployedTimelock.setContractHandler(positionRouter.address, true), "deployedTimelock.setContractHandler(positionRouter)")
+  // await sendTxn(deployedTimelock.setContractHandler(positionManager.address, true), "deployedTimelock.setContractHandler(positionManager)")
 
   // // update gov of vault
   // const vaultGov = await contractAt("Timelock", await vault.gov(), signer)
@@ -113,8 +145,8 @@ async function main() {
   // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
 
   const handlers = [
-    "0x0EaEA9558eFF1d4b76b347A39f54d8CDf01F990F", // Tam
-    "0xd6E095046868c48f9a194c2b9875e29DF7C44C85", // Phuong
+    "0x5405415765D1aAaC6Fe7E287967B87E5598Aab8C", // Handler 01
+    "0x3f321C9303cAE0Cb02631e92f52190482b8Fa0A6", // Handler 02
   ];
 
   for (let i = 0; i < handlers.length; i++) {
@@ -123,7 +155,7 @@ async function main() {
   }
 
   const keepers = [
-    "0x2CC6D07871A1c0655d6A7c9b0Ad24bED8f940517", // Tam keeper
+    "0xe6fd8f16CA620854289571FBBB7eE743437fc027", // Keeper
   ];
 
   for (let i = 0; i < keepers.length; i++) {
@@ -135,7 +167,7 @@ async function main() {
   }
 
   await sendTxn(
-    deployedTimelock.signalApprove(gmx.address, admin, "1000000000000000000"),
+    deployedTimelock.signalApprove(open.address, admin, "1000000000000000000"),
     "deployedTimelock.signalApprove"
   );
 }

@@ -6,6 +6,16 @@ const tokens = require('../core/tokens')[network];
 
 const { AddressZero } = ethers.constants
 
+async function getBscValues() {
+  const { nativeToken } = tokens
+  const glp = { address: "0x150bb59460E35084ab847629Cf3EcDC543e5Bf97" }
+  const feeGlpTracker = { address: "0x4e971a87900b931fF39d1Aad67697F49835400b6" }
+  const stakedGlpTracker = { address: "0x1aDDD80E6039594eE970E5872D247bf0414C8903" }
+  const glpManager = { address: "0x7fc55B3C5f15f1B9664170DF18C57e13bB1B7D39" }
+
+  return { nativeToken, glp, feeGlpTracker, stakedGlpTracker, glpManager }
+}
+
 async function getArbValues() {
   const { nativeToken } = tokens
   const glp = { address: "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258" }
@@ -33,6 +43,10 @@ async function getValues() {
 
   if (network === "avax") {
     return getAvaxValues()
+  }
+
+  if (network === "bsc") {
+    return getBscValues()
   }
 }
 

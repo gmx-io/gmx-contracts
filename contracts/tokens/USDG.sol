@@ -10,11 +10,11 @@ contract USDG is YieldToken, IUSDG {
     mapping (address => bool) public vaults;
 
     modifier onlyVault() {
-        require(vaults[msg.sender], "USDG: forbidden");
+        require(vaults[msg.sender], "USDO: forbidden");
         _;
     }
 
-    constructor(address _vault) public YieldToken("USD Gambit", "USDG", 0) {
+    constructor(address _vault) public YieldToken("USD Open", "USDO", 0) {
         vaults[_vault] = true;
     }
 

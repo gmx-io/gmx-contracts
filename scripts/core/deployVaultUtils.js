@@ -8,8 +8,8 @@ const tokens = require('./tokens')[network];
 
 async function main() {
   const signer = await getFrameSigner()
-  const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const timelock = await contractAt("Timelock", await vault.gov(), signer)
+  const vault = await contractAt("Vault", "0x547a29352421e7273eA18Acce5fb8aa308290523")
+  const timelock = await contractAt("Timelock", await vault.gov())
   const vaultUtils = await deployContract("VaultUtils", [vault.address])
   await sendTxn(timelock.setVaultUtils(vault.address, vaultUtils.address), "timelock.setVaultUtils")
 }

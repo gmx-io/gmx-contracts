@@ -12,10 +12,14 @@ async function main() {
     "TokenManager"
   );
 
+  // Signer from treasury
   const signers = [
-    "0x2CC6D07871A1c0655d6A7c9b0Ad24bED8f940517", // Testnet 1
-    "0x0EaEA9558eFF1d4b76b347A39f54d8CDf01F990F", // Testnet 2
-    "0x881690382102106b00a99E3dB86056D0fC71eee6", // Testnet 3
+    "0xee73ccf048bD7aEa4090F06a8bE6C5263bbFF969",
+    "0x88888818a99982CB08673f0E1e377C3AF066A840",
+    "0xD8df3942Ab5218beeA2F9Df3E71f56C9bac44026",
+    "0xAAfcBD2D5D4281bD32cfCdb4b5D1626124878194",
+    "0xd2e80D60aff5377587E49FF32c9bad639d6f68Bc",
+    "0xE8f0d5BAC383a9e0A2C43D236513F62B6151bDeA"
   ];
 
   await sendTxn(tokenManager.initialize(signers), "tokenManager.initialize");

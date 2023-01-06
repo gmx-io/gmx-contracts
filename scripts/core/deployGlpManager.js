@@ -23,7 +23,7 @@ async function main() {
     "0x3eE22225949541aaACCBd1B43289147fb3ad97f1"
   );
   const olp = await contractAt(
-    "OLP",
+    "OAP",
     "0xC6012955CEF9137FE9B1C01361c41FBf7E8dFfD9"
   );
   const shortsTracker = "0x230a476D100Bba2f76edBDF1300df3f963d943Dd";

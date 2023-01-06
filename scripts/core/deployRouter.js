@@ -31,46 +31,7 @@ async function main() {
   //   usdg.address,
   //   nativeToken.address,
   // ]);
-  const router = await contractAt("Router", "0x8F6C84bF4fD74cE28E2fEC88111A4a26095d1aDF")
-  // const secondaryPriceFeed = await deployContract("FastPriceFeed", [5 * 60])
 
-  // const vaultPriceFeed = await deployContract("VaultPriceFeed", []);
-  const vaultPriceFeed = await contractAt("VaultPriceFeed", "0x307AF78aB7b4a11C3c0411b2872C2DE8337434d1")
-
-
-  // await sendTxn(
-  //   vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(1, 28)),
-  //   "vaultPriceFeed.setMaxStrictPriceDeviation"
-  // ); // 0.05 USD
-  // await sendTxn(
-  //   vaultPriceFeed.setPriceSampleSpace(1),
-  //   "vaultPriceFeed.setPriceSampleSpace"
-  // );
-  // await sendTxn(
-  //   vaultPriceFeed.setIsAmmEnabled(false),
-  //   "vaultPriceFeed.setIsAmmEnabled"
-  // );
-
-  const olp = await contractAt("OAP", "0x150bb59460E35084ab847629Cf3EcDC543e5Bf97");
-  await sendTxn(
-    olp.setInPrivateTransferMode(true),
-    "olp.setInPrivateTransferMode"
-  );
-
-  const glpManager = await deployContract("GlpManager", [
-    vault.address,
-    usdg.address,
-    olp.address,
-    shortsTracker.address,
-    15 * 60,
-  ]);
-  await sendTxn(
-    glpManager.setInPrivateMode(true),
-    "glpManager.setInPrivateMode"
-  );
-
-  await sendTxn(olp.setMinter(glpManager.address, true), "olp.setMinter");
-  await sendTxn(usdg.addVault(glpManager.address), "usdg.addVault(glpManager)");
 
   await sendTxn(
     vault.initialize(

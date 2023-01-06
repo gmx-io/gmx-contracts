@@ -5,6 +5,18 @@ const { toChainlinkPrice } = require("../../test/shared/chainlink")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+async function getBscValues() {
+  const positionContracts = [
+    "0xf5D769Fc5A274812e81a12bD900EFCD29c6EaE78", // PositionRouter
+    "0x2eb2C572EB4B85cF642b99F70d835C9C22346c06" // PositionManager
+  ]
+
+  const { btc, bnb } = tokens
+  const tokenArr = [btc, bnb]
+
+  return { positionContracts, tokenArr }
+}
+
 async function getArbValues() {
   const positionContracts = [
     "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868", // PositionRouter
@@ -36,6 +48,10 @@ async function getValues() {
 
   if (network === "avax") {
     return getAvaxValues()
+  }
+
+  if (network === "bsc") {
+    return getBscValues()
   }
 }
 

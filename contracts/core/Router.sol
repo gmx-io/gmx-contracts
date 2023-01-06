@@ -23,6 +23,8 @@ contract Router is IRouter {
     address public usdg;
     address public vault;
 
+    bool public enabledSwap;
+
     mapping (address => bool) public plugins;
     mapping (address => mapping (address => bool)) public approvedPlugins;
 
@@ -65,6 +67,10 @@ contract Router is IRouter {
         approvedPlugins[msg.sender][_plugin] = false;
     }
 
+    function setEnabledSwap(bool _isEnabled) external onlyGov {
+        enabledSwap = _isEnabled;
+    }
+
     function pluginTransfer(address _token, address _account, address _receiver, uint256 _amount) external override {
         _validatePlugin(_account);
         IERC20(_token).safeTransferFrom(_account, _receiver, _amount);
@@ -86,12 +92,14 @@ contract Router is IRouter {
     }
 
     function swap(address[] memory _path, uint256 _amountIn, uint256 _minOut, address _receiver) public override {
+        require(enabledSwap, "Router: swap is not enable");
         IERC20(_path[0]).safeTransferFrom(_sender(), vault, _amountIn);
         uint256 amountOut = _swap(_path, _minOut, _receiver);
         emit Swap(msg.sender, _path[0], _path[_path.length - 1], _amountIn, amountOut);
     }
 
     function swapETHToTokens(address[] memory _path, uint256 _minOut, address _receiver) external payable {
+        require(enabledSwap, "Router: swap is not enable");
         require(_path[0] == weth, "Router: invalid _path");
         _transferETHToVault();
         uint256 amountOut = _swap(_path, _minOut, _receiver);
@@ -99,6 +107,7 @@ contract Router is IRouter {
     }
 
     function swapTokensToETH(address[] memory _path, uint256 _amountIn, uint256 _minOut, address payable _receiver) external {
+        require(enabledSwap, "Router: swap is not enable");
         require(_path[_path.length - 1] == weth, "Router: invalid _path");
         IERC20(_path[0]).safeTransferFrom(_sender(), vault, _amountIn);
         uint256 amountOut = _swap(_path, _minOut, address(this));

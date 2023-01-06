@@ -5,10 +5,10 @@ const {
 } = require("../shared/helpers");
 
 async function main() {
-  // await deployContract("EsGMX", [])
-  const olp = await deployContract("OLP", []);
+  await deployContract("EsOPEN", [])
+  // const olp = await deployContract("OAP", []);
   // await deployContract("MintableBaseToken", ["esGMX IOU", "esGMX:IOU", 0])
-  writeTmpAddresses({ OLP: olp.address });
+  // writeTmpAddresses({ OAP: olp.address });
 }
 
 main()
