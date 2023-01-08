@@ -159,7 +159,7 @@ module.exports = {
       bufferAmount: 65000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 40 * 1000 * 1000,
+      maxGlobalLongSize: 50 * 1000 * 1000,
       maxGlobalShortSize: 60 * 1000 * 1000,
     },
     usdc: {

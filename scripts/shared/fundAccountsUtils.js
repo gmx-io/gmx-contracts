@@ -88,19 +88,19 @@ async function getAvaxValues() {
 
   const keepers = [
     {
-      address: "0x2b249Bec7c3A142431b67e63A1dF86F974FAF3aa", // price sender 1
+      address: "0x48F5f003559A239ff37cbFDCc6a6d936365bd4c4", // price sender 1
       targetFunds: "1250"
     },
     {
-      address: "0x63ff41E44d68216e716d236E2ECdd5272611D835", // price sender 2
+      address: "0xDc32caC19d77aD8f6b64094dd39b2E441D997e03", // price sender 2
       targetFunds: "1250"
     },
     {
-      address: "0x5e0338CE6597FCB9404d69F4286194A60aD442b7", // positions keeper 1
+      address: "0x74F6024CA6a03898F31e0d8E324f1a45f049eF03", // positions keeper 1
       targetFunds: "1250"
     },
     {
-      address: "0x8CD98FF48831aa8864314ae8f41337FaE9941C8D", // positions keeper 2
+      address: "0x65910425E325910B1a67A320408E0d57b4E0Ca11", // positions keeper 2
       targetFunds: "1250"
     },
     {
