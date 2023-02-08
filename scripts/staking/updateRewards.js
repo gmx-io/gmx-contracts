@@ -11,12 +11,12 @@ async function getArbValues(signer) {
     {
       name: "feeGmxTracker",
       address: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
-      transferAmount: "464"
+      transferAmount: "498"
     },
     {
       name: "feeGlpTracker",
       address: "0x4e971a87900b931fF39d1Aad67697F49835400b6",
-      transferAmount: "967"
+      transferAmount: "1056"
     }
   ]
 
@@ -31,12 +31,12 @@ async function getAvaxValues(signer) {
     {
       name: "feeGmxTracker",
       address: "0x4d268a7d4C16ceB5a606c173Bd974984343fea13",
-      transferAmount: "2477"
+      transferAmount: "2680"
     },
     {
       name: "feeGlpTracker",
       address: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
-      transferAmount: "14958"
+      transferAmount: "14800"
     }
   ]
 
@@ -69,7 +69,7 @@ async function main() {
     console.log("convertedTransferAmount", convertedTransferAmount.toString())
     console.log("rewardsPerInterval", rewardsPerInterval.toString())
 
-    await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount, { gasLimit: 500000 }), `rewardToken.transfer ${i}`)
+    await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount, { gasLimit: 1000000 }), `rewardToken.transfer ${i}`)
     await updateTokensPerInterval(rewardDistributor, rewardsPerInterval, "rewardDistributor")
   }
 }

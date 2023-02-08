@@ -37,7 +37,7 @@ async function updateAccount(account) {
   for (let i = 0; i < networkValues.length; i++) {
     const { referralStorage, wallet } = networkValues[i]
     const timelock = await contractAt("Timelock", await referralStorage.gov(), wallet)
-    const tier = 2 // tier 1, 2, 3
+    const tier = 3 // tier 1, 2, 3
 
     console.log("account", account)
 
@@ -55,7 +55,7 @@ async function updateAccount(account) {
 
 async function main() {
   const accounts = [
-    "0x623E035722E54d7819DF70CBc35d0b1C9f2F8f86"
+    "0x2CcF21e5912e9ecCcB0ecdEe9744E5c507cf88AE"
   ]
 
   for (let i = 0; i < accounts.length; i++) {

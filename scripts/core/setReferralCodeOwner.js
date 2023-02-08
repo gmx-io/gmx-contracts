@@ -31,7 +31,7 @@ async function main() {
   const { referralStorage } = await getValues()
   const timelock = await contractAt("Timelock", await referralStorage.gov())
 
-  const code = "example"
+  const code = "lotto"
   const encodedCode = ethers.utils.formatBytes32String(code)
   const account = await referralStorage.codeOwners(encodedCode)
   console.log("current account", account)
