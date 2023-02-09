@@ -143,6 +143,16 @@ module.exports = {
       isShortable: true,
       maxGlobalLongSize: 63 * 1000 * 1000,
       maxGlobalShortSize: 30 * 1000 * 1000,
+      openInterestLimitLong: 70 * 1000 * 1000,
+      openInterestLimitShort: 50 * 1000 * 1000,
+      maxOpenInterestLong: 63 * 1000 * 1000,
+      maxOpenInterestShort: 30 * 1000 * 1000,
+      openInterestIncrementLong: 1 * 1000 * 1000,
+      openInterestIncrementShort: 500 * 1000,
+      maxLiquidityThresholdLong: 10 * 1000 * 1000,
+      maxLiquidityThresholdShort: 8 * 1000 * 1000,
+      minLiquidityThresholdLong: 500 * 1000,
+      minLiquidityThresholdShort: 500 * 1000
     },
     eth: {
       name: "eth",
@@ -161,6 +171,16 @@ module.exports = {
       isShortable: true,
       maxGlobalLongSize: 95 * 1000 * 1000,
       maxGlobalShortSize: 38 * 1000 * 1000,
+      openInterestLimitLong: 110 * 1000 * 1000,
+      openInterestLimitShort: 60 * 1000 * 1000,
+      maxOpenInterestLong: 95 * 1000 * 1000,
+      maxOpenInterestShort: 38 * 1000 * 1000,
+      openInterestIncrementLong: 1 * 1000 * 1000,
+      openInterestIncrementShort: 500 * 1000,
+      maxLiquidityThresholdLong: 12 * 1000 * 1000,
+      maxLiquidityThresholdShort: 10 * 1000 * 1000,
+      minLiquidityThresholdLong: 500 * 1000,
+      minLiquidityThresholdShort: 500 * 1000
     },
     usdc: {
       name: "usdc",
@@ -193,7 +213,17 @@ module.exports = {
       isShortable: true,
       spreadBasisPoints: 0,
       maxGlobalShortSize: 500 * 1000,
-      maxGlobalLongSize: 500 * 1000
+      maxGlobalLongSize: 500 * 1000,
+      openInterestLimitLong: 500 * 1000,
+      openInterestLimitShort: 500 * 1000,
+      maxOpenInterestLong: 500 * 1000,
+      maxOpenInterestShort: 500 * 1000,
+      openInterestIncrementLong: 50 * 1000,
+      openInterestIncrementShort: 50 * 1000,
+      maxLiquidityThresholdLong: 250 * 1000,
+      maxLiquidityThresholdShort: 250 * 1000,
+      minLiquidityThresholdLong: 50 * 1000,
+      minLiquidityThresholdShort: 50 * 1000
     },
     uni: {
       name: "uni",
@@ -212,7 +242,17 @@ module.exports = {
       isShortable: true,
       spreadBasisPoints: 0,
       maxGlobalShortSize: 500 * 1000,
-      maxGlobalLongSize: 500 * 1000
+      maxGlobalLongSize: 500 * 1000,
+      openInterestLimitLong: 500 * 1000,
+      openInterestLimitShort: 500 * 1000,
+      maxOpenInterestLong: 500 * 1000,
+      maxOpenInterestShort: 500 * 1000,
+      openInterestIncrementLong: 50 * 1000,
+      openInterestIncrementShort: 50 * 1000,
+      maxLiquidityThresholdLong: 250 * 1000,
+      maxLiquidityThresholdShort: 250 * 1000,
+      minLiquidityThresholdLong: 50 * 1000,
+      minLiquidityThresholdShort: 50 * 1000
     },
     usdt: {
       name: "usdt",
@@ -294,7 +334,17 @@ module.exports = {
       isShortable: true,
       maxGlobalLongSize: 1.5 * 1000 * 1000,
       maxGlobalShortSize: 750 * 1000,
-      spreadBasisPoints: 0
+      spreadBasisPoints: 0,
+      openInterestLimitLong: 2 * 1000 * 1000,
+      openInterestLimitShort: 2 * 1000 * 1000,
+      maxOpenInterestLong: 2 * 1000 * 1000,
+      maxOpenInterestShort: 2 * 1000 * 1000,
+      openInterestIncrementLong: 50 * 1000,
+      openInterestIncrementShort: 50 * 1000,
+      maxLiquidityThresholdLong: 200 * 1000,
+      maxLiquidityThresholdShort: 200 * 1000,
+      minLiquidityThresholdLong: 100 * 1000,
+      minLiquidityThresholdShort: 100 * 1000
     },
     eth: {
       name: "eth",
@@ -312,7 +362,17 @@ module.exports = {
       isStable: false,
       isShortable: true,
       maxGlobalLongSize: 15 * 1000 * 1000,
-      maxGlobalShortSize: 8 * 1000 * 1000
+      maxGlobalShortSize: 8 * 1000 * 1000,
+      openInterestLimitLong: 20 * 1000 * 1000,
+      openInterestLimitShort: 20 * 1000 * 1000,
+      maxOpenInterestLong: 15 * 1000 * 1000,
+      maxOpenInterestShort: 8 * 1000 * 1000,
+      openInterestIncrementLong: 200 * 1000,
+      openInterestIncrementShort: 200 * 1000,
+      maxLiquidityThresholdLong: 5 * 1000 * 1000,
+      maxLiquidityThresholdShort: 5 * 1000 * 1000,
+      minLiquidityThresholdLong: 250 * 1000,
+      minLiquidityThresholdShort: 250 * 1000
     },
     btcb: {
       name: "btcb",
@@ -330,7 +390,17 @@ module.exports = {
       isStable: false,
       isShortable: true,
       maxGlobalLongSize: 15 * 1000 * 1000,
-      maxGlobalShortSize: 8 * 1000 * 1000
+      maxGlobalShortSize: 8 * 1000 * 1000,
+      openInterestLimitLong: 20 * 1000 * 1000,
+      openInterestLimitShort: 20 * 1000 * 1000,
+      maxOpenInterestLong: 15 * 1000 * 1000,
+      maxOpenInterestShort: 8 * 1000 * 1000,
+      openInterestIncrementLong: 200 * 1000,
+      openInterestIncrementShort: 200 * 1000,
+      maxLiquidityThresholdLong: 5 * 1000 * 1000,
+      maxLiquidityThresholdShort: 5 * 1000 * 1000,
+      minLiquidityThresholdLong: 250 * 1000,
+      minLiquidityThresholdShort: 250 * 1000
     },
     btc: {
       name: "btc",
@@ -348,7 +418,17 @@ module.exports = {
       isStable: false,
       isShortable: true,
       maxGlobalLongSize: 10 * 1000 * 1000,
-      maxGlobalShortSize: 1000
+      maxGlobalShortSize: 1000,
+      openInterestLimitLong: 20 * 1000 * 1000,
+      openInterestLimitShort: 20 * 1000 * 1000,
+      maxOpenInterestLong: 10 * 1000 * 1000,
+      maxOpenInterestShort: 1000,
+      openInterestIncrementLong: 200 * 1000,
+      openInterestIncrementShort: 200 * 1000,
+      maxLiquidityThresholdLong: 5 * 1000 * 1000,
+      maxLiquidityThresholdShort: 5 * 1000 * 1000,
+      minLiquidityThresholdLong: 250 * 1000,
+      minLiquidityThresholdShort: 250 * 1000
     },
     mim: {
       name: "mim",
