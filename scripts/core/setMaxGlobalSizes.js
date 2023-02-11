@@ -5,7 +5,17 @@ const { toChainlinkPrice } = require("../../test/shared/chainlink")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+const {
+  ARBITRUM_URL,
+  ARBITRUM_CAP_KEEPER_KEY,
+  AVAX_URL,
+  AVAX_CAP_KEEPER_KEY,
+} = require("../../env.json")
+
 async function getArbValues() {
+  const provider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
+  const wallet = new ethers.Wallet(ARBITRUM_CAP_KEEPER_KEY).connect(provider)
+
   const positionContracts = [
     "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868", // PositionRouter
     "0x75E42e6f01baf1D6022bEa862A28774a9f8a4A0C" // PositionManager
@@ -14,10 +24,13 @@ async function getArbValues() {
   const { btc, eth, link, uni } = tokens
   const tokenArr = [btc, eth, link, uni]
 
-  return { positionContracts, tokenArr }
+  return { wallet, positionContracts, tokenArr }
 }
 
 async function getAvaxValues() {
+  const provider = new ethers.providers.JsonRpcProvider(AVAX_URL)
+  const wallet = new ethers.Wallet(AVAX_CAP_KEEPER_KEY).connect(provider)
+
   const positionContracts = [
     "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8", // PositionRouter
     "0xA21B83E579f4315951bA658654c371520BDcB866" // PositionManager
@@ -26,7 +39,7 @@ async function getAvaxValues() {
   const { avax, eth, btc, btcb } = tokens
   const tokenArr = [avax, eth, btc, btcb]
 
-  return { positionContracts, tokenArr }
+  return { wallet, positionContracts, tokenArr }
 }
 
 async function getValues() {
@@ -40,7 +53,7 @@ async function getValues() {
 }
 
 async function main() {
-  const { positionContracts, tokenArr } = await getValues()
+  const { wallet, positionContracts, tokenArr } = await getValues()
 
   const tokenAddresses = tokenArr.map(t => t.address)
   const longSizes = tokenArr.map((token) => {
@@ -60,7 +73,7 @@ async function main() {
   })
 
   for (let i = 0; i < positionContracts.length; i++) {
-    const positionContract = await contractAt("PositionManager", positionContracts[i])
+    const positionContract = await contractAt("PositionManager", positionContracts[i], wallet)
     await sendTxn(positionContract.setMaxGlobalSizes(tokenAddresses, longSizes, shortSizes), "positionContract.setMaxGlobalSizes")
   }
 }
