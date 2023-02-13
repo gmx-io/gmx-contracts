@@ -1,9 +1,10 @@
-const { getFrameSigner, deployContract, contractAt, sendTxn, readTmpAddresses, callWithRetries } = require("../shared/helpers")
+const { contractAt, sendTxn } = require("../shared/helpers")
 const { bigNumberify, expandDecimals } = require("../../test/shared/utilities")
-const { toChainlinkPrice } = require("../../test/shared/chainlink")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
+
+const shouldSend = false;
 
 const {
   ARBITRUM_URL,
@@ -24,7 +25,9 @@ async function getArbValues() {
   const { btc, eth, link, uni } = tokens
   const tokenArr = [btc, eth, link, uni]
 
-  return { wallet, positionContracts, tokenArr }
+  const vaultAddress = "0x489ee077994B6658eAfA855C308275EAd8097C4A";
+
+  return { wallet, positionContracts, tokenArr, vaultAddress }
 }
 
 async function getAvaxValues() {
@@ -39,7 +42,9 @@ async function getAvaxValues() {
   const { avax, eth, btc, btcb } = tokens
   const tokenArr = [avax, eth, btc, btcb]
 
-  return { wallet, positionContracts, tokenArr }
+  const vaultAddress = "0x9ab2De34A33fB459b538c43f251eB825645e8595";
+
+  return { wallet, positionContracts, tokenArr, vaultAddress }
 }
 
 async function getValues() {
@@ -53,7 +58,31 @@ async function getValues() {
 }
 
 async function main() {
-  const { wallet, positionContracts, tokenArr } = await getValues()
+  const { wallet, positionContracts, tokenArr, vaultAddress } = await getValues()
+
+  const vault = await contractAt("Vault", vaultAddress);
+  const positionContract = await contractAt("PositionManager", positionContracts[0]);
+  for (const token of tokenArr) {
+    const [currentLongCap, currentShortCap, currentLongSize, currentShortSize] = await Promise.all([
+      positionContract.maxGlobalLongSizes(token.address),
+      positionContract.maxGlobalShortSizes(token.address),
+      vault.guaranteedUsd(token.address),
+      vault.globalShortSizes(token.address)
+    ]);
+    console.log("%s longs $%sm / $%sm -> $%sm, shorts $%sm / $%sm -> $%sm",
+      token.name.toUpperCase(),
+      (currentLongSize.toString() / 1e36).toFixed(2),
+      (currentLongCap.toString() / 1e36).toFixed(2),
+      (token.maxGlobalLongSize.toString() / 1e6 || 0).toFixed(2),
+      (currentShortSize.toString() / 1e36).toFixed(2),
+      (currentShortCap.toString() / 1e36).toFixed(2),
+      (token.maxGlobalShortSize.toString() / 1e6 || 0).toFixed(2),
+    );
+  }
+
+  if (!shouldSend) {
+    return;
+  }
 
   const tokenAddresses = tokenArr.map(t => t.address)
   const longSizes = tokenArr.map((token) => {
