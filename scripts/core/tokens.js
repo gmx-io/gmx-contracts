@@ -212,7 +212,7 @@ module.exports = {
       isStable: false,
       isShortable: true,
       spreadBasisPoints: 0,
-      maxGlobalShortSize: 700 * 1000,
+      maxGlobalShortSize: 500 * 1000,
       maxGlobalLongSize: 500 * 1000,
       openInterestLimitLong: 500 * 1000,
       openInterestLimitShort: 500 * 1000,
