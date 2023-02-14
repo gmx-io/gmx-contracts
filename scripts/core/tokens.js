@@ -169,7 +169,7 @@ module.exports = {
       bufferAmount: 65000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 60 * 1000 * 1000,
+      maxGlobalLongSize: 42 * 1000 * 1000,
       maxGlobalShortSize: 38 * 1000 * 1000,
       openInterestLimitLong: 110 * 1000 * 1000,
       openInterestLimitShort: 60 * 1000 * 1000,
