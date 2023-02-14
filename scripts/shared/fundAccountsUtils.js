@@ -73,6 +73,10 @@ async function getArbValues() {
     {
       address: "0x75f6250b9CeED446b2F25385832dF08DB45a90b0", // shorts tracker keeper
       targetFunds: "2"
+    },
+    {
+      address: "0xB4d2603B2494103C90B2c607261DD85484b49eF0", // open interest cap keeper
+      targetFunds: "2"
     }
   ]
 
@@ -117,6 +121,10 @@ async function getAvaxValues() {
     },
     {
       address: "0x02270a816fcca45ce078c8b3de0346eebc90b227", // shorts tracker keeper
+      targetFunds: "50"
+    },
+    {
+      address: "0xB4d2603B2494103C90B2c607261DD85484b49eF0", // open interest cap keeper
       targetFunds: "50"
     }
   ]
