@@ -4,7 +4,7 @@ const { bigNumberify, expandDecimals } = require("../../test/shared/utilities")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-const shouldSend = false;
+const shouldSendTxn = true;
 
 const {
   ARBITRUM_URL,
@@ -80,7 +80,7 @@ async function main() {
     );
   }
 
-  if (!shouldSend) {
+  if (!shouldSendTxn) {
     return;
   }
 

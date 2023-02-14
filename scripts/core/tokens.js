@@ -147,12 +147,12 @@ module.exports = {
       openInterestLimitShort: 50 * 1000 * 1000,
       maxOpenInterestLong: 63 * 1000 * 1000,
       maxOpenInterestShort: 30 * 1000 * 1000,
-      openInterestIncrementLong: 1 * 1000 * 1000,
+      openInterestIncrementLong: 500 * 1000,
       openInterestIncrementShort: 500 * 1000,
       maxLiquidityThresholdLong: 10 * 1000 * 1000,
       maxLiquidityThresholdShort: 8 * 1000 * 1000,
-      minLiquidityThresholdLong: 500 * 1000,
-      minLiquidityThresholdShort: 500 * 1000
+      minLiquidityThresholdLong: 350 * 1000,
+      minLiquidityThresholdShort: 350 * 1000
     },
     eth: {
       name: "eth",
@@ -175,12 +175,12 @@ module.exports = {
       openInterestLimitShort: 60 * 1000 * 1000,
       maxOpenInterestLong: 75 * 1000 * 1000,
       maxOpenInterestShort: 46 * 1000 * 1000,
-      openInterestIncrementLong: 1 * 1000 * 1000,
+      openInterestIncrementLong: 500 * 1000,
       openInterestIncrementShort: 500 * 1000,
       maxLiquidityThresholdLong: 12 * 1000 * 1000,
       maxLiquidityThresholdShort: 10 * 1000 * 1000,
-      minLiquidityThresholdLong: 500 * 1000,
-      minLiquidityThresholdShort: 500 * 1000
+      minLiquidityThresholdLong: 350 * 1000,
+      minLiquidityThresholdShort: 350 * 1000
     },
     usdc: {
       name: "usdc",
