@@ -1,4 +1,4 @@
-const { deployContract, contractAt, sendTxn, signers, updateTokensPerInterval } = require("../shared/helpers")
+const { contractAt, signers, updateTokensPerInterval } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
