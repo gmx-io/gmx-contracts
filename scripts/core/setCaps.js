@@ -2,16 +2,13 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 
 const {
   ARBITRUM_SERVER_CONFIG_KEEPER_KEY,
-  // ARBITRUM_SERVER_URL,
+  ARBITRUM_SERVER_URL,
   AVAX_SERVER_CONFIG_KEEPER_KEY,
-  // AVAX_SERVER_URL,
+  AVAX_SERVER_URL,
 } = require("../../env.json")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
-
-const ARBITRUM_SERVER_URL = "http://localhost:8080"
-const AVAX_SERVER_URL = "http://localhost:8080"
 
 async function getArbValues() {
   const apiKey = ARBITRUM_SERVER_CONFIG_KEEPER_KEY
