@@ -91,14 +91,26 @@ async function main() {
       usdgAmount = adjustedMaxUsdgAmount
     }
 
+    if (!token.maxUsdgAmount.eq(adjustedMaxUsdgAmount)) {
+      console.warn(`maxUsdgAmount for ${tokenItem.name} was changed from ${token.maxUsdgAmount.toString()} to ${adjustedMaxUsdgAmount.toString()}`)
+    }
+
+    const adjustedBufferAmount = expandDecimals(tokenItem.bufferAmount, tokenItem.decimals)
+    if (!token.bufferAmount.eq(adjustedBufferAmount)) {
+      console.warn(`bufferAmount for ${tokenItem.name} was changed from ${token.bufferAmount.toString()} to ${adjustedBufferAmount.toString()}`)
+    }
+    if (!token.weight.eq(tokenItem.tokenWeight)) {
+      console.warn(`tokenWeight for ${tokenItem.name} was changed from ${token.weight.toString()} to ${tokenItem.tokenWeight.toString()}`)
+    }
+
     if (shouldSendTxn) {
       await sendTxn(timelock.setTokenConfig(
         vault.address,
         tokenItem.address, // _token
         tokenItem.tokenWeight, // _tokenWeight
         tokenItem.minProfitBps, // _minProfitBps
-        expandDecimals(tokenItem.maxUsdgAmount, 18), // _maxUsdgAmount
-        expandDecimals(tokenItem.bufferAmount, tokenItem.decimals), // _bufferAmount
+        adjustedMaxUsdgAmount, // _maxUsdgAmount
+        adjustedBufferAmount, // _bufferAmount
         usdgAmount
       ), `vault.setTokenConfig(${tokenItem.name}) ${tokenItem.address}`)
     }
