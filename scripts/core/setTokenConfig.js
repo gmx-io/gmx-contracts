@@ -1,6 +1,7 @@
 const { deployContract, contractAt, sendTxn, readTmpAddresses, callWithRetries } = require("../shared/helpers")
 const { bigNumberify, expandDecimals } = require("../../test/shared/utilities")
 const { toChainlinkPrice } = require("../../test/shared/chainlink")
+const { formatAmount } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
@@ -49,7 +50,7 @@ async function main() {
 
   const vaultPropsLength = 14;
 
-  const shouldSendTxn = true
+  const shouldSendTxn = false
 
   let totalUsdgAmount = bigNumberify(0)
 
@@ -87,20 +88,20 @@ async function main() {
 
     const adjustedMaxUsdgAmount = expandDecimals(tokenItem.maxUsdgAmount, 18)
     if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
-      console.warn(`usdgAmount for ${tokenItem.name} was adjusted from ${usdgAmount.toString()} to ${adjustedMaxUsdgAmount.toString()}`)
+      console.warn(`usdgAmount for ${tokenItem.name.toUpperCase()} was adjusted from ${formatAmount(usdgAmount, 18, 0, true)} to ${formatAmount(adjustedMaxUsdgAmount, 18, 0, true)}`)
       usdgAmount = adjustedMaxUsdgAmount
     }
 
     if (!token.maxUsdgAmount.eq(adjustedMaxUsdgAmount)) {
-      console.warn(`maxUsdgAmount for ${tokenItem.name} was changed from ${token.maxUsdgAmount.toString()} to ${adjustedMaxUsdgAmount.toString()}`)
+      console.warn(`maxUsdgAmount for ${tokenItem.name.toUpperCase()} was changed from ${formatAmount(token.maxUsdgAmount, 18, 0, true)} to ${formatAmount(adjustedMaxUsdgAmount, 18, 0, true)}`)
     }
 
     const adjustedBufferAmount = expandDecimals(tokenItem.bufferAmount, tokenItem.decimals)
     if (!token.bufferAmount.eq(adjustedBufferAmount)) {
-      console.warn(`bufferAmount for ${tokenItem.name} was changed from ${token.bufferAmount.toString()} to ${adjustedBufferAmount.toString()}`)
+      console.warn(`bufferAmount for ${tokenItem.name.toUpperCase()} was changed from ${formatAmount(token.bufferAmount, tokenItem.decimals, 0, true)} to ${formatAmount(adjustedBufferAmount, tokenItem.decimals, 0, true)}`)
     }
     if (!token.weight.eq(tokenItem.tokenWeight)) {
-      console.warn(`tokenWeight for ${tokenItem.name} was changed from ${token.weight.toString()} to ${tokenItem.tokenWeight.toString()}`)
+      console.warn(`tokenWeight for ${tokenItem.name.toUpperCase()} was changed from ${token.weight.toString()} to ${tokenItem.tokenWeight.toString()}`)
     }
 
     if (shouldSendTxn) {
