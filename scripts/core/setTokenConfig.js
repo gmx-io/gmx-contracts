@@ -1,6 +1,5 @@
-const { deployContract, contractAt, sendTxn, readTmpAddresses, callWithRetries } = require("../shared/helpers")
+const { contractAt, sendTxn } = require("../shared/helpers")
 const { bigNumberify, expandDecimals } = require("../../test/shared/utilities")
-const { toChainlinkPrice } = require("../../test/shared/chainlink")
 const { formatAmount } = require("../../test/shared/utilities")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
@@ -11,7 +10,7 @@ async function getArbValues() {
   const timelock = await contractAt("Timelock", await vault.gov())
   const reader = await contractAt("Reader", "0x2b43c90D1B727cEe1Df34925bcd5Ace52Ec37694")
 
-  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const { btc, eth, usdc, link, uni, usdt, frax, dai } = tokens
   const tokenArr = [ btc, eth, usdc, link, uni, usdt, frax, dai ]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, eth.address, 1, tokenArr.map(t => t.address))
@@ -43,14 +42,14 @@ async function getValues() {
 }
 
 async function main() {
-  const { vault, timelock, reader, tokenArr, vaultTokenInfo } = await getValues()
+  const { vault, timelock, tokenArr, vaultTokenInfo } = await getValues()
 
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)
 
   const vaultPropsLength = 14;
 
-  const shouldSendTxn = false
+  const shouldSendTxn = true
 
   let totalUsdgAmount = bigNumberify(0)
 
