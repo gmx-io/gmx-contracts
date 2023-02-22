@@ -429,7 +429,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
                 amountIn = _swap(request.path, request.minOut, address(this));
             }
 
-            uint256 afterFeeAmount = _collectFees(msg.sender, request.path, amountIn, request.indexToken, request.isLong, request.sizeDelta);
+            uint256 afterFeeAmount = _collectFees(request.account, request.path, amountIn, request.indexToken, request.isLong, request.sizeDelta);
             IERC20(request.path[request.path.length - 1]).safeTransfer(vault, afterFeeAmount);
         }
 
