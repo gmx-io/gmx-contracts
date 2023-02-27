@@ -237,7 +237,7 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
 
         if (success) { return; }
 
-        // if the transfer failed, re-wrap the token and it to the receiver
+        // if the transfer failed, re-wrap the token and send it to the receiver
         _weth.deposit{ value: _amountOut }();
         _weth.transfer(address(_receiver), _amountOut);
     }
