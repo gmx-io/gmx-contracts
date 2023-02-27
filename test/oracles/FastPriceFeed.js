@@ -32,7 +32,6 @@ describe("FastPriceFeed", function () {
   let usdg
   let router
   let positionUtils
-  let positionRouter
   let fastPriceEvents
   let fastPriceFeed
 
@@ -64,11 +63,6 @@ describe("FastPriceFeed", function () {
     usdg = await deployContract("USDG", [vault.address])
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
     positionUtils = await deployContract("PositionUtils", [])
-    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, ethers.constants.AddressZero, depositFee, minExecutionFee], {
-      libraries: {
-        PositionUtils: positionUtils.address
-      }
-    })
 
     fastPriceEvents = await deployContract("FastPriceEvents", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [
@@ -77,8 +71,7 @@ describe("FastPriceFeed", function () {
       2, // _minBlockInterval
       250, // _maxDeviationBasisPoints
       fastPriceEvents.address, // _fastPriceEvents
-      tokenManager.address, // _tokenManager
-      positionRouter.address // _positionRouter
+      tokenManager.address // _tokenManager
     ])
     await fastPriceFeed.initialize(2, [signer0.address, signer1.address], [updater0.address, updater1.address])
     await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
@@ -98,7 +91,6 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(250)
     expect(await fastPriceFeed.fastPriceEvents()).eq(fastPriceEvents.address)
     expect(await fastPriceFeed.tokenManager()).eq(tokenManager.address)
-    expect(await fastPriceFeed.positionRouter()).eq(positionRouter.address)
     expect(await fastPriceFeed.minAuthorizations()).eq(2)
     expect(await fastPriceFeed.isSigner(wallet.address)).eq(false)
     expect(await fastPriceFeed.isSigner(signer0.address)).eq(true)

@@ -122,8 +122,7 @@ describe("PositionRouter", function () {
       2, // _minBlockInterval
       250, // _maxDeviationBasisPoints
       fastPriceEvents.address, // _fastPriceEvents
-      tokenManager.address, // _tokenManager
-      positionRouter.address // _positionRouter
+      tokenManager.address // _tokenManager
     ])
     await fastPriceFeed.initialize(2, [signer0.address, signer1.address], [updater0.address, updater1.address])
     await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
@@ -2323,6 +2322,7 @@ describe("PositionRouter", function () {
     const blockTime = await getBlockTime(provider)
 
     await expect(fastPriceFeed.connect(user0).setPricesWithBitsAndExecute(
+      positionRouter.address,
       0, // _priceBits
       blockTime, // _timestamp
       9, // _endIndexForIncreasePositions
@@ -2332,6 +2332,7 @@ describe("PositionRouter", function () {
     )).to.be.revertedWith("FastPriceFeed: forbidden")
 
     await fastPriceFeed.connect(updater0).setPricesWithBitsAndExecute(
+      positionRouter.address,
       0, // _priceBits
       blockTime, // _timestamp
       9, // _endIndexForIncreasePositions
