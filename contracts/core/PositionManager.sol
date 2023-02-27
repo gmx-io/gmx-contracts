@@ -243,7 +243,7 @@ contract PositionManager is BasePositionManager {
         IOrderBook(orderBook).executeIncreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
 
-        _emitIncreasePositionReferral(_account, sizeDelta);
+        PositionUtils.emitIncreasePositionReferral(_vault, referralStorage, _account, sizeDelta);
     }
 
     function executeDecreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper {
@@ -269,7 +269,7 @@ contract PositionManager is BasePositionManager {
         IOrderBook(orderBook).executeDecreaseOrder(_account, _orderIndex, _feeReceiver);
         ITimelock(timelock).disableLeverage(_vault);
 
-        _emitDecreasePositionReferral(_account, sizeDelta);
+        PositionUtils.emitDecreasePositionReferral(_vault, referralStorage, _account, sizeDelta);
     }
 
     function _validateIncreaseOrder(address _account, uint256 _orderIndex) internal view {
