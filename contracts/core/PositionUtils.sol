@@ -31,6 +31,8 @@ library PositionUtils {
         address referrer
     );
 
+    event LeverageDecreased(uint256 collateralDelta, uint256 prevLeverage, uint256 nextLeverage);
+
     function shouldDeductFee(
         address _vault,
         address _account,
@@ -40,7 +42,7 @@ library PositionUtils {
         bool _isLong,
         uint256 _sizeDelta,
         uint256 _increasePositionBufferBps
-    ) external view returns (bool) {
+    ) external returns (bool) {
         // if the position is a short, do not charge a fee
         if (!_isLong) { return false; }
 
@@ -62,6 +64,8 @@ library PositionUtils {
         uint256 prevLeverage = size.mul(BASIS_POINTS_DIVISOR).div(collateral);
         // allow for a maximum of a increasePositionBufferBps decrease since there might be some swap fees taken from the collateral
         uint256 nextLeverage = nextSize.mul(BASIS_POINTS_DIVISOR + _increasePositionBufferBps).div(nextCollateral);
+
+        emit LeverageDecreased(collateralDelta, prevLeverage, nextLeverage);
 
         // deduct a fee if the leverage is decreased
         return nextLeverage < prevLeverage;
