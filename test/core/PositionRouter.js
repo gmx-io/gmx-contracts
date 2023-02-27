@@ -18,6 +18,7 @@ describe("PositionRouter", function () {
   let timelock
   let usdg
   let router
+  let positionUtils
   let positionRouter
   let referralStorage
   let bnb
@@ -70,7 +71,13 @@ describe("PositionRouter", function () {
     shortsTracker = await deployContract("ShortsTracker", [vault.address])
     await shortsTracker.setIsGlobalShortDataReady(true)
 
-    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, shortsTracker.address, depositFee, minExecutionFee])
+    positionUtils = await deployContract("PositionUtils", [])
+
+    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, shortsTracker.address, depositFee, minExecutionFee], {
+      libraries: {
+        PositionUtils: positionUtils.address
+      }
+    })
     await shortsTracker.setHandler(positionRouter.address, true)
 
     referralStorage = await deployContract("ReferralStorage", [])
@@ -148,7 +155,7 @@ describe("PositionRouter", function () {
 
   it("setDepositFee", async () => {
     await expect(positionRouter.connect(user0).setDepositFee(25))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -159,7 +166,7 @@ describe("PositionRouter", function () {
 
   it("setIncreasePositionBufferBps", async () => {
     await expect(positionRouter.connect(user0).setIncreasePositionBufferBps(200))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -170,7 +177,7 @@ describe("PositionRouter", function () {
 
   it("setReferralStorage", async () => {
     await expect(positionRouter.connect(user0).setReferralStorage(user1.address))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -185,7 +192,7 @@ describe("PositionRouter", function () {
     const maxGlobalShortSizes = [3, 12, 8]
 
     await expect(positionRouter.connect(user0).setMaxGlobalSizes(tokens, maxGlobalLongSizes, maxGlobalShortSizes))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -265,7 +272,7 @@ describe("PositionRouter", function () {
     expect(await positionRouter.feeReserves(bnb.address)).eq("9970000000000000") // 0.00997
 
     await expect(positionRouter.connect(user2).withdrawFees(dai.address, user3.address))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user2.address)
 
@@ -312,7 +319,7 @@ describe("PositionRouter", function () {
 
   it("setPositionKeeper", async () => {
     await expect(positionRouter.connect(user0).setPositionKeeper(user1.address, true))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -326,7 +333,7 @@ describe("PositionRouter", function () {
 
   it("setMinExecutionFee", async () => {
     await expect(positionRouter.connect(user0).setMinExecutionFee("7000"))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -337,7 +344,7 @@ describe("PositionRouter", function () {
 
   it("setIsLeverageEnabled", async () => {
     await expect(positionRouter.connect(user0).setIsLeverageEnabled(false))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -348,7 +355,7 @@ describe("PositionRouter", function () {
 
   it("setDelayValues", async () => {
     await expect(positionRouter.connect(user0).setDelayValues(7, 21, 600))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -365,7 +372,7 @@ describe("PositionRouter", function () {
 
   it("setRequestKeysStartValues", async () => {
     await expect(positionRouter.connect(user0).setRequestKeysStartValues(5, 8))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionRouter.setAdmin(user0.address)
 
@@ -410,7 +417,7 @@ describe("PositionRouter", function () {
 
     await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode, AddressZero]), { value: 4000 })
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: mark price higher than limit")
+      .to.be.revertedWith("markPrice > price")
   })
 
   it("increasePosition minOut long", async () => {
@@ -445,7 +452,7 @@ describe("PositionRouter", function () {
 
     await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode, AddressZero]), { value: 4000 })
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+      .to.be.revertedWith("insufficient amountOut")
   })
 
   it("validateExecution", async () => {
@@ -643,7 +650,7 @@ describe("PositionRouter", function () {
     await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode, AddressZero]), { value: 4000 })
     let key = await positionRouter.getRequestKey(user0.address, 1)
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: max global longs exceeded")
+      .to.be.revertedWith("max longs exceeded")
 
     await positionRouter.setMaxGlobalSizes(
       [bnb.address, btc.address],
@@ -703,7 +710,7 @@ describe("PositionRouter", function () {
     await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, false, AddressZero]), { value: 4000 })
     key = await positionRouter.getRequestKey(user0.address, 1)
     await expect(positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: mark price lower than limit")
+      .to.be.revertedWith("markPrice < price")
   })
 
   it("decreasePosition minOut long", async () => {
@@ -753,7 +760,7 @@ describe("PositionRouter", function () {
     await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, false, AddressZero]), { value: 4000 })
     key = await positionRouter.getRequestKey(user0.address, 1)
     await expect(positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+      .to.be.revertedWith("insufficient amountOut")
   })
 
   it("increasePosition acceptablePrice short", async () => {
@@ -788,7 +795,7 @@ describe("PositionRouter", function () {
 
     await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode, AddressZero]), { value: 4000 })
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: mark price lower than limit")
+      .to.be.revertedWith("markPrice < price")
   })
 
   it("maxGlobalShortSize", async () => {
@@ -829,7 +836,7 @@ describe("PositionRouter", function () {
 
     await positionRouter.connect(user0).createIncreasePosition(...params.concat([4000, referralCode, AddressZero]), { value: 4000 })
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: max global shorts exceeded")
+      .to.be.revertedWith("max shorts exceeded")
 
     await positionRouter.setMaxGlobalSizes(
       [bnb.address, btc.address],
@@ -889,7 +896,7 @@ describe("PositionRouter", function () {
     await positionRouter.connect(user0).createDecreasePosition(...decreasePositionParams.concat([4000, false, AddressZero]), { value: 4000 })
     key = await positionRouter.getRequestKey(user0.address, 1)
     await expect(positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: mark price higher than limit")
+      .to.be.revertedWith("markPrice > price")
   })
 
   it("createIncreasePosition, executeIncreasePosition, cancelIncreasePosition", async () => {
@@ -1765,7 +1772,7 @@ describe("PositionRouter", function () {
     expect(await dai.balanceOf(user1.address)).eq(0)
 
     await expect(positionRouter.connect(positionKeeper).executeDecreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+      .to.be.revertedWith("insufficient amountOut")
 
     decreasePositionParams[7] = expandDecimals(40, 18)
 

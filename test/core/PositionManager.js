@@ -8,12 +8,13 @@ const { initVault, getBnbConfig, getBtcConfig, getDaiConfig, validateVaultBalanc
 
 use(solidity)
 
-describe("PositionManager core", function () {
+describe("PositionManager", function () {
   const provider = waffle.provider
   const [wallet, user0, user1, user2, user3] = provider.getWallets()
   let vault
   let vaultUtils
   let vaultPriceFeed
+  let positionUtils
   let positionManager
   let usdg
   let router
@@ -90,6 +91,8 @@ describe("PositionManager core", function () {
     ])
     await glpManager.setShortsTrackerAveragePriceWeight(10000)
 
+    positionUtils = await deployContract("PositionUtils", [])
+
     positionManager = await deployContract("PositionManager", [
       vault.address,
       router.address,
@@ -97,7 +100,11 @@ describe("PositionManager core", function () {
       bnb.address,
       50,
       orderBook.address
-    ])
+    ], {
+      libraries: {
+        PositionUtils: positionUtils.address
+      }
+    })
     await shortsTracker.setHandler(positionManager.address, true)
 
     await daiPriceFeed.setLatestAnswer(toChainlinkPrice(1))
@@ -146,7 +153,7 @@ describe("PositionManager core", function () {
 
   it("setDepositFee", async () => {
     await expect(positionManager.connect(user0).setDepositFee(10))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     expect(await positionManager.depositFee()).eq(50)
     await positionManager.connect(wallet).setDepositFee(10)
@@ -164,7 +171,7 @@ describe("PositionManager core", function () {
 
   it("setOrderKeeper", async () => {
     await expect(positionManager.connect(user0).setOrderKeeper(user1.address, true))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionManager.setAdmin(user0.address)
 
@@ -175,7 +182,7 @@ describe("PositionManager core", function () {
 
   it("setLiquidator", async () => {
     await expect(positionManager.connect(user0).setLiquidator(user1.address, true))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionManager.setAdmin(user0.address)
 
@@ -186,7 +193,7 @@ describe("PositionManager core", function () {
 
   it("setPartner", async () => {
     await expect(positionManager.connect(user0).setPartner(user1.address, true))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionManager.setAdmin(user0.address)
 
@@ -197,7 +204,7 @@ describe("PositionManager core", function () {
 
   it("setInLegacyMode", async () => {
     await expect(positionManager.connect(user0).setInLegacyMode(true))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionManager.setAdmin(user0.address)
 
@@ -208,7 +215,7 @@ describe("PositionManager core", function () {
 
   it("setShouldValidateIncreaseOrder", async () => {
     await expect(positionManager.connect(user0).setShouldValidateIncreaseOrder(false))
-      .to.be.revertedWith("BasePositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await positionManager.setAdmin(user0.address)
 
@@ -221,7 +228,7 @@ describe("PositionManager core", function () {
     const timelock = await deployTimelock()
 
     await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
-      .to.be.revertedWith("PositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await vault.setGov(timelock.address)
     await router.addPlugin(positionManager.address)
@@ -236,7 +243,7 @@ describe("PositionManager core", function () {
 
     // path length should be 1 or 2
     await expect(positionManager.connect(user0).increasePosition([btc.address, bnb.address, dai.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
-      .to.be.revertedWith("PositionManager: invalid _path.length")
+      .to.be.revertedWith("invalid _path.length")
 
     await timelock.setContractHandler(positionManager.address, true)
     await timelock.setShouldToggleIsLeverageEnabled(true)
@@ -246,11 +253,11 @@ describe("PositionManager core", function () {
 
     // too low desired price
     await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(50000)))
-      .to.be.revertedWith("BasePositionManager: mark price higher than limit")
+      .to.be.revertedWith("markPrice > price")
 
     // too big minOut
     await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "1332333", toUsd(2000), true, toNormalizedPrice(60000)))
-      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+      .to.be.revertedWith("insufficient amountOut")
 
     await positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))
 
@@ -298,7 +305,7 @@ describe("PositionManager core", function () {
 
     await positionManager.setInLegacyMode(false)
     await expect(positionManager.connect(user0).decreasePosition(btc.address, btc.address, position[1], position[0], true, user0.address, 0))
-      .to.be.revertedWith("PositionManager: forbidden")
+      .to.be.revertedWith("forbidden")
     await positionManager.setInLegacyMode(true)
 
     expect(await btc.balanceOf(user0.address)).to.be.equal("298500000")
@@ -309,7 +316,7 @@ describe("PositionManager core", function () {
     expect(position[1]).eq(0) // collateral
 
     await positionManager.setInLegacyMode(false)
-    await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))).to.be.revertedWith("PositionManager: forbidden")
+    await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))).to.be.revertedWith("forbidden")
 
     // partners should have access in non-legacy mode
     expect(await positionManager.isPartner(user0.address)).to.be.false
@@ -348,7 +355,7 @@ describe("PositionManager core", function () {
 
     // too low desired price
     await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, toUsd(2000), true, toUsd(200), { value: expandDecimals(1, 18) }))
-      .to.be.revertedWith("BasePositionManager: mark price higher than limit")
+      .to.be.revertedWith("markPrice > price")
 
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
 
@@ -492,7 +499,7 @@ describe("PositionManager core", function () {
 
     // too high minOut
     await expect(positionManager.connect(user0).decreasePositionAndSwap(...params, expandDecimals(200, 18)))
-      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+      .to.be.revertedWith("insufficient amountOut")
 
     // invalid path[0] == path[1]
     await expect(positionManager.connect(user0).decreasePositionAndSwap([bnb.address, bnb.address], ...params.slice(1), 0))
@@ -530,7 +537,7 @@ describe("PositionManager core", function () {
     await positionManager.setInLegacyMode(true)
 
     await expect(positionManager.connect(user0).decreasePositionAndSwapETH(...params, expandDecimals(200, 18)))
-      .to.be.revertedWith("BasePositionManager: insufficient amountOut")
+      .to.be.revertedWith("insufficient amountOut")
 
     await expect(positionManager.connect(user0).decreasePositionAndSwapETH([dai.address, dai.address], ...params.slice(1), 0))
       .to.be.revertedWith("PositionManager: invalid _path")
@@ -772,6 +779,7 @@ describe("PositionManager next short data calculations", function () {
   let vault
   let vaultUtils
   let vaultPriceFeed
+  let positionUtils
   let positionManager
   let usdg
   let router
@@ -855,6 +863,8 @@ describe("PositionManager next short data calculations", function () {
       24 * 60 * 60
     ])
 
+    positionUtils = await deployContract("PositionUtils", [])
+
     positionManager = await deployContract("PositionManager", [
       vault.address,
       router.address,
@@ -862,7 +872,11 @@ describe("PositionManager next short data calculations", function () {
       bnb.address,
       50,
       orderBook.address
-    ])
+    ], {
+      libraries: {
+        PositionUtils: positionUtils.address
+      }
+    })
     await positionManager.setInLegacyMode(true)
     await router.addPlugin(positionManager.address)
     await shortsTracker.setHandler(positionManager.address, true)

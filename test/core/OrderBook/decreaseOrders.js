@@ -172,7 +172,7 @@ describe("OrderBook, decrease position orders", () => {
 
     it("Create decrease order, long", async () => {
         const tx = await defaultCreateDecreaseOrder();
-        reportGasUsed(provider, tx, 'createDecraseOrder gas used');
+        reportGasUsed(provider, tx, 'createDecreaseOrder gas used');
         let order = await getCreatedDecreaseOrder(defaults.user.address);
         const btcBalanceAfter = await btc.balanceOf(orderBook.address);
 

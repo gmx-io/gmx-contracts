@@ -19,13 +19,20 @@ describe("FastPriceFeed", function () {
   const minExecutionFee = 4000
 
   const [wallet, tokenManager, mintReceiver, user0, user1, user2, user3, signer0, signer1, updater0, updater1] = provider.getWallets()
+
+  let vaultPriceFeed
   let bnb
   let bnbPriceFeed
   let btc
   let btcPriceFeed
   let eth
   let ethPriceFeed
-  let vaultPriceFeed
+  let vault
+  let timelock
+  let usdg
+  let router
+  let positionUtils
+  let positionRouter
   let fastPriceEvents
   let fastPriceFeed
 
@@ -56,7 +63,12 @@ describe("FastPriceFeed", function () {
 
     usdg = await deployContract("USDG", [vault.address])
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
-    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, ethers.constants.AddressZero, depositFee, minExecutionFee])
+    positionUtils = await deployContract("PositionUtils", [])
+    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, ethers.constants.AddressZero, depositFee, minExecutionFee], {
+      libraries: {
+        PositionUtils: positionUtils.address
+      }
+    })
 
     fastPriceEvents = await deployContract("FastPriceEvents", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [
