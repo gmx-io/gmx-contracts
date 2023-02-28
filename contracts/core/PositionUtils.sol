@@ -15,22 +15,6 @@ library PositionUtils {
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
-    event IncreasePositionReferral(
-        address account,
-        uint256 sizeDelta,
-        uint256 marginFeeBasisPoints,
-        bytes32 referralCode,
-        address referrer
-    );
-
-    event DecreasePositionReferral(
-        address account,
-        uint256 sizeDelta,
-        uint256 marginFeeBasisPoints,
-        bytes32 referralCode,
-        address referrer
-    );
-
     event LeverageDecreased(uint256 collateralDelta, uint256 prevLeverage, uint256 nextLeverage);
 
     function shouldDeductFee(
@@ -75,7 +59,6 @@ library PositionUtils {
         address _vault,
         address _router,
         address _shortsTracker,
-        address _referralStorage,
         address _account,
         address _collateralToken,
         address _indexToken,
@@ -98,47 +81,5 @@ library PositionUtils {
         ITimelock(timelock).enableLeverage(_vault);
         IRouter(_router).pluginIncreasePosition(_account, _collateralToken, _indexToken, _sizeDelta, _isLong);
         ITimelock(timelock).disableLeverage(_vault);
-
-        emitIncreasePositionReferral(
-            _vault,
-            _referralStorage,
-            _account,
-            _sizeDelta
-        );
-    }
-
-    function emitIncreasePositionReferral(address _vault, address _referralStorage, address _account, uint256 _sizeDelta) public {
-        if (_referralStorage == address(0)) {
-            return;
-        }
-
-        (bytes32 referralCode, address referrer) = IReferralStorage(_referralStorage).getTraderReferralInfo(_account);
-        emit IncreasePositionReferral(
-            _account,
-            _sizeDelta,
-            IVault(_vault).marginFeeBasisPoints(),
-            referralCode,
-            referrer
-        );
-    }
-
-    function emitDecreasePositionReferral(address _vault, address _referralStorage, address _account, uint256 _sizeDelta) internal {
-        if (_referralStorage == address(0)) {
-            return;
-        }
-
-        (bytes32 referralCode, address referrer) = IReferralStorage(_referralStorage).getTraderReferralInfo(_account);
-
-        if (referralCode == bytes32(0)) {
-            return;
-        }
-
-        emit DecreasePositionReferral(
-            _account,
-            _sizeDelta,
-            IVault(_vault).marginFeeBasisPoints(),
-            referralCode,
-            referrer
-        );
     }
 }
