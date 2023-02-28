@@ -171,7 +171,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     event SetRequestKeysStartValues(uint256 increasePositionRequestKeysStart, uint256 decreasePositionRequestKeysStart);
     event SetCallbackGasLimit(uint256 callbackGasLimit);
     event SetCustomCallbackGasLimit(address callbackTarget, uint256 callbackGasLimit);
-    event Callback(address callbackTarget, bool success);
+    event Callback(address callbackTarget, bool success, uint256 callbackGasLimit);
 
     modifier onlyPositionKeeper() {
         require(isPositionKeeper[msg.sender], "403");
@@ -785,6 +785,6 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             success = true;
         } catch {}
 
-        emit Callback(_callbackTarget, success);
+        emit Callback(_callbackTarget, success, _gasLimit);
     }
 }
