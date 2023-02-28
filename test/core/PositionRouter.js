@@ -2713,7 +2713,7 @@ describe("PositionRouter", function () {
 
     // request should be executed successfully, Callback event should be emitted
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address), "executed 1")
-      .to.emit(positionRouter, "Callback").withArgs(btc.address, false)
+      .to.emit(positionRouter, "Callback").withArgs(btc.address, false, 10)
     // make sure it was executed
     request = await positionRouter.increasePositionRequests(key)
     expect(request.account, "request 1").to.equal(AddressZero)
