@@ -3,7 +3,6 @@
 pragma solidity ^0.6.0;
 
 import "../libraries/math/SafeMath.sol";
-import "../referrals/interfaces/IReferralStorage.sol";
 import "../peripherals/interfaces/ITimelock.sol";
 
 import "./interfaces/IVault.sol";

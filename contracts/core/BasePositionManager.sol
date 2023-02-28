@@ -17,6 +17,7 @@ import "./interfaces/IBasePositionManager.sol";
 
 import "../access/Governable.sol";
 import "../peripherals/interfaces/ITimelock.sol";
+import "../referrals/interfaces/IReferralStorage.sol";
 
 import "./PositionUtils.sol";
 
