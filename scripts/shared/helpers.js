@@ -115,8 +115,8 @@ async function deployContract(name, args, label, options) {
   return contract
 }
 
-async function contractAt(name, address, provider) {
-  let contractFactory = await ethers.getContractFactory(name)
+async function contractAt(name, address, provider, options) {
+  let contractFactory = await ethers.getContractFactory(name, options)
   if (provider) {
     contractFactory = contractFactory.connect(provider)
   }
