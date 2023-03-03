@@ -3,6 +3,7 @@
 pragma solidity 0.6.12;
 
 interface ITimelock {
+    function marginFeeBasisPoints() external returns (uint256);
     function setAdmin(address _admin) external;
     function enableLeverage(address _vault) external;
     function disableLeverage(address _vault) external;

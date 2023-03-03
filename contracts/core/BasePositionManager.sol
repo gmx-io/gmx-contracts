@@ -290,16 +290,18 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
 
     function _emitIncreasePositionReferral(address _account, uint256 _sizeDelta) internal {
         address _referralStorage = referralStorage;
+        if (_referralStorage == address(0)) { return; }
 
-        if (_referralStorage == address(0)) {
-            return;
-        }
 
         (bytes32 referralCode, address referrer) = IReferralStorage(_referralStorage).getTraderReferralInfo(_account);
+        if (referralCode == bytes32(0)) { return; }
+
+        address timelock = IVault(vault).gov();
+
         emit IncreasePositionReferral(
             _account,
             _sizeDelta,
-            IVault(vault).marginFeeBasisPoints(),
+            ITimelock(timelock).marginFeeBasisPoints(),
             referralCode,
             referrer
         );
@@ -307,21 +309,17 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
 
     function _emitDecreasePositionReferral(address _account, uint256 _sizeDelta) internal {
         address _referralStorage = referralStorage;
-
-        if (_referralStorage == address(0)) {
-            return;
-        }
+        if (_referralStorage == address(0)) { return; }
 
         (bytes32 referralCode, address referrer) = IReferralStorage(_referralStorage).getTraderReferralInfo(_account);
+        if (referralCode == bytes32(0)) { return; }
 
-        if (referralCode == bytes32(0)) {
-            return;
-        }
+        address timelock = IVault(vault).gov();
 
         emit DecreasePositionReferral(
             _account,
             _sizeDelta,
-            IVault(vault).marginFeeBasisPoints(),
+            ITimelock(timelock).marginFeeBasisPoints(),
             referralCode,
             referrer
         );
