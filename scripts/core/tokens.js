@@ -1,5 +1,5 @@
 // price feeds https://docs.chain.link/docs/binance-smart-chain-addresses/
-const { expandDecimals } = require("../../test/shared/utilities")
+const { expandDecimals } = require("../../test/shared/utilities");
 
 module.exports = {
   bsc: {
@@ -15,7 +15,7 @@ module.exports = {
       decimals: 18,
       priceFeed: "0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf",
       priceDecimals: 8,
-      isStrictStable: false
+      isStrictStable: false,
     },
     eth: {
       name: "eth",
@@ -23,7 +23,7 @@ module.exports = {
       decimals: 18,
       priceFeed: "0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e",
       priceDecimals: 8,
-      isStrictStable: false
+      isStrictStable: false,
     },
     bnb: {
       name: "bnb",
@@ -31,7 +31,7 @@ module.exports = {
       decimals: 18,
       priceFeed: "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",
       priceDecimals: 8,
-      isStrictStable: false
+      isStrictStable: false,
     },
     busd: {
       name: "busd",
@@ -39,7 +39,7 @@ module.exports = {
       decimals: 18,
       priceFeed: "0xcBb98864Ef56E9042e7d2efef76141f15731B82f",
       priceDecimals: 8,
-      isStrictStable: true
+      isStrictStable: true,
     },
     usdc: {
       name: "usdc",
@@ -47,7 +47,7 @@ module.exports = {
       decimals: 18,
       priceFeed: "0x51597f405303C4377E36123cBc172b13269EA163",
       priceDecimals: 8,
-      isStrictStable: true
+      isStrictStable: true,
     },
     usdt: {
       name: "usdt",
@@ -55,12 +55,12 @@ module.exports = {
       decimals: 18,
       priceFeed: "0xB97Ad0E74fa7d920791E90258A6E2085088b4320",
       priceDecimals: 8,
-      isStrictStable: true
+      isStrictStable: true,
     },
     nativeToken: {
       address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-      decimals: 18
-    }
+      decimals: 18,
+    },
   },
   testnet: {
     btcPriceFeed: { address: "0x5741306c21795FdCBb9b265Ea0255F499DFe515C" },
@@ -71,32 +71,32 @@ module.exports = {
     usdtPriceFeed: { address: "0xEca2605f0BCF2BA5966372C99837b1F182d3D620" },
     btc: {
       address: "0xb19C12715134bee7c4b1Ca593ee9E430dABe7b56",
-      decimals: 18
+      decimals: 18,
     },
     eth: {
       address: "0x1958f7C067226c7C8Ac310Dc994D0cebAbfb2B02",
-      decimals: 18
+      decimals: 18,
     },
     bnb: {
       address: "0x612777Eea37a44F7a95E3B101C39e1E2695fa6C2",
-      decimals: 18
+      decimals: 18,
     },
     busd: {
       address: "0x3F223C4E5ac67099CB695834b20cCd5E5D5AA9Ef",
-      decimals: 18
+      decimals: 18,
     },
     usdc: {
       address: "0x9780881bf45b83ee028c4c1de7e0c168df8e9eef",
-      decimals: 18
+      decimals: 18,
     },
     usdt: {
       address: "0x337610d27c682e347c9cd60bd4b3b107c9d34ddd",
-      decimals: 18
+      decimals: 18,
     },
     nativeToken: {
       address: "0x612777Eea37a44F7a95E3B101C39e1E2695fa6C2",
-      decimals: 18
-    }
+      decimals: 18,
+    },
   },
   arbitrumTestnet: {
     // https://docs.chain.link/docs/arbitrum-price-feeds/
@@ -106,24 +106,24 @@ module.exports = {
     usdcPriceFeed: { address: "0xb1Ac85E779d05C2901812d812210F6dE144b2df0" }, // this is USDT price feed, chainlink doesn't have one for USDC
     btc: {
       address: "0xab952e6801daB7920B65b8aC918FF0F66a8a0F44",
-      decimals: 18
+      decimals: 18,
     },
     eth: {
       address: "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681",
-      decimals: 18
+      decimals: 18,
     },
     usdc: {
       address: "0xb93cb5F5c6a56e060A5e5A9691229D2a7e2D234A",
-      decimals: 18
+      decimals: 18,
     },
     usdt: {
       address: "0xaB7ee1A7D5bc677e3A7ac694f2c156b3fFCaABC1",
-      decimals: 18
+      decimals: 18,
     },
     nativeToken: {
       address: "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681",
-      decimals: 18
-    }
+      decimals: 18,
+    },
   },
   arbitrum: {
     btc: {
@@ -133,16 +133,16 @@ module.exports = {
       priceFeed: "0x6ce185860a4963106506C203335A2910413708e9",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 15000,
       minProfitBps: 0,
-      maxUsdgAmount: 110 * 1000 *1000,
+      maxUsdgAmount: 110 * 1000 * 1000,
       bufferAmount: 2500,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 20 * 1000 * 1000,
-      maxGlobalShortSize: 31 * 1000 * 1000,
+      maxGlobalLongSize: 22 * 1000 * 1000,
+      maxGlobalShortSize: 33 * 1000 * 1000,
       openInterestLimitLong: 80 * 1000 * 1000,
       openInterestLimitShort: 50 * 1000 * 1000,
       maxOpenInterestLong: 75 * 1000 * 1000,
@@ -152,7 +152,7 @@ module.exports = {
       maxLiquidityThresholdLong: 15 * 1000 * 1000,
       maxLiquidityThresholdShort: 8 * 1000 * 1000,
       minLiquidityThresholdLong: 12 * 1000 * 1000,
-      minLiquidityThresholdShort: 5 * 1000 * 1000
+      minLiquidityThresholdShort: 5 * 1000 * 1000,
     },
     eth: {
       name: "eth",
@@ -161,7 +161,7 @@ module.exports = {
       priceFeed: "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 35000,
       minProfitBps: 0,
@@ -169,18 +169,18 @@ module.exports = {
       bufferAmount: 75000,
       isStable: false,
       isShortable: true,
-      maxGlobalLongSize: 50 * 1000 * 1000,
-      maxGlobalShortSize: 43 * 1000 * 1000,
+      maxGlobalLongSize: 42 * 1000 * 1000,
+      maxGlobalShortSize: 55 * 1000 * 1000,
       openInterestLimitLong: 110 * 1000 * 1000,
-      openInterestLimitShort: 60 * 1000 * 1000,
+      openInterestLimitShort: 70 * 1000 * 1000,
       maxOpenInterestLong: 95 * 1000 * 1000,
-      maxOpenInterestShort: 50 * 1000 * 1000,
+      maxOpenInterestShort: 65 * 1000 * 1000,
       openInterestIncrementLong: 100 * 1000,
       openInterestIncrementShort: 50 * 1000,
       maxLiquidityThresholdLong: 15 * 1000 * 1000,
       maxLiquidityThresholdShort: 8 * 1000 * 1000,
       minLiquidityThresholdLong: 12 * 1000 * 1000,
-      minLiquidityThresholdShort: 5 * 1000 * 1000
+      minLiquidityThresholdShort: 5 * 1000 * 1000,
     },
     usdc: {
       name: "usdc",
@@ -194,7 +194,7 @@ module.exports = {
       maxUsdgAmount: 230 * 1000 * 1000,
       bufferAmount: 180 * 1000 * 1000,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     link: {
       name: "link",
@@ -203,7 +203,7 @@ module.exports = {
       priceFeed: "0x86E53CF1B870786351Da77A57575e79CB55812CB",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 1000,
       minProfitBps: 0,
@@ -223,7 +223,7 @@ module.exports = {
       maxLiquidityThresholdLong: 250 * 1000,
       maxLiquidityThresholdShort: 250 * 1000,
       minLiquidityThresholdLong: 50 * 1000,
-      minLiquidityThresholdShort: 50 * 1000
+      minLiquidityThresholdShort: 50 * 1000,
     },
     uni: {
       name: "uni",
@@ -232,7 +232,7 @@ module.exports = {
       priceFeed: "0x9C917083fDb403ab5ADbEC26Ee294f6EcAda2720",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 1000,
       minProfitBps: 0,
@@ -252,7 +252,7 @@ module.exports = {
       maxLiquidityThresholdLong: 250 * 1000,
       maxLiquidityThresholdShort: 250 * 1000,
       minLiquidityThresholdLong: 50 * 1000,
-      minLiquidityThresholdShort: 50 * 1000
+      minLiquidityThresholdShort: 50 * 1000,
     },
     usdt: {
       name: "usdt",
@@ -266,7 +266,7 @@ module.exports = {
       maxUsdgAmount: 8.5 * 1000 * 1000,
       bufferAmount: 1 * 1000 * 1000,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     mim: {
       name: "mim",
@@ -280,7 +280,7 @@ module.exports = {
       maxUsdgAmount: 1,
       bufferAmount: 0,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     frax: {
       name: "frax",
@@ -294,7 +294,7 @@ module.exports = {
       maxUsdgAmount: 9 * 1000 * 1000,
       bufferAmount: 0,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     dai: {
       name: "dai",
@@ -308,13 +308,13 @@ module.exports = {
       maxUsdgAmount: 30 * 1000 * 1000,
       bufferAmount: 7 * 1000 * 1000,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     nativeToken: {
       name: "weth",
       address: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-      decimals: 18
-    }
+      decimals: 18,
+    },
   },
   avax: {
     avax: {
@@ -324,11 +324,11 @@ module.exports = {
       priceFeed: "0x0A77230d17318075983913bC2145DB16C7366156",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 5000,
       minProfitBps: 0,
-      maxUsdgAmount: 6.3 * 1000 *1000,
+      maxUsdgAmount: 6.3 * 1000 * 1000,
       bufferAmount: 120000,
       isStable: false,
       isShortable: true,
@@ -344,7 +344,7 @@ module.exports = {
       maxLiquidityThresholdLong: 200 * 1000,
       maxLiquidityThresholdShort: 200 * 1000,
       minLiquidityThresholdLong: 100 * 1000,
-      minLiquidityThresholdShort: 100 * 1000
+      minLiquidityThresholdShort: 100 * 1000,
     },
     eth: {
       name: "eth",
@@ -353,7 +353,7 @@ module.exports = {
       priceFeed: "0x976B3D034E162d8bD72D6b9C989d545b839003b0",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 18000,
       minProfitBps: 0,
@@ -372,7 +372,7 @@ module.exports = {
       maxLiquidityThresholdLong: 5 * 1000 * 1000,
       maxLiquidityThresholdShort: 5 * 1000 * 1000,
       minLiquidityThresholdLong: 2 * 1000 * 1000,
-      minLiquidityThresholdShort: 1.5 * 1000 * 1000
+      minLiquidityThresholdShort: 1.5 * 1000 * 1000,
     },
     btcb: {
       name: "btcb",
@@ -381,7 +381,7 @@ module.exports = {
       priceFeed: "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 18000,
       minProfitBps: 0,
@@ -400,7 +400,7 @@ module.exports = {
       maxLiquidityThresholdLong: 5 * 1000 * 1000,
       maxLiquidityThresholdShort: 5 * 1000 * 1000,
       minLiquidityThresholdLong: 2 * 1000 * 1000,
-      minLiquidityThresholdShort: 1.5 * 1000 * 1000
+      minLiquidityThresholdShort: 1.5 * 1000 * 1000,
     },
     btc: {
       name: "btc",
@@ -409,7 +409,7 @@ module.exports = {
       priceFeed: "0x2779D32d5166BAaa2B2b658333bA7e6Ec0C65743",
       priceDecimals: 8,
       fastPricePrecision: 1000,
-      maxCumulativeDeltaDiff: 0.10 * 10 * 1000 * 1000, // 10%
+      maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
       tokenWeight: 3000,
       minProfitBps: 0,
@@ -428,7 +428,7 @@ module.exports = {
       maxLiquidityThresholdLong: 5 * 1000 * 1000,
       maxLiquidityThresholdShort: 500,
       minLiquidityThresholdLong: 250 * 1000,
-      minLiquidityThresholdShort: 10
+      minLiquidityThresholdShort: 10,
     },
     mim: {
       name: "mim",
@@ -442,7 +442,7 @@ module.exports = {
       maxUsdgAmount: 1,
       bufferAmount: 0,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     usdc: {
       name: "usdc",
@@ -456,7 +456,7 @@ module.exports = {
       maxUsdgAmount: 75 * 1000 * 1000,
       bufferAmount: 30 * 1000 * 1000,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     usdce: {
       name: "usdce",
@@ -470,12 +470,12 @@ module.exports = {
       maxUsdgAmount: 3.3 * 1000 * 1000,
       bufferAmount: 800 * 1000,
       isStable: true,
-      isShortable: false
+      isShortable: false,
     },
     nativeToken: {
       name: "wavax",
       address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
-      decimals: 18
-    }
-  }
-}
+      decimals: 18,
+    },
+  },
+};
