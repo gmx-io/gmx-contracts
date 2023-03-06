@@ -5,7 +5,17 @@ const { toUsd } = require("../../test/shared/units")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+const {
+  ARBITRUM_URL,
+  ARBITRUM_CAP_KEEPER_KEY,
+  AVAX_URL,
+  AVAX_CAP_KEEPER_KEY,
+} = require("../../env.json")
+
 async function getArbValues(signer) {
+  const provider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
+  const capKeeperWallet = new ethers.Wallet(ARBITRUM_CAP_KEEPER_KEY).connect(provider)
+
   const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
   const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
   const fastPriceTokens = [btc, eth, link, uni]
@@ -20,7 +30,8 @@ async function getArbValues(signer) {
 
   const tokenManager = { address: "0x2c247a44928d66041D9F7B11A69d7a84d25207ba" }
 
-  const positionRouter = await contractAt("PositionRouter", "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868")
+  const positionRouter1 = await contractAt("PositionRouter", "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868", capKeeperWallet)
+  const positionRouter2 = await contractAt("PositionRouter", "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868", capKeeperWallet)
 
   const fastPriceEvents = await contractAt("FastPriceEvents", "0x4530b7DE1958270A2376be192a24175D795e1b07", signer)
   // const fastPriceEvents = await deployContract("FastPriceEvents", [])
@@ -31,7 +42,8 @@ async function getArbValues(signer) {
     fastPriceTokens,
     fastPriceEvents,
     tokenManager,
-    positionRouter,
+    positionRouter1,
+    positionRouter2,
     chainlinkFlags,
     tokenArr,
     updaters,
@@ -40,6 +52,9 @@ async function getArbValues(signer) {
 }
 
 async function getAvaxValues(signer) {
+  const provider = new ethers.providers.JsonRpcProvider(AVAX_URL)
+  const capKeeperWallet = new ethers.Wallet(AVAX_CAP_KEEPER_KEY).connect(provider)
+
   const { avax, btc, btcb, eth, mim, usdce, usdc } = tokens
   const tokenArr = [avax, btc, btcb, eth, mim, usdce, usdc]
   const fastPriceTokens = [avax, btc, btcb, eth]
@@ -54,7 +69,8 @@ async function getAvaxValues(signer) {
 
   const tokenManager = { address: "0x9bf98C09590CeE2Ec5F6256449754f1ba77d5aE5" }
 
-  const positionRouter = await contractAt("PositionRouter", "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8")
+  const positionRouter1 = await contractAt("PositionRouter", "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8", capKeeperWallet)
+  const positionRouter2 = await contractAt("PositionRouter", "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8", capKeeperWallet)
 
   // const fastPriceEvents = await deployContract("FastPriceEvents", [])
   const fastPriceEvents = await contractAt("FastPriceEvents", "0x02b7023D43bc52bFf8a0C54A9F2ecec053523Bf6", signer)
@@ -63,7 +79,8 @@ async function getAvaxValues(signer) {
     fastPriceTokens,
     fastPriceEvents,
     tokenManager,
-    positionRouter,
+    positionRouter1,
+    positionRouter2,
     tokenArr,
     updaters,
     priceFeedTimelock
@@ -88,7 +105,8 @@ async function main() {
     fastPriceTokens,
     fastPriceEvents,
     tokenManager,
-    positionRouter,
+    positionRouter1,
+    positionRouter2,
     chainlinkFlags,
     tokenArr,
     updaters,
@@ -121,8 +139,7 @@ async function main() {
     1, // _minBlockInterval
     250, // _maxDeviationBasisPoints
     fastPriceEvents.address, // _fastPriceEvents
-    deployer.address, // _tokenManager
-    positionRouter.address
+    deployer.address // _tokenManager
   ])
 
   const vaultPriceFeed = await deployContract("VaultPriceFeed", [])
@@ -162,7 +179,8 @@ async function main() {
   await sendTxn(secondaryPriceFeed.setMaxCumulativeDeltaDiffs(fastPriceTokens.map(t => t.address), fastPriceTokens.map(t => t.maxCumulativeDeltaDiff)), "secondaryPriceFeed.setMaxCumulativeDeltaDiffs")
   await sendTxn(secondaryPriceFeed.setPriceDataInterval(1 * 60), "secondaryPriceFeed.setPriceDataInterval")
 
-  await sendTxn(positionRouter.setPositionKeeper(secondaryPriceFeed.address, true), "positionRouter.setPositionKeeper(secondaryPriceFeed)")
+  await sendTxn(positionRouter1.setPositionKeeper(secondaryPriceFeed.address, true), "positionRouter.setPositionKeeper(secondaryPriceFeed)")
+  await sendTxn(positionRouter2.setPositionKeeper(secondaryPriceFeed.address, true), "positionRouter.setPositionKeeper(secondaryPriceFeed)")
   await sendTxn(fastPriceEvents.setIsPriceFeed(secondaryPriceFeed.address, true), "fastPriceEvents.setIsPriceFeed")
 
   await sendTxn(vaultPriceFeed.setGov(priceFeedTimelock.address), "vaultPriceFeed.setGov")

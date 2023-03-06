@@ -7,7 +7,7 @@ use(solidity)
 
 describe("ShortsTracker", function () {
   const provider = waffle.provider
-  const [deployer, user0, handler, eth, btc] = provider.getWallets()
+  const [deployer, user0, user1, user2, handler, eth, btc] = provider.getWallets()
   let shortsTracker
   let shortsTrackerTimelock
   let vault
@@ -54,14 +54,14 @@ describe("ShortsTracker", function () {
     expect(await shortsTrackerTimelock.admin()).to.eq(user0.address)
   })
 
-  it("setHandler", async () => {
-    await expect(shortsTrackerTimelock.connect(user0).setHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
+  it("setContractHandler", async () => {
+    await expect(shortsTrackerTimelock.connect(user0).setContractHandler(user0.address, true)).to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
 
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.false
-    await shortsTrackerTimelock.setHandler(user0.address, true)
+    await shortsTrackerTimelock.setContractHandler(user0.address, true)
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.true
 
-    await shortsTrackerTimelock.setHandler(user0.address, false)
+    await shortsTrackerTimelock.setContractHandler(user0.address, false)
     expect(await shortsTrackerTimelock.isHandler(user0.address)).to.be.false
   })
 
@@ -172,7 +172,7 @@ describe("ShortsTracker", function () {
     await expect(shortsTrackerTimelock.connect(handler).setGlobalShortAveragePrices(shortsTracker.address, [eth.address], [toUsd(1602)]))
       .to.be.revertedWith("ShortsTrackerTimelock: handler forbidden")
 
-    await shortsTrackerTimelock.setHandler(handler.address, true)
+    await shortsTrackerTimelock.setContractHandler(handler.address, true)
     await expect(shortsTrackerTimelock.connect(handler).setGlobalShortAveragePrices(shortsTracker.address, [eth.address], [toUsd(1602)]))
       .to.be.revertedWith("ShortsTrackerTimelock: too big change")
 
@@ -190,5 +190,60 @@ describe("ShortsTracker", function () {
     await network.provider.send("evm_increaseTime", [10])
     await shortsTrackerTimelock.connect(handler).setGlobalShortAveragePrices(shortsTracker.address, [eth.address], [toUsd(1602)])
     expect(await shortsTracker.globalShortAveragePrices(eth.address)).to.eq(toUsd(1602))
+  })
+
+  it("setHandler", async () => {
+    await expect(shortsTrackerTimelock.connect(user0).setHandler(shortsTracker.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
+
+    await expect(shortsTrackerTimelock.connect(user0).signalSetHandler(shortsTracker.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
+
+    await shortsTrackerTimelock.connect(deployer).signalSetHandler(shortsTracker.address, user1.address, true)
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
+
+    await network.provider.send("evm_increaseTime", [50])
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: action time not yet passed")
+
+    await network.provider.send("evm_increaseTime", [10])
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(btc.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user2.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user1.address, false))
+      .to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
+
+    expect(await shortsTracker.isHandler(user1.address)).eq(false)
+    await shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user1.address, true)
+    expect(await shortsTracker.isHandler(user1.address)).eq(true)
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
+
+    await shortsTrackerTimelock.connect(deployer).signalSetHandler(shortsTracker.address, user1.address, true)
+
+    const action0 = ethers.utils.solidityKeccak256(["string", "address", "address", "bool"], ["setHandler", btc.address, user1.address, true])
+    const action1 = ethers.utils.solidityKeccak256(["string", "address", "address", "bool"], ["setHandler", shortsTracker.address, user1.address, true])
+
+    await expect(shortsTrackerTimelock.connect(user0).cancelAction(action0))
+      .to.be.revertedWith("ShortsTrackerTimelock: admin forbidden")
+
+    await expect(shortsTrackerTimelock.connect(deployer).cancelAction(action0))
+      .to.be.revertedWith("ShortsTrackerTimelock: invalid _action")
+
+    await shortsTrackerTimelock.connect(deployer).cancelAction(action1)
+
+    await expect(shortsTrackerTimelock.connect(deployer).setHandler(shortsTracker.address, user1.address, true))
+      .to.be.revertedWith("ShortsTrackerTimelock: action not signalled")
   })
 })

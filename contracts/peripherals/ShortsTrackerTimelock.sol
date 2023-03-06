@@ -3,6 +3,7 @@
 import "../libraries/math/SafeMath.sol";
 import "../access/Governable.sol";
 import "../core/interfaces/IShortsTracker.sol";
+import "./interfaces/IHandlerTarget.sol";
 
 pragma solidity 0.6.12;
 
@@ -30,7 +31,8 @@ contract ShortsTrackerTimelock {
     event SignalSetAdmin(address admin);
     event SetAdmin(address admin);
 
-    event SetHandler(address indexed handler, bool isHandler);
+    event SetContractHandler(address indexed handler, bool isHandler);
+    event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
 
     event SignalSetMaxAveragePriceChange(uint256 maxAveragePriceChange);
     event SetMaxAveragePriceChange(uint256 maxAveragePriceChange);
@@ -91,10 +93,10 @@ contract ShortsTrackerTimelock {
         emit SetAdmin(_admin);
     }
 
-    function setHandler(address _handler, bool _isActive) external onlyAdmin {
+    function setContractHandler(address _handler, bool _isActive) external onlyAdmin {
         isHandler[_handler] = _isActive;
 
-        emit SetHandler(_handler, _isActive);
+        emit SetContractHandler(_handler, _isActive);
     }
 
     function signalSetGov(address _shortsTracker, address _gov) external onlyAdmin {
@@ -114,6 +116,19 @@ contract ShortsTrackerTimelock {
         Governable(_shortsTracker).setGov(_gov);
 
         emit SetGov(_shortsTracker, _gov);
+    }
+
+    function signalSetHandler(address _target, address _handler, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setHandler", _target, _handler, _isActive));
+        _setPendingAction(action);
+        emit SignalSetHandler(_target, _handler, _isActive, action);
+    }
+
+    function setHandler(address _target, address _handler, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setHandler", _target, _handler, _isActive));
+        _validateAction(action);
+        _clearAction(action);
+        IHandlerTarget(_target).setHandler(_handler, _isActive);
     }
 
     function signalSetAveragePriceUpdateDelay(uint256 _averagePriceUpdateDelay) external onlyAdmin {
@@ -190,6 +205,10 @@ contract ShortsTrackerTimelock {
         }
 
         _shortsTracker.setInitData(_tokens, _averagePrices);
+    }
+
+    function cancelAction(bytes32 _action) external onlyAdmin {
+        _clearAction(_action);
     }
 
     function _setPendingAction(bytes32 _action) private {
