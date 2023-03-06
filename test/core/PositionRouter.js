@@ -2523,7 +2523,7 @@ describe("PositionRouter", function () {
       bnb.address, // _indexToken
       expandDecimals(1, 18), // _amountIn
       0, // _minOut
-      toUsd(1), // _sizeDelta
+      toUsd(1000), // _sizeDelta
       true, // _isLong
       toUsd(310), // _acceptablePrice
       executionFee,
@@ -2535,8 +2535,28 @@ describe("PositionRouter", function () {
     await positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address)
 
     position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
-    expect(position[0]).eq(toUsd(1001)) // size
-    expect(position[1]).eq("568999000000000000000000000000000") // collateral, 568.999, 568.999 - 299 => 269.999
+    expect(position[0]).eq(toUsd(2000)) // size
+    expect(position[1]).eq("598000000000000000000000000000000") // collateral, 598, 598 - 299 => 299
+
+    params = [
+      [bnb.address], // _path
+      bnb.address, // _indexToken
+      expandDecimals(1, 18), // _amountIn
+      0, // _minOut
+      toUsd(500), // _sizeDelta
+      true, // _isLong
+      toUsd(310), // _acceptablePrice
+      executionFee,
+      referralCode
+    ]
+
+    await positionRouter.connect(user0).createIncreasePosition(...params.concat([AddressZero]), { value: executionFee })
+    key = await positionRouter.getRequestKey(user0.address, 3)
+    await positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address)
+
+    position = await vault.getPosition(user0.address, bnb.address, bnb.address, true)
+    expect(position[0]).eq(toUsd(2500)) // size
+    expect(position[1]).eq("867500000000000000000000000000000") // collateral, 867.5, 867.5 - 598 => 269.5
   })
 
   it("callback works", async () => {
