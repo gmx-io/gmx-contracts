@@ -245,7 +245,7 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
         }
     }
 
-    function _transferOutETHWithGasLimitIgnoreFail(uint256 _amountOut, address payable _receiver) internal {
+    function _transferOutETHWithGasLimitFallbackToWeth(uint256 _amountOut, address payable _receiver) internal {
         IWETH _weth = IWETH(weth);
         _weth.withdraw(_amountOut);
 

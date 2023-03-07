@@ -154,7 +154,7 @@ contract PositionManager is BasePositionManager {
         require(_collateralToken == weth, "PositionManager: invalid _collateralToken");
 
         uint256 amountOut = _decreasePosition(msg.sender, _collateralToken, _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
-        _transferOutETHWithGasLimitIgnoreFail(amountOut, _receiver);
+        _transferOutETHWithGasLimitFallbackToWeth(amountOut, _receiver);
     }
 
     function decreasePositionAndSwap(
@@ -190,7 +190,7 @@ contract PositionManager is BasePositionManager {
         uint256 amount = _decreasePosition(msg.sender, _path[0], _indexToken, _collateralDelta, _sizeDelta, _isLong, address(this), _price);
         IERC20(_path[0]).safeTransfer(vault, amount);
         uint256 amountOut = _swap(_path, _minOut, address(this));
-        _transferOutETHWithGasLimitIgnoreFail(amountOut, _receiver);
+        _transferOutETHWithGasLimitFallbackToWeth(amountOut, _receiver);
     }
 
     function liquidatePosition(

@@ -442,7 +442,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         _increasePosition(request.account, request.path[request.path.length - 1], request.indexToken, request.sizeDelta, request.isLong, request.acceptablePrice);
 
-        _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+        _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit ExecuteIncreasePosition(
             request.account,
@@ -474,12 +474,12 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         delete increasePositionRequests[_key];
 
         if (request.hasCollateralInETH) {
-            _transferOutETHWithGasLimitIgnoreFail(request.amountIn, payable(request.account));
+            _transferOutETHWithGasLimitFallbackToWeth(request.amountIn, payable(request.account));
         } else {
             IERC20(request.path[0]).safeTransfer(request.account, request.amountIn);
         }
 
-       _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+       _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit CancelIncreasePosition(
             request.account,
@@ -519,13 +519,13 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             }
 
             if (request.withdrawETH) {
-               _transferOutETHWithGasLimitIgnoreFail(amountOut, payable(request.receiver));
+               _transferOutETHWithGasLimitFallbackToWeth(amountOut, payable(request.receiver));
             } else {
                IERC20(request.path[request.path.length - 1]).safeTransfer(request.receiver, amountOut);
             }
         }
 
-       _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+       _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit ExecuteDecreasePosition(
             request.account,
@@ -557,7 +557,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         delete decreasePositionRequests[_key];
 
-       _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+       _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit CancelDecreasePosition(
             request.account,
