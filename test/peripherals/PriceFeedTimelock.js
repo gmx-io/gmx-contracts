@@ -97,8 +97,7 @@ describe("PriceFeedTimelock", function () {
       2, // _minBlockInterval
       250, // _allowedDeviationBasisPoints
       fastPriceEvents.address, // _fastPriceEvents
-      tokenManager.address, // _tokenManager
-      positionRouter.address // _positionRouter
+      tokenManager.address // _tokenManager
     ])
 
     await fastPriceFeed.setGov(timelock.address)

@@ -19,13 +19,19 @@ describe("FastPriceFeed", function () {
   const minExecutionFee = 4000
 
   const [wallet, tokenManager, mintReceiver, user0, user1, user2, user3, signer0, signer1, updater0, updater1] = provider.getWallets()
+
+  let vaultPriceFeed
   let bnb
   let bnbPriceFeed
   let btc
   let btcPriceFeed
   let eth
   let ethPriceFeed
-  let vaultPriceFeed
+  let vault
+  let timelock
+  let usdg
+  let router
+  let positionUtils
   let fastPriceEvents
   let fastPriceFeed
 
@@ -56,7 +62,7 @@ describe("FastPriceFeed", function () {
 
     usdg = await deployContract("USDG", [vault.address])
     router = await deployContract("Router", [vault.address, usdg.address, bnb.address])
-    positionRouter = await deployContract("PositionRouter", [vault.address, router.address, bnb.address, ethers.constants.AddressZero, depositFee, minExecutionFee])
+    positionUtils = await deployContract("PositionUtils", [])
 
     fastPriceEvents = await deployContract("FastPriceEvents", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [
@@ -65,8 +71,7 @@ describe("FastPriceFeed", function () {
       2, // _minBlockInterval
       250, // _maxDeviationBasisPoints
       fastPriceEvents.address, // _fastPriceEvents
-      tokenManager.address, // _tokenManager
-      positionRouter.address // _positionRouter
+      tokenManager.address // _tokenManager
     ])
     await fastPriceFeed.initialize(2, [signer0.address, signer1.address], [updater0.address, updater1.address])
     await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
@@ -86,7 +91,6 @@ describe("FastPriceFeed", function () {
     expect(await fastPriceFeed.maxDeviationBasisPoints()).eq(250)
     expect(await fastPriceFeed.fastPriceEvents()).eq(fastPriceEvents.address)
     expect(await fastPriceFeed.tokenManager()).eq(tokenManager.address)
-    expect(await fastPriceFeed.positionRouter()).eq(positionRouter.address)
     expect(await fastPriceFeed.minAuthorizations()).eq(2)
     expect(await fastPriceFeed.isSigner(wallet.address)).eq(false)
     expect(await fastPriceFeed.isSigner(signer0.address)).eq(true)

@@ -61,7 +61,12 @@ async function main() {
   const { wallet, positionContracts, tokenArr, vaultAddress } = await getValues()
 
   const vault = await contractAt("Vault", vaultAddress);
-  const positionContract = await contractAt("PositionManager", positionContracts[0]);
+  const positionContractOptions = {
+    libraries: {
+      PositionUtils: "0x0000000000000000000000000000000000000001"
+    }
+  }
+  const positionContract = await contractAt("PositionManager", positionContracts[0], undefined, positionContractOptions);
   for (const token of tokenArr) {
     const [currentLongCap, currentShortCap, currentLongSize, currentShortSize] = await Promise.all([
       positionContract.maxGlobalLongSizes(token.address),
@@ -102,7 +107,7 @@ async function main() {
   })
 
   for (let i = 0; i < positionContracts.length; i++) {
-    const positionContract = await contractAt("PositionManager", positionContracts[i], wallet)
+    const positionContract = await contractAt("PositionManager", positionContracts[i], wallet, positionContractOptions)
     await sendTxn(positionContract.setMaxGlobalSizes(tokenAddresses, longSizes, shortSizes), "positionContract.setMaxGlobalSizes")
   }
 }

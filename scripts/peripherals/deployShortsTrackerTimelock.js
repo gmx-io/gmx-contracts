@@ -57,8 +57,8 @@ async function main() {
   console.log("Setting handlers")
   for (const handler of handlers) {
     await sendTxn(
-      shortsTrackerTimelock.setHandler(handler, true),
-      `shortsTrackerTimelock.setHandler ${handler}`
+      shortsTrackerTimelock.setContractHandler(handler, true),
+      `shortsTrackerTimelock.setContractHandler ${handler}`
     )
   }
 }

@@ -1,7 +1,7 @@
 const { expandDecimals } = require("./utilities")
 
-async function deployContract(name, args) {
-  const contractFactory = await ethers.getContractFactory(name)
+async function deployContract(name, args, options) {
+  const contractFactory = await ethers.getContractFactory(name, options)
   return await contractFactory.deploy(...args)
 }
 

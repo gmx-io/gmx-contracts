@@ -62,6 +62,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     uint256 public override decreasePositionRequestKeysStart;
 
     uint256 public callbackGasLimit;
+    mapping (address => uint256) public customCallbackGasLimits;
 
     mapping (address => bool) public isPositionKeeper;
 
@@ -169,7 +170,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     event SetDelayValues(uint256 minBlockDelayKeeper, uint256 minTimeDelayPublic, uint256 maxTimeDelay);
     event SetRequestKeysStartValues(uint256 increasePositionRequestKeysStart, uint256 decreasePositionRequestKeysStart);
     event SetCallbackGasLimit(uint256 callbackGasLimit);
-    event Callback(address callbackTarget, bool success);
+    event SetCustomCallbackGasLimit(address callbackTarget, uint256 callbackGasLimit);
+    event Callback(address callbackTarget, bool success, uint256 callbackGasLimit);
 
     modifier onlyPositionKeeper() {
         require(isPositionKeeper[msg.sender], "403");
@@ -195,6 +197,11 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     function setCallbackGasLimit(uint256 _callbackGasLimit) external onlyAdmin {
         callbackGasLimit = _callbackGasLimit;
         emit SetCallbackGasLimit(_callbackGasLimit);
+    }
+
+    function setCustomCallbackGasLimit(address _callbackTarget, uint256 _callbackGasLimit) external onlyAdmin {
+        customCallbackGasLimits[_callbackTarget] = _callbackGasLimit;
+        emit SetCustomCallbackGasLimit(_callbackTarget, _callbackGasLimit);
     }
 
     function setMinExecutionFee(uint256 _minExecutionFee) external onlyAdmin {
@@ -435,7 +442,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         _increasePosition(request.account, request.path[request.path.length - 1], request.indexToken, request.sizeDelta, request.isLong, request.acceptablePrice);
 
-        _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+        _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit ExecuteIncreasePosition(
             request.account,
@@ -467,12 +474,12 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         delete increasePositionRequests[_key];
 
         if (request.hasCollateralInETH) {
-            _transferOutETHWithGasLimitIgnoreFail(request.amountIn, payable(request.account));
+            _transferOutETHWithGasLimitFallbackToWeth(request.amountIn, payable(request.account));
         } else {
             IERC20(request.path[0]).safeTransfer(request.account, request.amountIn);
         }
 
-       _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+       _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit CancelIncreasePosition(
             request.account,
@@ -512,13 +519,13 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             }
 
             if (request.withdrawETH) {
-               _transferOutETHWithGasLimitIgnoreFail(amountOut, payable(request.receiver));
+               _transferOutETHWithGasLimitFallbackToWeth(amountOut, payable(request.receiver));
             } else {
                IERC20(request.path[request.path.length - 1]).safeTransfer(request.receiver, amountOut);
             }
         }
 
-       _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+       _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit ExecuteDecreasePosition(
             request.account,
@@ -550,7 +557,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
         delete decreasePositionRequests[_key];
 
-       _transferOutETHWithGasLimitIgnoreFail(request.executionFee, _executionFeeReceiver);
+       _transferOutETHWithGasLimitFallbackToWeth(request.executionFee, _executionFeeReceiver);
 
         emit CancelDecreasePosition(
             request.account,
@@ -597,24 +604,14 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             revert("expired");
         }
 
-        bool isKeeperCall = msg.sender == address(this) || isPositionKeeper[msg.sender];
-
-        if (!isLeverageEnabled && !isKeeperCall) {
-            revert("403");
-        }
-
-        if (isKeeperCall) {
-            return _positionBlockNumber.add(minBlockDelayKeeper) <= block.number;
-        }
-
-        require(msg.sender == _account, "403");
-
-        require(_positionBlockTime.add(minTimeDelayPublic) <= block.timestamp, "delay");
-
-        return true;
+        return _validateExecutionOrCancellation(_positionBlockNumber, _positionBlockTime, _account);
     }
 
     function _validateCancellation(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
+        return _validateExecutionOrCancellation(_positionBlockNumber, _positionBlockTime, _account);
+    }
+
+    function _validateExecutionOrCancellation(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
         bool isKeeperCall = msg.sender == address(this) || isPositionKeeper[msg.sender];
 
         if (!isLeverageEnabled && !isKeeperCall) {
@@ -772,6 +769,13 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         }
 
         uint256 _gasLimit = callbackGasLimit;
+
+        uint256 _customCallbackGasLimit = customCallbackGasLimits[_callbackTarget];
+
+        if (_customCallbackGasLimit > _gasLimit) {
+            _gasLimit = _customCallbackGasLimit;
+        }
+
         if (_gasLimit == 0) {
             return;
         }
@@ -781,6 +785,6 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
             success = true;
         } catch {}
 
-        emit Callback(_callbackTarget, success);
+        emit Callback(_callbackTarget, success, _gasLimit);
     }
 }
