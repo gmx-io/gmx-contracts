@@ -12,6 +12,7 @@ async function getArbValues() {
 
   const { btc, eth, usdc, link, uni, usdt, frax, dai } = tokens
   const tokenArr = [ btc, eth, usdc, link, uni, usdt, frax, dai ]
+  // const tokenArr = [ usdt, frax, dai ]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, eth.address, 1, tokenArr.map(t => t.address))
 
