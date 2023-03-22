@@ -3,9 +3,9 @@ const path = require("path")
 const { contractAt, sendTxn, processBatch, getFrameSigner } = require("../shared/helpers")
 const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
-const ethPrice = "1707"
+const ethPrice = "1802"
 const avaxPrice = "18"
-const gmxPrice = "75"
+const gmxPrice = "82"
 
 const shouldSendTxn = false
 
