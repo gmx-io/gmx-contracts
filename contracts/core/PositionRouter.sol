@@ -55,8 +55,8 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
 
     bool public isLeverageEnabled = true;
 
-    bytes32[] public increasePositionRequestKeys;
-    bytes32[] public decreasePositionRequestKeys;
+    bytes32[] public override increasePositionRequestKeys;
+    bytes32[] public override decreasePositionRequestKeys;
 
     uint256 public override increasePositionRequestKeysStart;
     uint256 public override decreasePositionRequestKeysStart;
@@ -409,7 +409,7 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         );
     }
 
-    function getRequestQueueLengths() external view returns (uint256, uint256, uint256, uint256) {
+    function getRequestQueueLengths() external view override returns (uint256, uint256, uint256, uint256) {
         return (
             increasePositionRequestKeysStart,
             increasePositionRequestKeys.length,
@@ -583,12 +583,12 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
         return keccak256(abi.encodePacked(_account, _index));
     }
 
-    function getIncreasePositionRequestPath(bytes32 _key) public view returns (address[] memory) {
+    function getIncreasePositionRequestPath(bytes32 _key) public view override returns (address[] memory) {
         IncreasePositionRequest memory request = increasePositionRequests[_key];
         return request.path;
     }
 
-    function getDecreasePositionRequestPath(bytes32 _key) public view returns (address[] memory) {
+    function getDecreasePositionRequestPath(bytes32 _key) public view override returns (address[] memory) {
         DecreasePositionRequest memory request = decreasePositionRequests[_key];
         return request.path;
     }
