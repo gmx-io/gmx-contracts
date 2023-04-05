@@ -287,6 +287,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     // is more than zero
     // it is possible for multiple transfers to be sent into a single account, using signalTransfer and
     // acceptTransfer, if those values have not been updated yet
+    // for GLP transfers it is also possible to transfer GLP into an account using the StakedGlp contract
     function signalTransfer(address _receiver) external nonReentrant {
         require(IERC20(gmxVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
         require(IERC20(glpVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
