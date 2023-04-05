@@ -72,7 +72,7 @@ async function main() {
     totalStaked = totalStaked.add(stakedAmounts[net].total)
   }
 
-  const totalEsGmxRewards = expandDecimals(12500, tokenDecimals)
+  const totalEsGmxRewards = expandDecimals(0, tokenDecimals)
   const secondsPerMonth = 28 * 24 * 60 * 60
 
   const gmxRewardDistributor = await contractAt("RewardDistributor", await gmxRewardTracker.distributor())
