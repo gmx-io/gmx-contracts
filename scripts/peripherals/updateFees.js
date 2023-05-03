@@ -12,7 +12,7 @@ const SECONDS_PER_DAY = 24 * 60 * 60
 async function getArbValues() {
   const apiKey = ARBITRUM_SERVER_ADMIN_API_KEY
   const feeUrl = ARBITRUM_FEE_URL
-  const feeUsd = "3,676,046.16"
+  const feeUsd = "3,369,744.12"
 
   return { apiKey, feeUrl, feeUsd }
 }
@@ -20,7 +20,7 @@ async function getArbValues() {
 async function getAvaxValues() {
   const apiKey = AVAX_SERVER_ADMIN_API_KEY
   const feeUrl = AVAX_FEE_URL
-  const feeUsd = "483,206.63"
+  const feeUsd = "412,892.16"
 
   return { apiKey, feeUrl, feeUsd }
 }

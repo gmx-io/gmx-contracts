@@ -21,7 +21,7 @@ async function main() {
   const usdcDecimals = 6
   const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", arbWallet)
   const gmxDecimals = 18
-  const shouldSendTxn = false
+  const shouldSendTxn = true
 
   const minCount = 0
   let count = 0
