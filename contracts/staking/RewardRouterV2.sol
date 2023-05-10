@@ -280,6 +280,14 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
     }
 
+    // the _validateReceiver function checks that the averageStakedAmounts and cumulativeRewards
+    // values of an account are zero, this is to help ensure that vesting calculations can be
+    // done correctly
+    // averageStakedAmounts and cumulativeRewards are updated if the claimable reward for an account
+    // is more than zero
+    // it is possible for multiple transfers to be sent into a single account, using signalTransfer and
+    // acceptTransfer, if those values have not been updated yet
+    // for GLP transfers it is also possible to transfer GLP into an account using the StakedGlp contract
     function signalTransfer(address _receiver) external nonReentrant {
         require(IERC20(gmxVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
         require(IERC20(glpVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
