@@ -139,6 +139,9 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
   const requiredWavaxBalance = requiredWavaxUsd.mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice)
 
   const data = {
+    totalFees: values.arbitrum.feesUsd.add(values.avax.feesUsd).toString(),
+    arbFees: values.arbitrum.feesUsd.toString(),
+    avaxFees: values.avax.feesUsd.toString(),
     requiredWavaxBalance: requiredWavaxBalance.toString(),
     gmxFees: {
       arbitrum: gmxFees.arbitrum.mul(expandDecimals(1, 18)).div(values.arbitrum.nativeTokenPrice).toString(),
@@ -153,7 +156,9 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
       avax: values.avax.nativeTokenPrice.toString(),
     },
     gmxPrice: values.gmxPrice.toString(),
-    refTimestamp: refTimestamp
+    traderRebates: referralValues.arbitrum.allDiscountUsd.add(referralValues.avax.allDiscountUsd).toString(),
+    affiliateRewards: referralValues.arbitrum.allAffiliateUsd.add(referralValues.avax.allAffiliateUsd).toString(),
+    refTimestamp: refTimestamp,
   }
 
   console.info("data", data)
