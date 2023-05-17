@@ -70,9 +70,8 @@ async function getFrameSigner() {
 async function sendTxn(txnPromise, label) {
   const txn = await txnPromise
   console.info(`Sending ${label}...`)
-  await txn.wait()
+  await txn.wait(2)
   console.info(`... Sent! ${txn.hash}`)
-  await sleep(2000)
   return txn
 }
 

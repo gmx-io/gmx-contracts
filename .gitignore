@@ -13,6 +13,7 @@ data/holders
 data/contractList
 flattened
 distribution-data*.json
+fee-reference.json
 **/.DS_Store
 
 #Hardhat files

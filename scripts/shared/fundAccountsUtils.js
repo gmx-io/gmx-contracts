@@ -137,11 +137,11 @@ async function getAvaxValues() {
 
 async function getValues() {
   if (network === "arbitrum") {
-    return getArbValues()
+    return await getArbValues()
   }
 
   if (network === "avax") {
-    return getAvaxValues()
+    return await getAvaxValues()
   }
 }
 
