@@ -54,7 +54,7 @@ async function getFeesUsd(vault, reader, tokenInfo) {
 }
 
 async function getGmxPrice(ethPrice) {
-  const uniPool = await contractAt("UniPool", "0x80A9ae39310abf666A87C743d6ebBD0E8C42158E")
+  const uniPool = await contractAt("UniPool", "0x80A9ae39310abf666A87C743d6ebBD0E8C42158E", signers.arbitrum)
   const uniPoolSlot0 = await uniPool.slot0()
 
   const tokenA = new UniToken(ARBITRUM, "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", 18, "SYMBOL", "NAME");

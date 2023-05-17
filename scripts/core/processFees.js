@@ -8,7 +8,7 @@ const { bridgeTokens } = require("./bridge")
 
 const feeReference = require("../../fee-reference.json")
 
-const STEPS_TO_RUN = [8]
+const STEPS_TO_RUN = []
 const SHOULD_SEND_SWAP_TXNS = true
 
 const {
@@ -254,6 +254,15 @@ async function sendReferralRewards() {
 }
 
 async function main() {
+  if (feeReference.refTimestamp > Date.now()) {
+    throw new Error(`refTimestamp is later than current time ${feeReference.refTimestamp}`)
+  }
+
+  const allowedDelay = 6 * 60 * 60 * 1000
+  if (feeReference.refTimestamp < Date.now() - allowedDelay) {
+    throw new Error(`refTimestamp is older than the allowed delay`)
+  }
+
   const routers = {
     arbitrum: await contractAt("Router", "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064", handlers.arbitrum),
     avax: await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8", handlers.avax)

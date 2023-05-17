@@ -100,7 +100,7 @@ async function updateServerFees({ feeValues, refTimestamp }) {
   }
 }
 
-async function saveFeeReference({ feeValues, referralValues }) {
+async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
   const values = feeValues
 
   const keeperCostsArbitrumUsd = values.arbitrum.keeperCosts.mul(values.arbitrum.nativeTokenPrice).div(expandDecimals(1, 18))
@@ -139,6 +139,9 @@ async function saveFeeReference({ feeValues, referralValues }) {
   const requiredWavaxBalance = requiredWavaxUsd.mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice)
 
   const data = {
+    totalFees: values.arbitrum.feesUsd.add(values.avax.feesUsd).toString(),
+    arbFees: values.arbitrum.feesUsd.toString(),
+    avaxFees: values.avax.feesUsd.toString(),
     requiredWavaxBalance: requiredWavaxBalance.toString(),
     gmxFees: {
       arbitrum: gmxFees.arbitrum.mul(expandDecimals(1, 18)).div(values.arbitrum.nativeTokenPrice).toString(),
@@ -152,10 +155,13 @@ async function saveFeeReference({ feeValues, referralValues }) {
       arbitrum: values.arbitrum.nativeTokenPrice.toString(),
       avax: values.avax.nativeTokenPrice.toString(),
     },
-    gmxPrice: values.gmxPrice.toString()
+    gmxPrice: values.gmxPrice.toString(),
+    traderRebates: referralValues.arbitrum.allDiscountUsd.add(referralValues.avax.allDiscountUsd).toString(),
+    affiliateRewards: referralValues.arbitrum.allAffiliateUsd.add(referralValues.avax.allAffiliateUsd).toString(),
+    refTimestamp: refTimestamp,
   }
 
-  console.log("data", data)
+  console.info("data", data)
 
   const filename = `./fee-reference.json`
   fs.writeFileSync(filename, JSON.stringify(data, null, 4))
@@ -174,7 +180,7 @@ async function main() {
     avax: getReferralRewardsInfo((await getAvaxReferralRewardValues()).data)
   }
 
-  await saveFeeReference({ feeValues, referralValues })
+  await saveFeeReference({ feeValues, referralValues, refTimestamp })
 
   await updateServerFees({ feeValues, refTimestamp })
 }
