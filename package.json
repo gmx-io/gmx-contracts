@@ -20,14 +20,15 @@
     "@typechain/hardhat": "^2.3.0",
     "argparse": "2.0.1",
     "chai": "^4.3.0",
-    "ethers": "^5.4.6",
     "ethereum-waffle": "^3.4.4",
+    "ethers": "^5.4.6",
     "hardhat": "^2.6.1",
     "hardhat-contract-sizer": "^2.0.3",
     "node-fetch": "3.2.3",
     "typechain": "^5.1.2"
   },
   "dependencies": {
+    "@synapseprotocol/sdk": "^0.94.1",
     "@uniswap/sdk-core": "^3.0.1",
     "@uniswap/v3-sdk": "^3.8.2",
     "bn.js": "^5.2.0",
