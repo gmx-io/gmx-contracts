@@ -8,7 +8,6 @@ const { bridgeTokens } = require("./bridge")
 
 const feeReference = require("../../fee-reference.json")
 
-const STEPS_TO_RUN = []
 const SHOULD_SEND_SWAP_TXNS = true
 
 const {
@@ -88,7 +87,7 @@ async function fundHandlerForNetwork({ network }) {
     const approvedAmount = await token.allowance(FEE_ACCOUNT, handler.address)
 
     if (approvedAmount.lt(balance)) {
-      const signer = await getFrameSigner()
+      const signer = await getFrameSigner({ network })
       const tokenForSigner = await contractAt("Token", token.address, signer)
       await sendTxn(tokenForSigner.approve(handler.address, balance), `sending approve: ${tokenArr[i].name}, ${balance.toString()}`)
     }
@@ -209,6 +208,11 @@ async function updateRewards() {
     }
   }
 
+  const expectedMinBalance = {
+    arbitrum: rewardAmounts.arbitrum.gmx.add(rewardAmounts.arbitrum.glp),
+    avax: rewardAmounts.avax.gmx.add(rewardAmounts.avax.glp),
+  }
+
   const stakingValues = {
     arbitrum: await getArbRewardValues(handlers.arbitrum),
     avax: await getAvaxRewardValues(handlers.avax)
@@ -216,6 +220,13 @@ async function updateRewards() {
 
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
+    const handler = handlers[network]
+    const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
+    const balance = await nativeToken.balanceOf(handler.address)
+    if (balance.lt(expectedMinBalance[network])) {
+      throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance.toString()}`)
+    }
+
     const rewardAmount = rewardAmounts[network]
     const gmxRewardAmount = rewardAmount.gmx.mul(99).div(100)
     const glpRewardAmount = rewardAmount.glp.mul(99).div(100)
@@ -253,7 +264,10 @@ async function sendReferralRewards() {
   }
 }
 
-async function main() {
+async function processFees({ steps }) {
+  const stepsToRun = steps.split(",")
+  console.log("stepsToRun", stepsToRun)
+
   if (feeReference.refTimestamp > Date.now()) {
     throw new Error(`refTimestamp is later than current time ${feeReference.refTimestamp}`)
   }
@@ -268,37 +282,37 @@ async function main() {
     avax: await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8", handlers.avax)
   }
 
-  if (STEPS_TO_RUN.includes(1)) {
+  if (steps.includes(1)) {
     await withdrawFees()
   }
 
-  if (STEPS_TO_RUN.includes(2)) {
+  if (steps.includes(2)) {
     await fundHandler()
   }
 
-  if (STEPS_TO_RUN.includes(3)) {
+  if (steps.includes(3)) {
     await swapFeesForAvax({ routers })
   }
 
-  if (STEPS_TO_RUN.includes(4)) {
+  if (steps.includes(4)) {
     await bridgeTokensToArbitrum()
   }
 
-  if (STEPS_TO_RUN.includes(5)) {
+  if (steps.includes(5)) {
     await swapFeesForNetwork({ routers, network: ARBITRUM })
   }
 
-  if (STEPS_TO_RUN.includes(6)) {
+  if (steps.includes(6)) {
     await fundAccounts()
   }
 
-  if (STEPS_TO_RUN.includes(7)) {
+  if (steps.includes(7)) {
     await updateRewards()
   }
 
-  if (STEPS_TO_RUN.includes(8)) {
+  if (steps.includes(8)) {
     await sendReferralRewards()
   }
 }
 
-main()
+module.exports = { processFees }

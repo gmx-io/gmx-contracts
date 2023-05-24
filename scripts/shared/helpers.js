@@ -54,11 +54,15 @@ function getChainId(network) {
   throw new Error("Unsupported network")
 }
 
-async function getFrameSigner() {
+async function getFrameSigner(options) {
   try {
     const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
     const signer = frame.getSigner()
-    if (getChainId(network) !== await signer.getChainId()) {
+    let networkToCheck = network
+    if (options && options.network) {
+      networkToCheck = options.network
+    }
+    if (getChainId(networkToCheck) !== await signer.getChainId()) {
       throw new Error("Incorrect frame network")
     }
     return signer

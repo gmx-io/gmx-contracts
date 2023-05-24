@@ -35,6 +35,21 @@ task("accounts", "Prints the list of accounts", async () => {
   }
 })
 
+task("balance", "Prints an account's balance")
+  .addParam("account", "The account's address")
+  .setAction(async (taskArgs) => {
+    const balance = await ethers.provider.getBalance(taskArgs.account);
+
+    console.log(ethers.utils.formatEther(balance), "ETH");
+  });
+
+task("processFees", "Processes fees")
+  .addParam("steps", "The steps to run")
+  .setAction(async (taskArgs) => {
+    const { processFees } = require("./scripts/core/processFees")
+    await processFees(taskArgs)
+  })
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
