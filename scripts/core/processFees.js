@@ -89,10 +89,18 @@ async function fundHandlerForNetwork({ network }) {
     if (approvedAmount.lt(balance)) {
       const signer = await getFrameSigner({ network })
       const tokenForSigner = await contractAt("Token", token.address, signer)
-      await sendTxn(tokenForSigner.approve(handler.address, balance), `sending approve: ${tokenArr[i].name}, ${balance.toString()}`)
+      await sendTxn(tokenForSigner.approve(handler.address, balance), `approve: ${tokenArr[i].name}, ${balance.toString()}`)
+    }
+  }
+
+  for (let i = 0; i < tokenArr.length; i++) {
+    const token = await contractAt("Token", tokenArr[i].address, handler)
+    const balance = await token.balanceOf(FEE_ACCOUNT)
+    if (balance.eq(0)) {
+      continue
     }
 
-    await sendTxn(token.transferFrom(FEE_ACCOUNT, handler.address, balance), `funding handler: ${tokenArr[i].name}, ${balance.toString()}`)
+    await sendTxn(token.transferFrom(FEE_ACCOUNT, handler.address, balance), `fund handler: ${tokenArr[i].name}, ${balance.toString()}`)
   }
 }
 
@@ -122,7 +130,7 @@ async function swapFeesForNetwork({ routers, network }) {
     const approvedAmount = await token.allowance(handler.address, router.address)
 
     if (approvedAmount.lt(balance)) {
-      await sendTxn(token.approve(router.address, balance), `approve token ${tokenArr[i].name}`)
+      await sendTxn(token.approve(router.address, ethers.constants.MaxUint256), `approve token ${tokenArr[i].name}`)
     }
 
     await sendTxn(router.swap(path, balance, 0, handler.address), `swap token ${tokenArr[i].name}`)
