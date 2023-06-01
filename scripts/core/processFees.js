@@ -235,6 +235,10 @@ async function updateRewards() {
       throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance.toString()}`)
     }
 
+    // send 99% to reduce the risk that swap fees, balancing tax, changes in prices
+    // would result in the script failing
+    // if significant fees are accumulated these should be included to be distributed
+    // in the next distribution
     const rewardAmount = rewardAmounts[network]
     const gmxRewardAmount = rewardAmount.gmx.mul(99).div(100)
     const glpRewardAmount = rewardAmount.glp.mul(99).div(100)
