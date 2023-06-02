@@ -239,6 +239,9 @@ async function updateRewards() {
     // would result in the script failing
     // if significant fees are accumulated these should be included to be distributed
     // in the next distribution
+    // the 1% kept in the fee distributor can also help to fund keepers in case
+    // of spikes in gas prices that may lead to low keeper balances before the next
+    // distribution
     const rewardAmount = rewardAmounts[network]
     const gmxRewardAmount = rewardAmount.gmx.mul(99).div(100)
     const glpRewardAmount = rewardAmount.glp.mul(99).div(100)
