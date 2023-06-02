@@ -173,6 +173,11 @@ async function bridgeTokensToArbitrum() {
   const usdce = await contractAt("Token", tokensRef.avax.usdce.address, handlers.avax)
   const bridgeAmount = await usdce.balanceOf(handlers.avax.address)
 
+  if (bridgeAmount.eq(0)) {
+    console.info("no tokens to bridge")
+    return
+  }
+
   // send tokens to arbitrum
   await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
 }
