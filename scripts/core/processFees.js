@@ -173,6 +173,11 @@ async function bridgeTokensToArbitrum() {
   const usdce = await contractAt("Token", tokensRef.avax.usdce.address, handlers.avax)
   const bridgeAmount = await usdce.balanceOf(handlers.avax.address)
 
+  if (bridgeAmount.eq(0)) {
+    console.info("no tokens to bridge")
+    return
+  }
+
   // send tokens to arbitrum
   await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
 }
@@ -234,11 +239,17 @@ async function updateRewards() {
     if (balance.lt(expectedMinBalance[network])) {
       throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance.toString()}`)
     }
+  }
 
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
     // send 99% to reduce the risk that swap fees, balancing tax, changes in prices
     // would result in the script failing
     // if significant fees are accumulated these should be included to be distributed
     // in the next distribution
+    // the 1% kept in the fee distributor can also help to fund keepers in case
+    // of spikes in gas prices that may lead to low keeper balances before the next
+    // distribution
     const rewardAmount = rewardAmounts[network]
     const gmxRewardAmount = rewardAmount.gmx.mul(99).div(100)
     const glpRewardAmount = rewardAmount.glp.mul(99).div(100)
