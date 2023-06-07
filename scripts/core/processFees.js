@@ -239,7 +239,10 @@ async function updateRewards() {
     if (balance.lt(expectedMinBalance[network])) {
       throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance.toString()}`)
     }
+  }
 
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
     // send 99% to reduce the risk that swap fees, balancing tax, changes in prices
     // would result in the script failing
     // if significant fees are accumulated these should be included to be distributed

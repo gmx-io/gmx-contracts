@@ -103,6 +103,10 @@ async function updateServerFees({ feeValues, refTimestamp }) {
 async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
   const values = feeValues
 
+  // for distribution of accumulated handler fees
+  // values.arbitrum.feesUsd = values.arbitrum.feesUsd.add(expandDecimals(206_795, 30))
+  // values.avax.feesUsd = values.avax.feesUsd.add(expandDecimals(18_564, 30))
+
   const keeperCostsArbitrumUsd = values.arbitrum.keeperCosts.mul(values.arbitrum.nativeTokenPrice).div(expandDecimals(1, 18))
   const keeperCostsAvaxUsd = values.avax.keeperCosts.mul(values.avax.nativeTokenPrice).div(expandDecimals(1, 18))
 
