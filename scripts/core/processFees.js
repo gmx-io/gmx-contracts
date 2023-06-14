@@ -1,4 +1,4 @@
-const { contractAt, sendTxn, getFrameSigner } = require("../shared/helpers")
+const { contractAt, sendTxn, getFrameSigner, sleep } = require("../shared/helpers")
 const { withdrawFeesArb, withdrawFeesAvax } = require("./feeWithdrawal")
 const { getArbValues: getArbFundAccountValues, getAvaxValues: getAvaxFundAccountValues } = require("../shared/fundAccountsUtils")
 const { getArbValues: getArbRewardValues, getAvaxValues: getAvaxRewardValues, updateRewards: updateStakingRewards } = require("../staking/rewards")
@@ -170,6 +170,7 @@ async function swapFeesForAvax({ routers }) {
 }
 
 async function bridgeTokensToArbitrum() {
+  await sleep(20_000)
   const usdce = await contractAt("Token", tokensRef.avax.usdce.address, handlers.avax)
   const bridgeAmount = await usdce.balanceOf(handlers.avax.address)
 
