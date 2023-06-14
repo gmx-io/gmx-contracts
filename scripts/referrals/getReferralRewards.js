@@ -9,7 +9,6 @@ if (process.env.ARBITRUM_FILE) {
   arbitrumFile = path.join(__dirname, "../../distribution-data-arbitrum.json")
 }
 console.log("Arbitrum file: %s", arbitrumFile)
-const arbitrumData = require(arbitrumFile)
 
 let avalancheFile
 if (process.env.AVALANCHE_FILE) {
@@ -18,7 +17,6 @@ if (process.env.AVALANCHE_FILE) {
   avalancheFile = path.join(__dirname, "../../distribution-data-avalanche.json")
 }
 console.log("Avalanche file: %s", avalancheFile)
-const avaxData = require(avalancheFile)
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
@@ -26,13 +24,13 @@ const tokens = require('../core/tokens')[network];
 const { AddressZero } = ethers.constants
 
 async function getArbValues() {
-  const data = arbitrumData
+  const data = require(arbitrumFile)
 
   return { data }
 }
 
 async function getAvaxValues() {
-  const data = avaxData
+  const data = require(avalancheFile)
 
   return { data }
 }
