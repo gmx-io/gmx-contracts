@@ -16,8 +16,8 @@ async function getArbValues(signer) {
   const provider = new ethers.providers.JsonRpcProvider(ARBITRUM_URL)
   const capKeeperWallet = new ethers.Wallet(ARBITRUM_CAP_KEEPER_KEY).connect(provider)
 
-  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
+  const { btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const tokenArr = [btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai]
   const fastPriceTokens = [btc, eth, link, uni]
 
   const priceFeedTimelock = { address: "0x7b1FFdDEEc3C4797079C7ed91057e399e9D43a8B" }

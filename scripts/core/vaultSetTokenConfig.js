@@ -8,8 +8,8 @@ const tokens = require('./tokens')[network];
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
 
-  const {} = tokens
-  const tokenArr = []
+  const { usdc } = tokens
+  const tokenArr = [usdc]
 
   return { vault, tokenArr }
 }
