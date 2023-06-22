@@ -288,6 +288,8 @@ async function processFees({ steps }) {
     avax: await contractAt("Router", "0x5F719c2F1095F7B9fc68a68e35B51194f4b6abe8", handlers.avax)
   }
 
+  // TODO: handle case where tokens need to be bridged from Arbitrum to Avalanche
+
   if (steps.includes(1)) {
     await withdrawFees()
   }
