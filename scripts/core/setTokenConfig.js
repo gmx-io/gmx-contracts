@@ -10,8 +10,8 @@ async function getArbValues() {
   const timelock = await contractAt("Timelock", await vault.gov())
   const reader = await contractAt("Reader", "0x2b43c90D1B727cEe1Df34925bcd5Ace52Ec37694")
 
-  const { btc, eth, usdc, link, uni, usdt, frax, dai } = tokens
-  const tokenArr = [ btc, eth, usdc, link, uni, usdt, frax, dai ]
+  const { btc, eth, usdce, link, uni, usdt, frax, dai } = tokens
+  const tokenArr = [ btc, eth, usdce, link, uni, usdt, frax, dai ]
   // const tokenArr = [ usdt, frax, dai ]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, eth.address, 1, tokenArr.map(t => t.address))

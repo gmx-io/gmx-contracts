@@ -50,9 +50,9 @@ async function withdrawFeesArb() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A", wallet)
   const gov = await contractAt("Timelock", await vault.gov(), wallet)
   const tokens = require('./tokens')["arbitrum"];
-  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const { btc, eth, usdce, link, uni, usdt, mim, frax, dai } = tokens
 
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, frax, dai]
+  const tokenArr = [btc, eth, usdce, link, uni, usdt, frax, dai]
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = await contractAt("Token", tokenArr[i].address, wallet)

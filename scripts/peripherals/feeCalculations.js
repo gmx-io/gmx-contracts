@@ -7,20 +7,47 @@ const { getArbValues: getArbKeeperValues, getAvaxValues: getAvaxKeeperValues } =
 
 const allTokens = require('../core/tokens')
 
-async function getInfoTokens(vault, reader, tokens) {
-  const tokenArr = Object.values(tokens)
+const tokensRef = {
+  arbitrum: allTokens.arbitrum,
+  avax: allTokens.avax
+}
+
+function getArbTokens() {
+  const { btc, eth, usdce, link, uni, usdt, mim, frax, dai } = tokensRef.arbitrum
+  const tokenArr = [btc, eth, usdce, link, uni, usdt, frax, dai]
+
+  return tokenArr
+}
+
+function getAvaxTokens() {
+  const { avax, btc, btcb, eth, mim, usdce, usdc } = tokensRef.avax
+  const tokenArr = [avax, btc, btcb, eth, usdce, usdc]
+
+  return tokenArr
+}
+
+const tokenArrRef = {
+  arbitrum: getArbTokens(),
+  avax: getAvaxTokens()
+}
+
+async function getInfoTokens(vault, reader, tokens, tokenArr) {
   const vaultTokenInfo = await reader.getVaultTokenInfo(
     vault.address,
     tokens.nativeToken.address,
     expandDecimals(1, 18),
     tokenArr.map(t => t.address)
   )
+  console.log("tokenArr.length", tokenArr.length)
+  console.log("vaultTokenInfo.length", vaultTokenInfo.length)
+  console.log("vaultTokenInfo", vaultTokenInfo)
   const infoTokens = {}
   const vaultPropsLength = 10
 
   for (let i = 0; i < tokenArr.length; i++) {
     const token = JSON.parse(JSON.stringify(tokenArr[i]))
 
+    console.log("vaultTokenInfo", i * vaultPropsLength)
     token.poolAmount = vaultTokenInfo[i * vaultPropsLength]
     token.reservedAmount = vaultTokenInfo[i * vaultPropsLength + 1]
     token.usdgAmount = vaultTokenInfo[i * vaultPropsLength + 2]
@@ -31,6 +58,7 @@ async function getInfoTokens(vault, reader, tokens) {
     token.guaranteedUsd = vaultTokenInfo[i * vaultPropsLength + 7]
     token.maxPrimaryPrice = vaultTokenInfo[i * vaultPropsLength + 8]
     token.minPrimaryPrice = vaultTokenInfo[i * vaultPropsLength + 9]
+    console.log("token", token)
 
     infoTokens[token.address] = token
   }
@@ -38,14 +66,14 @@ async function getInfoTokens(vault, reader, tokens) {
   return infoTokens
 }
 
-async function getFeesUsd(vault, reader, tokenInfo) {
-  const tokenArr = Object.values(tokenInfo)
+async function getFeesUsd(vault, reader, tokenInfo, tokenArr) {
   const feeAmounts = await reader.getFees(vault.address, tokenArr.map(t => t.address))
   let feesUsd = bigNumberify(0)
 
   for (let i = 0; i < tokenArr.length; i++) {
-    const token = tokenArr[i]
+    const token = tokenInfo[tokenArr[i].address]
     const feeAmount = feeAmounts[i]
+    console.log("getFeesUsd token", token)
     const feeInUsd = feeAmount.mul(token.minPrice).div(expandDecimals(1, token.decimals))
     feesUsd = feesUsd.add(feeInUsd)
   }
@@ -80,9 +108,10 @@ async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A", signer)
   const reader = await contractAt("Reader", "0x2b43c90D1B727cEe1Df34925bcd5Ace52Ec37694", signer)
   const tokens = allTokens.arbitrum
-  const tokenInfo = await getInfoTokens(vault, reader, tokens)
+  const tokenArr = tokenArrRef.arbitrum
+  const tokenInfo = await getInfoTokens(vault, reader, tokens, tokenArr)
   const nativeTokenPrice = tokenInfo[tokens.nativeToken.address].maxPrice
-  const feesUsd = await getFeesUsd(vault, reader, tokenInfo)
+  const feesUsd = await getFeesUsd(vault, reader, tokenInfo, tokenArr)
   const stakedGmx = await contractAt("Token", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", signer)
   const stakedGmxSupply = await stakedGmx.totalSupply()
   const { totalTransferAmount: keeperCosts } = await getArbKeeperValues()
@@ -97,9 +126,10 @@ async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595", signer)
   const reader = await contractAt("Reader", "0x2eFEE1950ededC65De687b40Fd30a7B5f4544aBd", signer)
   const tokens = allTokens.avax
-  const tokenInfo = await getInfoTokens(vault, reader, tokens)
+  const tokenArr = tokenArrRef.avax
+  const tokenInfo = await getInfoTokens(vault, reader, tokens, tokenArr)
   const nativeTokenPrice = tokenInfo[tokens.nativeToken.address].maxPrice
-  const feesUsd = await getFeesUsd(vault, reader, tokenInfo)
+  const feesUsd = await getFeesUsd(vault, reader, tokenInfo, tokenArr)
   const stakedGmx = await contractAt("Token", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", signer)
   const stakedGmxSupply = await stakedGmx.totalSupply()
   const { totalTransferAmount: keeperCosts } = await getAvaxKeeperValues()
@@ -110,6 +140,7 @@ async function getAvaxValues() {
 }
 
 module.exports = {
+  tokenArrRef,
   getArbValues,
   getAvaxValues,
   getGmxPrice

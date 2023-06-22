@@ -39,8 +39,8 @@ async function checkTokenConfigAvax() {
 }
 
 async function checkTokenConfigArb() {
-  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
-  const tokenArr = [btc, eth, usdc, link, uni, usdt, mim, frax, dai]
+  const { btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const tokenArr = [btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai]
 
   await checkTokenConfig(tokenArr)
 }

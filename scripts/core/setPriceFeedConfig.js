@@ -9,7 +9,7 @@ async function getArbValues() {
   const vaultPriceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
   // const vaultPriceFeed = await contractAt("VaultPriceFeed", "0xfe661cbf27Da0656B7A1151a761ff194849C387A")
 
-  const { btc, eth, usdc, link, uni, usdt, mim, frax, dai } = tokens
+  const { btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai } = tokens
   const fastPriceTokens = [btc, eth, link, uni]
 
   return { vaultPriceFeed, fastPriceTokens }

@@ -12,7 +12,7 @@ async function main() {
 
   const priceFeed = await contractAt("VaultPriceFeed", await vault.priceFeed())
   const priceFeedGov = await priceFeed.gov()
-  const priceFeedTimelock = await contractAt("Timelock", priceFeedGov, signer)
+  const priceFeedTimelock = await contractAt("PriceFeedTimelock", priceFeedGov, signer)
 
   const priceFeedMethod = "signalPriceFeedSetTokenConfig"
   // const priceFeedMethod = "priceFeedSetTokenConfig"
@@ -22,8 +22,8 @@ async function main() {
   console.log("priceFeedTimelock", priceFeedTimelock.address)
   console.log("priceFeedMethod", priceFeedMethod)
 
-  const { dai } = tokens
-  const tokenArr = [dai]
+  const { usdc } = tokens
+  const tokenArr = [usdc]
 
   for (const token of tokenArr) {
     await sendTxn(priceFeedTimelock[priceFeedMethod](
