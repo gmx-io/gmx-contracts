@@ -5,6 +5,7 @@ const { getArbValues: getArbRewardValues, getAvaxValues: getAvaxRewardValues, up
 const { getArbValues: getArbReferralValues, getAvaxValues: getAvaxReferralValues, sendReferralRewards: _sendReferralRewards } = require("../referrals/referralRewards")
 const { formatAmount, bigNumberify } = require("../../test/shared/utilities")
 const { bridgeTokens } = require("./bridge")
+const { tokenArrRef } = require("../peripherals/feeCalculations")
 
 const feeReference = require("../../fee-reference.json")
 
@@ -47,25 +48,6 @@ const nativeTokens = {
 const tokensRef = {
   arbitrum: require('./tokens')["arbitrum"],
   avax: require('./tokens')["avax"]
-}
-
-function getArbTokens() {
-  const { btc, eth, usdce, link, uni, usdt, mim, frax, dai } = tokensRef.arbitrum
-  const tokenArr = [btc, eth, usdce, link, uni, usdt, frax, dai]
-
-  return tokenArr
-}
-
-function getAvaxTokens() {
-  const { avax, btc, btcb, eth, mim, usdce, usdc } = tokensRef.avax
-  const tokenArr = [avax, btc, btcb, eth, usdce, usdc]
-
-  return tokenArr
-}
-
-const tokenArrRef = {
-  arbitrum: getArbTokens(),
-  avax: getAvaxTokens()
 }
 
 async function withdrawFees() {
@@ -252,8 +234,8 @@ async function updateRewards() {
     // of spikes in gas prices that may lead to low keeper balances before the next
     // distribution
     const rewardAmount = rewardAmounts[network]
-    const gmxRewardAmount = rewardAmount.gmx.mul(99).div(100)
-    const glpRewardAmount = rewardAmount.glp.mul(99).div(100)
+    const gmxRewardAmount = rewardAmount.gmx.mul(9950).div(10_000)
+    const glpRewardAmount = rewardAmount.glp.mul(9950).div(10_000)
 
     stakingValues[network].rewardTrackerArr[0].transferAmount = gmxRewardAmount
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
