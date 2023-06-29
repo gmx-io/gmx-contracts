@@ -72,6 +72,7 @@ async function getFrameSigner(options) {
 }
 
 async function sendTxn(txnPromise, label) {
+  console.info(`Processsing ${label}:`)
   const txn = await txnPromise
   console.info(`Sending ${label}...`)
   await txn.wait(2)

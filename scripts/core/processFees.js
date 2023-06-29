@@ -143,11 +143,13 @@ async function swapFeesForAvax({ routers }) {
     const path = [wavax.address, tokensRef.avax.usdce.address]
     const usdce = await contractAt("Token", tokensRef.avax.usdce.address, handlers.avax)
 
+    console.info("getting approvedAmount")
     const approvedAmount = await wavax.allowance(handlers.avax.address, routers.avax.address)
+    console.info("approvedAmount", approvedAmount.toString())
     if (approvedAmount.lt(excessWavax)) {
       await sendTxn(wavax.approve(routers.avax.address, excessWavax), `approve wavax`)
     }
-    await routers.avax.swap(path, excessWavax, 0, handlers.avax.address)
+    await sendTxn(routers.avax.swap(path, excessWavax, 0, handlers.avax.address), `swap wavax to usdce`)
   }
 }
 
@@ -226,11 +228,11 @@ async function updateRewards() {
 
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
-    // send 99% to reduce the risk that swap fees, balancing tax, changes in prices
+    // send ~99% to reduce the risk that swap fees, balancing tax, changes in prices
     // would result in the script failing
     // if significant fees are accumulated these should be included to be distributed
     // in the next distribution
-    // the 1% kept in the fee distributor can also help to fund keepers in case
+    // the fees kept in the fee distributor can also help to fund keepers in case
     // of spikes in gas prices that may lead to low keeper balances before the next
     // distribution
     const rewardAmount = rewardAmounts[network]
