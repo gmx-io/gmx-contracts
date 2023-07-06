@@ -149,7 +149,7 @@ async function swapFeesForAvax({ routers }) {
     if (approvedAmount.lt(excessWavax)) {
       await sendTxn(wavax.approve(routers.avax.address, excessWavax), `approve wavax`)
     }
-    await sendTxn(routers.avax.swap(path, excessWavax, 0, handlers.avax.address), `swap wavax to usdce`)
+    await sendTxn(routers.avax.swap(path, excessWavax, 0, handlers.avax.address), `swap ${excessWavax.toString()} wavax to usdce`)
   }
 }
 
