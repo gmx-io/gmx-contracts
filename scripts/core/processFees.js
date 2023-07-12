@@ -103,6 +103,10 @@ async function swapFeesForNetwork({ routers, network }) {
       continue
     }
 
+    if (tokenArr[i].name === "frax") {
+      continue
+    }
+
     const path = [token.address, nativeToken.address]
     const balance = await token.balanceOf(handler.address)
     if (balance.eq(0)) {
@@ -132,7 +136,7 @@ async function swapFeesForAvax({ routers }) {
 
   const requiredWavaxBalance = bigNumberify(feeReference.requiredWavaxBalance)
 
-  // check how much wavax is needed, then swap excess wavax to usdce
+  // check how much wavax is needed, then swap excess wavax to usdc
   const wavax = await contractAt("Token", nativeTokens.avax.address, handlers.avax)
   const wavaxBalance = await wavax.balanceOf(handlers.avax.address)
   const excessWavax = wavaxBalance.sub(requiredWavaxBalance)
@@ -140,21 +144,23 @@ async function swapFeesForAvax({ routers }) {
 
   if (excessWavax.gt(0)) {
     // swap tokens to send to arbitrum
-    const path = [wavax.address, tokensRef.avax.usdce.address]
-    const usdce = await contractAt("Token", tokensRef.avax.usdce.address, handlers.avax)
+    const path = [wavax.address, tokensRef.avax.usdc.address]
+    const usdc = await contractAt("Token", tokensRef.avax.usdc.address, handlers.avax)
 
+    console.info("getting approvedAmount")
     const approvedAmount = await wavax.allowance(handlers.avax.address, routers.avax.address)
+    console.info("approvedAmount", approvedAmount.toString())
     if (approvedAmount.lt(excessWavax)) {
       await sendTxn(wavax.approve(routers.avax.address, excessWavax), `approve wavax`)
     }
-    await routers.avax.swap(path, excessWavax, 0, handlers.avax.address)
+    await sendTxn(routers.avax.swap(path, excessWavax, 0, handlers.avax.address), `swap ${excessWavax.toString()} wavax to usdc`)
   }
 }
 
 async function bridgeTokensToArbitrum() {
   await sleep(20_000)
-  const usdce = await contractAt("Token", tokensRef.avax.usdce.address, handlers.avax)
-  const bridgeAmount = await usdce.balanceOf(handlers.avax.address)
+  const usdc = await contractAt("Token", tokensRef.avax.usdc.address, handlers.avax)
+  const bridgeAmount = await usdc.balanceOf(handlers.avax.address)
 
   if (bridgeAmount.eq(0)) {
     console.info("no tokens to bridge")
@@ -226,11 +232,11 @@ async function updateRewards() {
 
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
-    // send 99% to reduce the risk that swap fees, balancing tax, changes in prices
+    // send ~99% to reduce the risk that swap fees, balancing tax, changes in prices
     // would result in the script failing
     // if significant fees are accumulated these should be included to be distributed
     // in the next distribution
-    // the 1% kept in the fee distributor can also help to fund keepers in case
+    // the fees kept in the fee distributor can also help to fund keepers in case
     // of spikes in gas prices that may lead to low keeper balances before the next
     // distribution
     const rewardAmount = rewardAmounts[network]

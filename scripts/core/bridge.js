@@ -1,8 +1,23 @@
 async function bridgeTokens({ signer, inputAmount }) {
-  const { Bridge, Tokens, ChainId, Networks } = await import("@synapseprotocol/sdk");
+  const { Bridge, ChainId, Networks, BaseToken } = await import("@synapseprotocol/sdk");
   const { JsonRpcProvider } = await import("@ethersproject/providers");
   const { parseUnits } = await import("@ethersproject/units");
   const { BigNumber } = await import("@ethersproject/bignumber");
+
+  const USDC = new BaseToken({
+    name: "USD Circle",
+    symbol: "USDC",
+    decimals: {
+      [ChainId.AVALANCHE]: 6,
+      [ChainId.ARBITRUM]:  6,
+    },
+    addresses: {
+      [ChainId.ARBITRUM]:  "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      [ChainId.AVALANCHE]: "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+    },
+    swapType:    "USD",
+    coingeckoId: "usd-coin",
+  })
 
   // Initialize dummy Ethers Provider
   const AVAX_PROVIDER = new JsonRpcProvider(
@@ -17,8 +32,8 @@ async function bridgeTokens({ signer, inputAmount }) {
   });
 
   // Set up some variables to prepare a Avalanche USDC -> BSC USDT quote
-  const TOKEN_IN = Tokens.USDC,
-    TOKEN_OUT = Tokens.USDC,
+  const TOKEN_IN = USDC,
+    TOKEN_OUT = USDC,
     ON_CHAIN = ChainId.AVALANCHE,
     CHAIN_OUT = ChainId.ARBITRUM;
 

@@ -13,8 +13,8 @@ const tokensRef = {
 }
 
 function getArbTokens() {
-  const { btc, eth, usdce, link, uni, usdt, mim, frax, dai } = tokensRef.arbitrum
-  const tokenArr = [btc, eth, usdce, link, uni, usdt, frax, dai]
+  const { btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai } = tokensRef.arbitrum
+  const tokenArr = [btc, eth, usdce, usdc, link, uni, usdt, frax, dai]
 
   return tokenArr
 }

@@ -1,7 +1,6 @@
 const fs = require('fs')
 
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-const { ArgumentParser } = require('argparse');
 const ethers = require('ethers')
 
 const ARBITRUM_SUBGRAPH_ENDPOINT = 'https://subgraph.satsuma-prod.com/3b2ced13c8d9/gmx/gmx-arbitrum-referrals/api'
@@ -63,6 +62,10 @@ async function getAffiliatesTiers(network) {
     }
   }`)
 
+  if (data.affiliates.length === 1000) {
+    throw new Error("Affiliates should be paginated");
+  }
+
   return data.affiliates.reduce((memo, item) => {
     memo[item.id] = parseInt(item.tierId)
     return memo
@@ -98,6 +101,9 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
         discountUsd
         volume
         trades
+      }
+      v2Data {
+        totalRebateUsd
       }
     }`
 
@@ -174,6 +180,7 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       rebateUsd: BigNumber.from(0),
       totalRebateUsd: BigNumber.from(0),
       volume: BigNumber.from(0),
+      v2TotalRebateUsd: BigNumber.from(0),
       tradesCount: 0,
       tierId
     }
@@ -184,6 +191,7 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       BigNumber.from(item.v1Data.totalRebateUsd)
     )
     memo[item.affiliate].volume = memo[item.affiliate].volume.add(BigNumber.from(item.v1Data.volume))
+    memo[item.affiliate].v2TotalRebateUsd = memo[item.affiliate].v2TotalRebateUsd.add(BigNumber.from(item.v2Data.totalRebateUsd))
     memo[item.affiliate].tradesCount += Number(item.v1Data.trades)
 
     totalRebateUsd = totalRebateUsd.add(BigNumber.from(item.v1Data.totalRebateUsd))
@@ -212,7 +220,15 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       if (data.tierId !== BONUS_TIER) {
         return
       }
-      data.esgmxRewardsUsd = data.volume.div(1000).div(20) // 0.1% margin fee, 0.05% of fee is EsGMX bonus rewards
+
+      // in v2 traders get discount automatically and affiliates can claim their rewards
+      // however for both v1 and v2 esGMX rewards are distributed as airdrop
+      // use total rebates from both v1 and v2 to calculate esGMX rewards
+      //
+      // tier 3 gets 25% of fees trading fees, esGMX reward are 5%
+      // esGMX rewards = total rebates / 5
+      data.esgmxRewardsUsd = data.totalRebateUsd.add(data.v2TotalRebateUsd).div(5);
+
       data.esgmxRewards = data.esgmxRewardsUsd
         .mul(expandDecimals(1, USD_DECIMALS))
         .div(gmxPrice)
