@@ -59,14 +59,14 @@ async function main() {
       count++
       const amount = ethers.utils.parseUnits(item.usdc, usdcDecimals)
       if (shouldSendTxn && count >= minCount) {
-        await sendTxn(usdc.transfer(item.account, amount), `${count}: usdc.transfer(${item.account}, ${amount})`)
+        await sendTxn(usdc.transfer(item.account, amount, { gasLimit: 1_000_000 }), `${count}: usdc.transfer(${item.account}, ${amount})`)
       }
     }
     if (item.gmx && parseFloat(item.gmx) !== 0) {
       count++
       const amount = ethers.utils.parseUnits(item.gmx, gmxDecimals)
       if (shouldSendTxn && count >= minCount) {
-        await sendTxn(gmx.transfer(item.account, amount), `${count}: gmx.transfer(${item.account}, ${amount})`)
+        await sendTxn(gmx.transfer(item.account, amount, { gasLimit: 2_000_000 }), `${count}: gmx.transfer(${item.account}, ${amount})`)
       }
     }
   }
