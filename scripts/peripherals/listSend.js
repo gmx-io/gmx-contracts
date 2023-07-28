@@ -49,6 +49,20 @@ async function main() {
     }
   }
 
+  // for (let i = 0; i < list.length; i++) {
+  //   const item = list[i]
+  //   if (item.usdc && parseFloat(item.usdc) !== 0) {
+  //     console.log("usdc:", item.usdc)
+  //   }
+  // }
+  //
+  // for (let i = 0; i < list.length; i++) {
+  //   const item = list[i]
+  //   if (item.gmx && parseFloat(item.gmx) !== 0) {
+  //     console.log("gmx:", item.gmx)
+  //   }
+  // }
+
   console.log("total USDC", ethers.utils.formatUnits(totalUsdc, usdcDecimals))
   console.log("total GMX", ethers.utils.formatUnits(totalGmx, gmxDecimals))
 }
