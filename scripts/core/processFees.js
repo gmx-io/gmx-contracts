@@ -33,7 +33,7 @@ const getFeeKeeperKey = () => {
     throw new Error("Invalid key file");
   }
   const wallet = ethers.Wallet.fromMnemonic(data.mnemonic);
-  return [wallet.privateKey];
+  return wallet.privateKey;
 }
 
 const FEE_KEEPER_KEY = getFeeKeeperKey()
