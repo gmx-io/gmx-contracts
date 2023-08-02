@@ -26,18 +26,6 @@ const {
 } = require("./env.json")
 
 const getEnvAccounts = (DEFAULT_DEPLOYER_KEY) => {
-  const { DEPLOYER_KEY_FILE } = process.env;
-
-  if (DEPLOYER_KEY_FILE) {
-    const filepath = path.join("./keys/", DEPLOYER_KEY_FILE);
-    const data = JSON.parse(fs.readFileSync(filepath));
-    if (!data || !data.mnemonic) {
-      throw new Error("Invalid key file");
-    }
-    const wallet = ethers.Wallet.fromMnemonic(data.mnemonic);
-    return [wallet.privateKey];
-  }
-
   return [DEFAULT_DEPLOYER_KEY];
 };
 

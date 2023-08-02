@@ -23,8 +23,22 @@ const ARBITRUM = "arbitrum"
 const AVAX = "avax"
 const networks = [ARBITRUM, AVAX]
 
+const { DEPLOYER_KEY_FILE } = process.env;
+
+const getFeeKeeperKey = () => {
+  const filepath = "./keys/fee-keeper.json";
+  const data = JSON.parse(fs.readFileSync(filepath));
+  if (!data || !data.mnemonic) {
+    throw new Error("Invalid key file");
+  }
+  const wallet = ethers.Wallet.fromMnemonic(data.mnemonic);
+  return [wallet.privateKey];
+}
+
+const FEE_KEEPER_KEY = getFeeKeeperKey()
+
 const FEE_ACCOUNT = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
-const FEE_HANDLER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
+const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
 const providers = {
   arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
@@ -32,8 +46,8 @@ const providers = {
 }
 
 const handlers = {
-  arbitrum: new ethers.Wallet(HANDLER_KEY).connect(providers.arbitrum),
-  avax: new ethers.Wallet(HANDLER_KEY).connect(providers.avax)
+  arbitrum: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.arbitrum),
+  avax: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.avax)
 }
 
 const deployers = {
@@ -121,7 +135,7 @@ async function swapFeesForNetwork({ routers, network }) {
     } catch (e) {
       console.error(`swap error, ${e.toString()}`)
       if (["frax", "usdt"].includes(tokenArr[i].name)) {
-        await sendTxn(token.transfer(FEE_HANDLER, balance), `sending ${ethers.utils.formatUnits(balance, tokenArr[i].decimals)} ${tokenArr[i].name} to be swapped`)
+        await sendTxn(token.transfer(FEE_HELPER, balance), `sending ${ethers.utils.formatUnits(balance, tokenArr[i].decimals)} ${tokenArr[i].name} to be swapped`)
       } else {
         throw new Error(e.toString())
       }
@@ -172,7 +186,7 @@ async function bridgeTokensToArbitrum() {
     return
   }
 
-  await sendTxn(usdc.transfer(FEE_HANDLER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
+  await sendTxn(usdc.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
 
   // send tokens to arbitrum
   // await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
