@@ -24,6 +24,7 @@ const AVAX = "avax"
 const networks = [ARBITRUM, AVAX]
 
 const FEE_ACCOUNT = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
+const FEE_HANDLER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
 const providers = {
   arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
@@ -103,10 +104,6 @@ async function swapFeesForNetwork({ routers, network }) {
       continue
     }
 
-    if (tokenArr[i].name === "frax") {
-      continue
-    }
-
     const path = [token.address, nativeToken.address]
     const balance = await token.balanceOf(handler.address)
     if (balance.eq(0)) {
@@ -119,7 +116,16 @@ async function swapFeesForNetwork({ routers, network }) {
       await sendTxn(token.approve(router.address, ethers.constants.MaxUint256), `approve token ${tokenArr[i].name}`)
     }
 
-    await sendTxn(router.swap(path, balance, 0, handler.address), `swap token ${tokenArr[i].name}`)
+    try {
+      await sendTxn(router.swap(path, balance, 0, handler.address), `swap token ${tokenArr[i].name}`)
+    } catch (e) {
+      console.error(`swap error, ${e.toString()}`)
+      if (["frax", "usdt"].includes(tokenArr[i].name)) {
+        await sendTxn(token.transfer(FEE_HANDLER, balance), `sending ${ethers.utils.formatUnits(balance, tokenArr[i].decimals)} ${tokenArr[i].name} to be swapped`)
+      } else {
+        throw new Error(e.toString())
+      }
+    }
 
     if (!SHOULD_SEND_SWAP_TXNS) {
       break
@@ -158,7 +164,6 @@ async function swapFeesForAvax({ routers }) {
 }
 
 async function bridgeTokensToArbitrum() {
-  await sleep(20_000)
   const usdc = await contractAt("Token", tokensRef.avax.usdc.address, handlers.avax)
   const bridgeAmount = await usdc.balanceOf(handlers.avax.address)
 
@@ -167,8 +172,10 @@ async function bridgeTokensToArbitrum() {
     return
   }
 
+  await sendTxn(usdc.transfer(FEE_HANDLER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
+
   // send tokens to arbitrum
-  await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
+  // await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
 }
 
 async function fundAccountsForNetwork({ network, fundAccountValues }) {
