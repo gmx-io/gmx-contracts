@@ -1,3 +1,4 @@
+const fs = require("fs");
 const { contractAt, sendTxn, getFrameSigner, sleep } = require("../shared/helpers")
 const { withdrawFeesArb, withdrawFeesAvax } = require("./feeWithdrawal")
 const { getArbValues: getArbFundAccountValues, getAvaxValues: getAvaxFundAccountValues } = require("../shared/fundAccountsUtils")
