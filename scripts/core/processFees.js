@@ -52,6 +52,11 @@ const providers = {
 }
 
 const handlers = {
+  arbitrum: new ethers.Wallet(HANDLER_KEY).connect(providers.arbitrum),
+  avax: new ethers.Wallet(HANDLER_KEY).connect(providers.avax)
+}
+
+const feeKeepers = {
   arbitrum: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.arbitrum),
   avax: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.avax)
 }
@@ -103,7 +108,10 @@ async function withdrawFeesV2({ network }) {
     tokenAddresses.push(market.shortToken)
   }
 
-  await sendTxn(feeHandler.claimFees(marketAddresses, tokenAddresses))
+  console.log("marketAddresses", marketAddresses.length, marketAddresses)
+  console.log("tokenAddresses", tokenAddresses.length, tokenAddresses)
+
+  await sendTxn(feeHandler.claimFees(marketAddresses, tokenAddresses), "feeHandler.claimFees")
 }
 
 async function withdrawFees() {
@@ -115,16 +123,17 @@ async function withdrawFees() {
 
 async function fundHandlerForNetwork({ network }) {
   const tokenArr = tokenArrRef[network]
+  const feeKeeper = feeKeepers[network]
   const handler = handlers[network]
 
   for (let i = 0; i < tokenArr.length; i++) {
-    const token = await contractAt("Token", tokenArr[i].address, handler)
+    const token = await contractAt("Token", tokenArr[i].address, feeKeeper)
     const balance = await token.balanceOf(FEE_ACCOUNT)
     if (balance.eq(0)) {
       continue
     }
 
-    const approvedAmount = await token.allowance(FEE_ACCOUNT, handler.address)
+    const approvedAmount = await token.allowance(FEE_ACCOUNT, feeKeeper.address)
 
     if (approvedAmount.lt(balance)) {
       const signer = await getFrameSigner({ network })
@@ -134,7 +143,7 @@ async function fundHandlerForNetwork({ network }) {
   }
 
   for (let i = 0; i < tokenArr.length; i++) {
-    const token = await contractAt("Token", tokenArr[i].address, handler)
+    const token = await contractAt("Token", tokenArr[i].address, feeKeeper)
     const balance = await token.balanceOf(FEE_ACCOUNT)
     if (balance.eq(0)) {
       continue
