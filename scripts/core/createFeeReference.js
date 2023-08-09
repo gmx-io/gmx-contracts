@@ -127,7 +127,9 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
     avax: feesForGmxAndGlp.avax.mul(70).div(100)
   }
 
-  const feesForGmx = feesForGmxAndGlp.arbitrum.add(feesForGmxAndGlp.avax).sub(glpFees.arbitrum).sub(glpFees.avax)
+  let feesForGmx = feesForGmxAndGlp.arbitrum.add(feesForGmxAndGlp.avax).sub(glpFees.arbitrum).sub(glpFees.avax)
+  const v2FeesForGmx = (values.arbitrum.feesUsdV2.add(values.avax.feesUsdV2)).mul(37).div(27)
+  feesForGmx = feesForGmx.add(v2FeesForGmx)
 
   const gmxFees = {
     arbitrum: feesForGmx.mul(values.arbitrum.stakedGmxSupply).div(totalStakedGmx),

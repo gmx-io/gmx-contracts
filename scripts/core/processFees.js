@@ -8,6 +8,11 @@ const { formatAmount, bigNumberify } = require("../../test/shared/utilities")
 const { bridgeTokens } = require("./bridge")
 const { tokenArrRef } = require("../peripherals/feeCalculations")
 
+const ReaderV2 = require("../../artifacts-v2/contracts/reader/Reader.sol/Reader.json")
+const DataStore = require("../../artifacts-v2/contracts/data/DataStore.sol/DataStore.json")
+const Multicall3 = require("../../artifacts-v2/contracts/mock/Multicall3.sol/Multicall3.json")
+const FeeHandler = require("../../artifacts-v2/contracts/fee/FeeHandler.sol/FeeHandler.json")
+
 const feeReference = require("../../fee-reference.json")
 
 const SHOULD_SEND_SWAP_TXNS = true
@@ -66,9 +71,46 @@ const tokensRef = {
   avax: require('./tokens')["avax"]
 }
 
+const dataStores = {
+  arbitrum: new ethers.Contract("0xFD70de6b91282D8017aA4E741e9Ae325CAb992d8", DataStore.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0x2F0b22339414ADeD7D5F06f9D604c7fF5b2fe3f6", DataStore.abi, handlers.avax),
+}
+
+const readersV2 = {
+  arbitrum: new ethers.Contract("0x38d91ED96283d62182Fc6d990C24097A918a4d9b", ReaderV2.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0x1D5d64d691FBcD8C80A2FD6A9382dF0fe544cBd8", ReaderV2.abi, handlers.avax),
+}
+
+const feeHandlers = {
+  arbitrum: new ethers.Contract("0x8921e1B2FB2e2b95F1dF68A774BC523327E98E9f", FeeHandler.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0x6EDF06Cd12F48b2bf0Fa6e5F98C334810B142814", FeeHandler.abi, handlers.avax),
+}
+
+async function withdrawFeesV2({ network }) {
+  const dataStore = dataStores[network]
+  const reader = readersV2[network]
+  const feeHandler = feeHandlers[network]
+
+  const markets = await reader.getMarkets(dataStore.address, 0, 1000)
+  const marketAddresses = []
+  const tokenAddresses = []
+
+  for (const market of markets) {
+    marketAddresses.push(market.marketToken)
+    tokenAddresses.push(market.longToken)
+
+    marketAddresses.push(market.marketToken)
+    tokenAddresses.push(market.shortToken)
+  }
+
+  await sendTxn(feeHandler.claimFees(marketAddresses, tokenAddresses))
+}
+
 async function withdrawFees() {
   await withdrawFeesArb()
   await withdrawFeesAvax()
+  await withdrawFeesV2({ network: "arbitrum" })
+  await withdrawFeesV2({ network: "avalanche" })
 }
 
 async function fundHandlerForNetwork({ network }) {
