@@ -81,8 +81,8 @@ async function updateServerFees({ feeValues, refTimestamp }) {
   const arbValues = await getArbServerValues()
   const avaxValues = await getAvaxServerValues()
 
-  arbValues.feeUsd = formatAmount(feeValues.arbitrum.feesUsd, 30, 2)
-  avaxValues.feeUsd = formatAmount(feeValues.avax.feesUsd, 30, 2)
+  arbValues.feeUsd = formatAmount(feeValues.arbitrum.feesUsd.add(feeValues.arbitrum.totalFeesUsdV2), 30, 2)
+  avaxValues.feeUsd = formatAmount(feeValues.avax.feesUsd.add(feeValues.avax.totalFeesUsdV2), 30, 2)
 
   const networkValues = [arbValues, avaxValues]
 
@@ -144,6 +144,8 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
 
   const data = {
     totalFees: values.arbitrum.feesUsd.add(values.avax.feesUsd).toString(),
+    feesV2: values.arbitrum.feesUsdV2.add(values.avax.feesUsdV2).toString(),
+    totalFeesV2: values.arbitrum.totalFeesUsdV2.add(values.avax.totalFeesUsdV2).toString(),
     arbFees: values.arbitrum.feesUsd.toString(),
     avaxFees: values.avax.feesUsd.toString(),
     requiredWavaxBalance: requiredWavaxBalance.toString(),

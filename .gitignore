@@ -22,3 +22,4 @@ tmp
 #Hardhat files
 cache
 artifacts
+artifacts-v2
