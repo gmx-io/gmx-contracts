@@ -1,0 +1,141 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "OracleUtils",
+  "sourceName": "contracts/oracle/OracleUtils.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "COMPACTED_BLOCK_NUMBER_BITMASK",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_BLOCK_NUMBER_BIT_LENGTH",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_PRECISION_BITMASK",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_PRECISION_BIT_LENGTH",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_PRICE_BITMASK",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_PRICE_BIT_LENGTH",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_PRICE_INDEX_BITMASK",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_PRICE_INDEX_BIT_LENGTH",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_TIMESTAMP_BITMASK",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "COMPACTED_TIMESTAMP_BIT_LENGTH",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x61010d61003a600b82828239805160001a60731461002d57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe7300000000000000000000000000000000000000003014608060405260043610608d5760003560e01c80630998178d1460925780631c16b3681460ae5780631c474d8b1460b55780632e3515051460c25780636aae842c1460c25780636e4ae5cc1460c95780637365f8821460d0578063a08cc8de1460c9578063c653de4f1460b5578063f0b0c2ac1460ae575b600080fd5b609c63ffffffff81565b60405190815260200160405180910390f35b609c60ff81565b609c6001600160401b0381565b609c604081565b609c600881565b609c60208156fea2646970667358221220f6faf7897833e680ec435a989e77eafce6f140d6551529496c2db72fd5a623c764736f6c63430008120033",
+  "deployedBytecode": "0x7300000000000000000000000000000000000000003014608060405260043610608d5760003560e01c80630998178d1460925780631c16b3681460ae5780631c474d8b1460b55780632e3515051460c25780636aae842c1460c25780636e4ae5cc1460c95780637365f8821460d0578063a08cc8de1460c9578063c653de4f1460b5578063f0b0c2ac1460ae575b600080fd5b609c63ffffffff81565b60405190815260200160405180910390f35b609c60ff81565b609c6001600160401b0381565b609c604081565b609c600881565b609c60208156fea2646970667358221220f6faf7897833e680ec435a989e77eafce6f140d6551529496c2db72fd5a623c764736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

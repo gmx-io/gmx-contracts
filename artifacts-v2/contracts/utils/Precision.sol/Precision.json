@@ -1,0 +1,76 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Precision",
+  "sourceName": "contracts/utils/Precision.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "BASIS_POINTS_DIVISOR",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "FLOAT_PRECISION",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "FLOAT_PRECISION_SQRT",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "FLOAT_TO_WEI_DIVISOR",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "WEI_PRECISION",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60e8610039600b82828239805160001a60731461002c57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe7300000000000000000000000000000000000000003014608060405260043610605b5760003560e01c806306090dbd146060578063126082cf1460845780632ddd2e1c14608c578063544859d914609757806354566f721460a5575b600080fd5b607268327cb2734119d3b7a9601e1b81565b60405190815260200160405180910390f35b607261271081565b607264e8d4a5100081565b6072670de0b6b3a764000081565b607266038d7ea4c680008156fea26469706673582212206626d4346fe1f171cf65fe979001311f636ec176840349160afdc5217755e42964736f6c63430008120033",
+  "deployedBytecode": "0x7300000000000000000000000000000000000000003014608060405260043610605b5760003560e01c806306090dbd146060578063126082cf1460845780632ddd2e1c14608c578063544859d914609757806354566f721460a5575b600080fd5b607268327cb2734119d3b7a9601e1b81565b60405190815260200160405180910390f35b607261271081565b607264e8d4a5100081565b6072670de0b6b3a764000081565b607266038d7ea4c680008156fea26469706673582212206626d4346fe1f171cf65fe979001311f636ec176840349160afdc5217755e42964736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
