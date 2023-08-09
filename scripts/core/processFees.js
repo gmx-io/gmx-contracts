@@ -118,7 +118,7 @@ async function withdrawFees() {
   await withdrawFeesArb()
   await withdrawFeesAvax()
   await withdrawFeesV2({ network: "arbitrum" })
-  await withdrawFeesV2({ network: "avalanche" })
+  await withdrawFeesV2({ network: "avax" })
 }
 
 async function fundHandlerForNetwork({ network }) {
