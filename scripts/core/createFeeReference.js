@@ -81,8 +81,8 @@ async function updateServerFees({ feeValues, refTimestamp }) {
   const arbValues = await getArbServerValues()
   const avaxValues = await getAvaxServerValues()
 
-  arbValues.feeUsd = formatAmount(feeValues.arbitrum.feesUsd, 30, 2)
-  avaxValues.feeUsd = formatAmount(feeValues.avax.feesUsd, 30, 2)
+  arbValues.feeUsd = formatAmount(feeValues.arbitrum.feesUsd.add(feeValues.arbitrum.totalFeesUsdV2), 30, 2)
+  avaxValues.feeUsd = formatAmount(feeValues.avax.feesUsd.add(feeValues.avax.totalFeesUsdV2), 30, 2)
 
   const networkValues = [arbValues, avaxValues]
 
@@ -127,7 +127,9 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
     avax: feesForGmxAndGlp.avax.mul(70).div(100)
   }
 
-  const feesForGmx = feesForGmxAndGlp.arbitrum.add(feesForGmxAndGlp.avax).sub(glpFees.arbitrum).sub(glpFees.avax)
+  let feesForGmx = feesForGmxAndGlp.arbitrum.add(feesForGmxAndGlp.avax).sub(glpFees.arbitrum).sub(glpFees.avax)
+  const v2FeesForGmx = (values.arbitrum.feesUsdV2.add(values.avax.feesUsdV2)).mul(37).div(27)
+  feesForGmx = feesForGmx.add(v2FeesForGmx)
 
   const gmxFees = {
     arbitrum: feesForGmx.mul(values.arbitrum.stakedGmxSupply).div(totalStakedGmx),
@@ -144,6 +146,8 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
 
   const data = {
     totalFees: values.arbitrum.feesUsd.add(values.avax.feesUsd).toString(),
+    feesV2: values.arbitrum.feesUsdV2.add(values.avax.feesUsdV2).toString(),
+    totalFeesV2: values.arbitrum.totalFeesUsdV2.add(values.avax.totalFeesUsdV2).toString(),
     arbFees: values.arbitrum.feesUsd.toString(),
     avaxFees: values.avax.feesUsd.toString(),
     requiredWavaxBalance: requiredWavaxBalance.toString(),

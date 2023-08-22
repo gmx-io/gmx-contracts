@@ -15,8 +15,11 @@ flattened
 distribution-data*.json
 fee-reference.json
 uniswap-fee-reference.json
+keys
+tmp
 **/.DS_Store
 
 #Hardhat files
 cache
 artifacts
+artifacts-v2/build-info

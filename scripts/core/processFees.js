@@ -1,3 +1,4 @@
+const fs = require("fs");
 const { contractAt, sendTxn, getFrameSigner, sleep } = require("../shared/helpers")
 const { withdrawFeesArb, withdrawFeesAvax } = require("./feeWithdrawal")
 const { getArbValues: getArbFundAccountValues, getAvaxValues: getAvaxFundAccountValues } = require("../shared/fundAccountsUtils")
@@ -6,6 +7,11 @@ const { getArbValues: getArbReferralValues, getAvaxValues: getAvaxReferralValues
 const { formatAmount, bigNumberify } = require("../../test/shared/utilities")
 const { bridgeTokens } = require("./bridge")
 const { tokenArrRef } = require("../peripherals/feeCalculations")
+
+const ReaderV2 = require("../../artifacts-v2/contracts/reader/Reader.sol/Reader.json")
+const DataStore = require("../../artifacts-v2/contracts/data/DataStore.sol/DataStore.json")
+const Multicall3 = require("../../artifacts-v2/contracts/mock/Multicall3.sol/Multicall3.json")
+const FeeHandler = require("../../artifacts-v2/contracts/fee/FeeHandler.sol/FeeHandler.json")
 
 const feeReference = require("../../fee-reference.json")
 
@@ -23,7 +29,22 @@ const ARBITRUM = "arbitrum"
 const AVAX = "avax"
 const networks = [ARBITRUM, AVAX]
 
+const { DEPLOYER_KEY_FILE } = process.env;
+
+const getFeeKeeperKey = () => {
+  const filepath = "./keys/fee-keeper.json";
+  const data = JSON.parse(fs.readFileSync(filepath));
+  if (!data || !data.mnemonic) {
+    throw new Error("Invalid key file");
+  }
+  const wallet = ethers.Wallet.fromMnemonic(data.mnemonic);
+  return wallet.privateKey;
+}
+
+const FEE_KEEPER_KEY = getFeeKeeperKey()
+
 const FEE_ACCOUNT = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
+const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
 const providers = {
   arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
@@ -33,6 +54,11 @@ const providers = {
 const handlers = {
   arbitrum: new ethers.Wallet(HANDLER_KEY).connect(providers.arbitrum),
   avax: new ethers.Wallet(HANDLER_KEY).connect(providers.avax)
+}
+
+const feeKeepers = {
+  arbitrum: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.arbitrum),
+  avax: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.avax)
 }
 
 const deployers = {
@@ -50,23 +76,64 @@ const tokensRef = {
   avax: require('./tokens')["avax"]
 }
 
+const dataStores = {
+  arbitrum: new ethers.Contract("0xFD70de6b91282D8017aA4E741e9Ae325CAb992d8", DataStore.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0x2F0b22339414ADeD7D5F06f9D604c7fF5b2fe3f6", DataStore.abi, handlers.avax),
+}
+
+const readersV2 = {
+  arbitrum: new ethers.Contract("0x38d91ED96283d62182Fc6d990C24097A918a4d9b", ReaderV2.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0x1D5d64d691FBcD8C80A2FD6A9382dF0fe544cBd8", ReaderV2.abi, handlers.avax),
+}
+
+const feeHandlers = {
+  arbitrum: new ethers.Contract("0x8921e1B2FB2e2b95F1dF68A774BC523327E98E9f", FeeHandler.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0x6EDF06Cd12F48b2bf0Fa6e5F98C334810B142814", FeeHandler.abi, handlers.avax),
+}
+
+async function withdrawFeesV2({ network }) {
+  const dataStore = dataStores[network]
+  const reader = readersV2[network]
+  const feeHandler = feeHandlers[network]
+
+  const markets = await reader.getMarkets(dataStore.address, 0, 1000)
+  const marketAddresses = []
+  const tokenAddresses = []
+
+  for (const market of markets) {
+    marketAddresses.push(market.marketToken)
+    tokenAddresses.push(market.longToken)
+
+    marketAddresses.push(market.marketToken)
+    tokenAddresses.push(market.shortToken)
+  }
+
+  console.log("marketAddresses", marketAddresses.length, marketAddresses)
+  console.log("tokenAddresses", tokenAddresses.length, tokenAddresses)
+
+  await sendTxn(feeHandler.claimFees(marketAddresses, tokenAddresses), "feeHandler.claimFees")
+}
+
 async function withdrawFees() {
   await withdrawFeesArb()
   await withdrawFeesAvax()
+  await withdrawFeesV2({ network: "arbitrum" })
+  await withdrawFeesV2({ network: "avax" })
 }
 
 async function fundHandlerForNetwork({ network }) {
   const tokenArr = tokenArrRef[network]
+  const feeKeeper = feeKeepers[network]
   const handler = handlers[network]
 
   for (let i = 0; i < tokenArr.length; i++) {
-    const token = await contractAt("Token", tokenArr[i].address, handler)
+    const token = await contractAt("Token", tokenArr[i].address, feeKeeper)
     const balance = await token.balanceOf(FEE_ACCOUNT)
     if (balance.eq(0)) {
       continue
     }
 
-    const approvedAmount = await token.allowance(FEE_ACCOUNT, handler.address)
+    const approvedAmount = await token.allowance(FEE_ACCOUNT, feeKeeper.address)
 
     if (approvedAmount.lt(balance)) {
       const signer = await getFrameSigner({ network })
@@ -76,7 +143,7 @@ async function fundHandlerForNetwork({ network }) {
   }
 
   for (let i = 0; i < tokenArr.length; i++) {
-    const token = await contractAt("Token", tokenArr[i].address, handler)
+    const token = await contractAt("Token", tokenArr[i].address, feeKeeper)
     const balance = await token.balanceOf(FEE_ACCOUNT)
     if (balance.eq(0)) {
       continue
@@ -103,10 +170,6 @@ async function swapFeesForNetwork({ routers, network }) {
       continue
     }
 
-    if (tokenArr[i].name === "frax") {
-      continue
-    }
-
     const path = [token.address, nativeToken.address]
     const balance = await token.balanceOf(handler.address)
     if (balance.eq(0)) {
@@ -119,7 +182,16 @@ async function swapFeesForNetwork({ routers, network }) {
       await sendTxn(token.approve(router.address, ethers.constants.MaxUint256), `approve token ${tokenArr[i].name}`)
     }
 
-    await sendTxn(router.swap(path, balance, 0, handler.address), `swap token ${tokenArr[i].name}`)
+    try {
+      await sendTxn(router.swap(path, balance, 0, handler.address), `swap token ${tokenArr[i].name}`)
+    } catch (e) {
+      console.error(`swap error, ${e.toString()}`)
+      if (["frax", "usdt"].includes(tokenArr[i].name)) {
+        await sendTxn(token.transfer(FEE_HELPER, balance), `sending ${ethers.utils.formatUnits(balance, tokenArr[i].decimals)} ${tokenArr[i].name} to be swapped`)
+      } else {
+        throw new Error(e.toString())
+      }
+    }
 
     if (!SHOULD_SEND_SWAP_TXNS) {
       break
@@ -158,7 +230,6 @@ async function swapFeesForAvax({ routers }) {
 }
 
 async function bridgeTokensToArbitrum() {
-  await sleep(20_000)
   const usdc = await contractAt("Token", tokensRef.avax.usdc.address, handlers.avax)
   const bridgeAmount = await usdc.balanceOf(handlers.avax.address)
 
@@ -167,8 +238,10 @@ async function bridgeTokensToArbitrum() {
     return
   }
 
+  await sendTxn(usdc.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
+
   // send tokens to arbitrum
-  await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
+  // await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
 }
 
 async function fundAccountsForNetwork({ network, fundAccountValues }) {
@@ -226,7 +299,7 @@ async function updateRewards() {
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     const balance = await nativeToken.balanceOf(handler.address)
     if (balance.lt(expectedMinBalance[network])) {
-      throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance.toString()}`)
+      throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance[network].toString()}`)
     }
   }
 

@@ -1,0 +1,152 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IDepositHandler",
+  "sourceName": "contracts/exchange/IDepositHandler.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "key",
+          "type": "bytes32"
+        }
+      ],
+      "name": "cancelDeposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "receiver",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "callbackContract",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "uiFeeReceiver",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "market",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "initialLongToken",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "initialShortToken",
+              "type": "address"
+            },
+            {
+              "internalType": "address[]",
+              "name": "longTokenSwapPath",
+              "type": "address[]"
+            },
+            {
+              "internalType": "address[]",
+              "name": "shortTokenSwapPath",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "minMarketTokens",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "shouldUnwrapNativeToken",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "executionFee",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "callbackGasLimit",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct DepositUtils.CreateDepositParams",
+          "name": "params",
+          "type": "tuple"
+        }
+      ],
+      "name": "createDeposit",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "key",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address[]",
+              "name": "primaryTokens",
+              "type": "address[]"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "min",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "max",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct Price.Props[]",
+              "name": "primaryPrices",
+              "type": "tuple[]"
+            }
+          ],
+          "internalType": "struct OracleUtils.SimulatePricesParams",
+          "name": "params",
+          "type": "tuple"
+        }
+      ],
+      "name": "simulateExecuteDeposit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

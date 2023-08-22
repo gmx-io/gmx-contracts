@@ -32,22 +32,58 @@ async function main() {
   for (let i = 0; i < list.length; i++) {
     const item = list[i]
     if (item.usdc && parseFloat(item.usdc) !== 0) {
-      count++
       const amount = ethers.utils.parseUnits(item.usdc, usdcDecimals)
       totalUsdc = totalUsdc.add(amount)
+    }
+
+    if (item.gmx && parseFloat(item.gmx) !== 0) {
+      const amount = ethers.utils.parseUnits(item.gmx, gmxDecimals)
+      totalGmx = totalGmx.add(amount)
+    }
+  }
+
+  const usdcBalance = await usdc.balanceOf(avaxWallet.address)
+  const gmxBalance = await gmx.balanceOf(arbWallet.address)
+
+  if (usdcBalance.lt(totalUsdc)) {
+    throw new Error(`Insufficient USDC, balance: ${usdcBalance.toString()}, required: ${totalUsdc.toString()}`)
+  }
+
+  if (gmxBalance.lt(totalGmx)) {
+    throw new Error(`Insufficient GMX, balance: ${gmxBalance.toString()}, required: ${totalUsdc.toString()}`)
+  }
+
+  for (let i = 0; i < list.length; i++) {
+    const item = list[i]
+    if (item.usdc && parseFloat(item.usdc) !== 0) {
+      count++
+      const amount = ethers.utils.parseUnits(item.usdc, usdcDecimals)
       if (shouldSendTxn && count >= minCount) {
-        await sendTxn(usdc.transfer(item.account, amount), `${count}: usdc.transfer(${item.account}, ${amount})`)
+        await sendTxn(usdc.transfer(item.account, amount, { gasLimit: 1_000_000 }), `${count}: usdc.transfer(${item.account}, ${amount})`)
       }
     }
     if (item.gmx && parseFloat(item.gmx) !== 0) {
       count++
       const amount = ethers.utils.parseUnits(item.gmx, gmxDecimals)
-      totalGmx = totalGmx.add(amount)
       if (shouldSendTxn && count >= minCount) {
-        await sendTxn(gmx.transfer(item.account, amount), `${count}: gmx.transfer(${item.account}, ${amount})`)
+        await sendTxn(gmx.transfer(item.account, amount, { gasLimit: 2_000_000 }), `${count}: gmx.transfer(${item.account}, ${amount})`)
       }
     }
   }
+
+  // for (let i = 0; i < list.length; i++) {
+  //   const item = list[i]
+  //   if (item.usdc && parseFloat(item.usdc) !== 0) {
+  //     console.log("usdc:", item.usdc)
+  //   }
+  // }
+  //
+  // for (let i = 0; i < list.length; i++) {
+  //   const item = list[i]
+  //   if (item.gmx && parseFloat(item.gmx) !== 0) {
+  //     console.log("gmx:", item.gmx)
+  //   }
+  // }
 
   console.log("total USDC", ethers.utils.formatUnits(totalUsdc, usdcDecimals))
   console.log("total GMX", ethers.utils.formatUnits(totalGmx, gmxDecimals))

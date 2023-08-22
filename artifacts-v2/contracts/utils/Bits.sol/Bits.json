@@ -1,0 +1,63 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Bits",
+  "sourceName": "contracts/utils/Bits.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "BITMASK_16",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BITMASK_32",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BITMASK_64",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BITMASK_8",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60c4610039600b82828239805160001a60731461002c57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe730000000000000000000000000000000000000000301460806040526004361060515760003560e01c8063807c9782146056578063984898e5146072578063e326466d14607f578063f96c5e52146086575b600080fd5b606063ffffffff81565b60405190815260200160405180910390f35b60606001600160401b0381565b606060ff81565b606061ffff8156fea2646970667358221220e0a52fc63e54435bad27900ef562d6886ff0e9ce6fff4d2fb5d84fca03a2333364736f6c63430008120033",
+  "deployedBytecode": "0x730000000000000000000000000000000000000000301460806040526004361060515760003560e01c8063807c9782146056578063984898e5146072578063e326466d14607f578063f96c5e52146086575b600080fd5b606063ffffffff81565b60405190815260200160405180910390f35b60606001600160401b0381565b606060ff81565b606061ffff8156fea2646970667358221220e0a52fc63e54435bad27900ef562d6886ff0e9ce6fff4d2fb5d84fca03a2333364736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
