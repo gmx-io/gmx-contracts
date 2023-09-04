@@ -594,9 +594,15 @@ contract PositionRouter is BasePositionManager, IPositionRouter {
     }
 
     function _setTraderReferralCode(bytes32 _referralCode) internal {
-        if (_referralCode != bytes32(0) && referralStorage != address(0)) {
-            IReferralStorage(referralStorage).setTraderReferralCode(msg.sender, _referralCode);
-        }
+        if (_referralCode == bytes32(0)) { return; }
+        if (referralStorage == address(0)) { return; }
+
+        IReferralStorage _referralStorage = IReferralStorage(referralStorage);
+
+        // skip setting of the referral code if the user already has a referral code
+        if (_referralStorage.traderReferralCodes(msg.sender) != bytes32(0)) { return; }
+
+        _referralStorage.setTraderReferralCode(msg.sender, _referralCode);
     }
 
     function _validateExecution(uint256 _positionBlockNumber, uint256 _positionBlockTime, address _account) internal view returns (bool) {
