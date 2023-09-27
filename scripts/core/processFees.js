@@ -302,8 +302,10 @@ async function updateRewards() {
     const handler = handlers[network]
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     const balance = await nativeToken.balanceOf(handler.address)
-    if (balance.lt(expectedMinBalance[network])) {
-      throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance[network].toString()}`)
+    if (i === 1) {
+      if (balance.lt(expectedMinBalance[network])) {
+        throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance[network].toString()}`)
+      }
     }
   }
 
@@ -323,11 +325,15 @@ async function updateRewards() {
     stakingValues[network].rewardTrackerArr[0].transferAmount = gmxRewardAmount
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
 
-    await updateStakingRewards({
-      signer: handlers[network],
-      values: stakingValues[network],
-      intervalUpdater: deployers[network]
-    })
+    const handler = handlers[network]
+
+    if (i === 1) {
+      await updateStakingRewards({
+        signer: handler,
+        values: stakingValues[network],
+        intervalUpdater: deployers[network]
+      })
+    }
 
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
