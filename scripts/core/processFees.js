@@ -278,12 +278,12 @@ async function updateRewards() {
     arbitrum: {
       gmx: bigNumberify(feeReference.gmxFees.arbitrum),
       glp: bigNumberify(feeReference.glpFees.arbitrum),
-      treasury: bigNumberify(feeReference.treasury.arbitrum)
+      treasury: bigNumberify(feeReference.treasuryFees.arbitrum)
     },
     avax: {
       gmx: bigNumberify(feeReference.gmxFees.avax),
       glp: bigNumberify(feeReference.glpFees.avax),
-      treasury: bigNumberify(feeReference.treasury.avax)
+      treasury: bigNumberify(feeReference.treasuryFees.avax)
     }
   }
 
