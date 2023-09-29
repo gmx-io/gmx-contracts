@@ -50,9 +50,12 @@ async function main() {
 
   const vaultPropsLength = 14;
 
-  const shouldSendTxn = true
+  const shouldSendTxn = process.env.WRITE === "true"
 
   let totalUsdgAmount = bigNumberify(0)
+  const totalTokenWeight = tokenArr.reduce((acc, tokenItem) => {
+    return acc + tokenItem.tokenWeight
+  }, 0)
 
   for (const [i, tokenItem] of tokenArr.entries()) {
     const token = {}
@@ -69,6 +72,9 @@ async function main() {
     token.minPrice = vaultTokenInfo[i * vaultPropsLength + 9]
     token.maxPrice = vaultTokenInfo[i * vaultPropsLength + 10]
     token.guaranteedUsd = vaultTokenInfo[i * vaultPropsLength + 11]
+
+    const tokenSymbol = tokenItem.name.toUpperCase()
+    console.log("\n%s", tokenSymbol)
 
     token.availableUsd = tokenItem.isStable
       ? token.poolAmount
@@ -88,21 +94,30 @@ async function main() {
 
     const adjustedMaxUsdgAmount = expandDecimals(tokenItem.maxUsdgAmount, 18)
     if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
-      console.warn(`usdgAmount for ${tokenItem.name.toUpperCase()} was adjusted from ${formatAmount(usdgAmount, 18, 0, true)} to ${formatAmount(adjustedMaxUsdgAmount, 18, 0, true)}`)
+      console.warn(`usdgAmount was adjusted ${formatAmount(usdgAmount, 18, 0, true)} -> ${formatAmount(adjustedMaxUsdgAmount, 18, 0, true)}`)
       usdgAmount = adjustedMaxUsdgAmount
     }
 
     if (!token.maxUsdgAmount.eq(adjustedMaxUsdgAmount)) {
-      console.warn(`maxUsdgAmount for ${tokenItem.name.toUpperCase()} was changed from ${formatAmount(token.maxUsdgAmount, 18, 0, true)} to ${formatAmount(adjustedMaxUsdgAmount, 18, 0, true)}`)
+      console.warn(`maxUsdgAmount was changed ${formatAmount(token.maxUsdgAmount, 18, 0, true)} -> ${formatAmount(adjustedMaxUsdgAmount, 18, 0, true)}`)
     }
 
     const adjustedBufferAmount = expandDecimals(tokenItem.bufferAmount, tokenItem.decimals)
     if (!token.bufferAmount.eq(adjustedBufferAmount)) {
-      console.warn(`bufferAmount for ${tokenItem.name.toUpperCase()} was changed from ${formatAmount(token.bufferAmount, tokenItem.decimals, 0, true)} to ${formatAmount(adjustedBufferAmount, tokenItem.decimals, 0, true)}`)
+      console.warn(`bufferAmount was changed ${formatAmount(token.bufferAmount, tokenItem.decimals, 0, true)} -> ${formatAmount(adjustedBufferAmount, tokenItem.decimals, 0, true)}`)
     }
     if (!token.weight.eq(tokenItem.tokenWeight)) {
-      console.warn(`tokenWeight for ${tokenItem.name.toUpperCase()} was changed from ${token.weight.toString()} to ${tokenItem.tokenWeight.toString()}`)
+      console.warn(`tokenWeight was changed ${token.weight.toString()} -> ${tokenItem.tokenWeight.toString()}`)
     }
+
+    console.log(
+      "weight %s% usgdAmount %s / %s poolAmount %s bufferAmount %s",
+      (tokenItem.tokenWeight / totalTokenWeight * 100).toFixed(2),
+      formatAmount(usdgAmount, 18, 0, true),
+      formatAmount(adjustedMaxUsdgAmount, 18, 0, true),
+      formatAmount(token.poolAmount, tokenItem.decimals, 0, true),
+      formatAmount(adjustedBufferAmount, tokenItem.decimals, 0, true)
+    )
 
     if (shouldSendTxn) {
       await sendTxn(timelock.setTokenConfig(
@@ -117,7 +132,9 @@ async function main() {
     }
   }
 
+  console.log("")
   console.log("totalUsdgAmount", totalUsdgAmount.toString())
+  console.log("totalTokenWeight", totalTokenWeight.toString())
 }
 
 main()
