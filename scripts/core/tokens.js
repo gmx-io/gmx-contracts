@@ -163,7 +163,7 @@ module.exports = {
       fastPricePrecision: 1000,
       maxCumulativeDeltaDiff: 0.1 * 10 * 1000 * 1000, // 10%
       isStrictStable: false,
-      tokenWeight: 28000,
+      tokenWeight: 27000,
       minProfitBps: 0,
       maxUsdgAmount: 130 * 1000 * 1000,
       bufferAmount: 50000,
@@ -303,7 +303,7 @@ module.exports = {
       priceFeed: "0x0809E3d38d1B4214958faf06D8b1B1a2b73f2ab8",
       priceDecimals: 8,
       isStrictStable: true,
-      tokenWeight: 1000,
+      tokenWeight: 2000,
       minProfitBps: 0,
       maxUsdgAmount: 5.5 * 1000 * 1000,
       bufferAmount: 1 * 1000 * 1000,
