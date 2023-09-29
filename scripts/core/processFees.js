@@ -46,6 +46,8 @@ const FEE_KEEPER_KEY = getFeeKeeperKey()
 const FEE_ACCOUNT = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
 const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
+const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B"
+
 const providers = {
   arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
@@ -276,16 +278,18 @@ async function updateRewards() {
     arbitrum: {
       gmx: bigNumberify(feeReference.gmxFees.arbitrum),
       glp: bigNumberify(feeReference.glpFees.arbitrum),
+      treasury: bigNumberify(feeReference.treasuryFees.arbitrum)
     },
     avax: {
       gmx: bigNumberify(feeReference.gmxFees.avax),
       glp: bigNumberify(feeReference.glpFees.avax),
+      treasury: bigNumberify(feeReference.treasuryFees.avax)
     }
   }
 
   const expectedMinBalance = {
-    arbitrum: rewardAmounts.arbitrum.gmx.add(rewardAmounts.arbitrum.glp),
-    avax: rewardAmounts.avax.gmx.add(rewardAmounts.avax.glp),
+    arbitrum: rewardAmounts.arbitrum.gmx.add(rewardAmounts.arbitrum.glp).add(rewardAmounts.arbitrum.treasury),
+    avax: rewardAmounts.avax.gmx.add(rewardAmounts.avax.glp).add(rewardAmounts.avax.treasury),
   }
 
   const stakingValues = {
@@ -319,11 +323,16 @@ async function updateRewards() {
     stakingValues[network].rewardTrackerArr[0].transferAmount = gmxRewardAmount
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
 
+    const handler = handlers[network]
+
     await updateStakingRewards({
-      signer: handlers[network],
+      signer: handler,
       values: stakingValues[network],
       intervalUpdater: deployers[network]
     })
+
+    const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
+    await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
   }
 }
 

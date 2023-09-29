@@ -128,7 +128,11 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
   }
 
   let feesForGmx = feesForGmxAndGlp.arbitrum.add(feesForGmxAndGlp.avax).sub(glpFees.arbitrum).sub(glpFees.avax)
-  const v2FeesForGmx = (values.arbitrum.feesUsdV2.add(values.avax.feesUsdV2)).mul(37).div(27)
+  const v2FeesForTreasury = {
+    arbitrum: values.arbitrum.feesUsdV2.mul(10).div(37),
+    avax: values.avax.feesUsdV2.mul(10).div(37)
+  }
+  const v2FeesForGmx = (values.arbitrum.feesUsdV2.add(values.avax.feesUsdV2)).sub(v2FeesForTreasury.arbitrum.add(v2FeesForTreasury.avax))
   feesForGmx = feesForGmx.add(v2FeesForGmx)
 
   const gmxFees = {
@@ -151,6 +155,10 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
     arbFees: values.arbitrum.feesUsd.toString(),
     avaxFees: values.avax.feesUsd.toString(),
     requiredWavaxBalance: requiredWavaxBalance.toString(),
+    treasuryFees: {
+      arbitrum: v2FeesForTreasury.arbitrum.mul(expandDecimals(1, 18)).div(values.arbitrum.nativeTokenPrice).toString(),
+      avax: v2FeesForTreasury.avax.mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice).toString()
+    },
     gmxFees: {
       arbitrum: gmxFees.arbitrum.mul(expandDecimals(1, 18)).div(values.arbitrum.nativeTokenPrice).toString(),
       avax: gmxFees.avax.mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice).toString(),
