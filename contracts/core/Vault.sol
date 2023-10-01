@@ -753,6 +753,7 @@ contract Vault is ReentrancyGuard, IVault {
         includeAmmPrice = true;
     }
 
+    // note that if calling this function independently the cumulativeFundingRates used in getFundingFee will not be the latest value
     // validateLiquidation returns (state, fees)
     function validateLiquidation(address _account, address _collateralToken, address _indexToken, bool _isLong, bool _raise) override public view returns (uint256, uint256) {
         return vaultUtils.validateLiquidation(_account, _collateralToken, _indexToken, _isLong, _raise);
