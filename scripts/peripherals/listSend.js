@@ -21,7 +21,7 @@ async function main() {
   const usdcDecimals = 6
   const gmx = await contractAt("Token", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", arbWallet)
   const gmxDecimals = 18
-  const shouldSendTxn = false
+  const shouldSendTxn = process.env.WRITE === "true"
 
   const minCount = 0
   let count = 0
@@ -45,12 +45,14 @@ async function main() {
   const usdcBalance = await usdc.balanceOf(avaxWallet.address)
   const gmxBalance = await gmx.balanceOf(arbWallet.address)
 
-  if (usdcBalance.lt(totalUsdc)) {
-    throw new Error(`Insufficient USDC, balance: ${usdcBalance.toString()}, required: ${totalUsdc.toString()}`)
-  }
+  if (shouldSendTxn) {
+    if (usdcBalance.lt(totalUsdc)) {
+      throw new Error(`Insufficient USDC, balance: ${usdcBalance.toString()}, required: ${totalUsdc.toString()}`)
+    }
 
-  if (gmxBalance.lt(totalGmx)) {
-    throw new Error(`Insufficient GMX, balance: ${gmxBalance.toString()}, required: ${totalUsdc.toString()}`)
+    if (gmxBalance.lt(totalGmx)) {
+      throw new Error(`Insufficient GMX, balance: ${gmxBalance.toString()}, required: ${totalUsdc.toString()}`)
+    }
   }
 
   for (let i = 0; i < list.length; i++) {
