@@ -193,8 +193,8 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
   console.info(`ETH price: $${formatAmount(data.nativeTokenPrice.arbitrum, 30, 2, true)}`)
   console.info(`AVAX price: $${formatAmount(data.nativeTokenPrice.avax, 30, 2, true)}`)
 
-  console.info(`v2 fees arbitrum: ${formatAmount(values.arbitrum.feesUsdV2, 30, 2, true)} USD`)
-  console.info(`v2 fees avax: ${formatAmount(values.avax.feesUsdV2, 30, 2, true)} USD`)
+  console.info(`v2 claimable fees arbitrum (excluding lp fees): ${formatAmount(values.arbitrum.feesUsdV2, 30, 2, true)} USD`)
+  console.info(`v2 claimable fees avax (excluding lp fees): ${formatAmount(values.avax.feesUsdV2, 30, 2, true)} USD`)
 
   console.info(`treasury fees arbitrum: ${formatAmount(v2FeesForTreasury.arbitrum, 30, 2, true)} USD, ${formatAmount(data.treasuryFees.arbitrum, 18, 2, true)} ETH`)
   console.info(`treasury fees avax: ${formatAmount(v2FeesForTreasury.avax, 30, 2, true)} USD, ${formatAmount(data.treasuryFees.avax, 18, 2, true)} AVAX`)
