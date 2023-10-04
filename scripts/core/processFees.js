@@ -345,6 +345,10 @@ async function sendReferralRewards() {
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
 
+    if (i === 0) {
+      continue;
+    }
+
     await _sendReferralRewards({
       signer: handlers[network],
       referralSender: deployers[network],
