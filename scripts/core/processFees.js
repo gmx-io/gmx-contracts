@@ -93,6 +93,16 @@ const feeHandlers = {
   avax: new ethers.Contract("0x6EDF06Cd12F48b2bf0Fa6e5F98C334810B142814", FeeHandler.abi, handlers.avax),
 }
 
+async function printFeeHandlerBalances() {
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
+    const handler = handlers[network]
+    const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
+    const balance = await nativeToken.balanceOf(handler.address)
+    console.log(`nativeToken balance: ${formatAmount(balance, 18, 2)}`)
+  }
+}
+
 async function withdrawFeesV2({ network }) {
   const dataStore = dataStores[network]
   const reader = readersV2[network]
@@ -395,10 +405,12 @@ async function processFees({ steps }) {
 
   if (steps.includes(1)) {
     await withdrawFees()
+    await printFeeHandlerBalances()
   }
 
   if (steps.includes(2)) {
     await fundHandler()
+    await printFeeHandlerBalances()
   }
 
   if (steps.includes(3)) {
@@ -411,18 +423,22 @@ async function processFees({ steps }) {
 
   if (steps.includes(5)) {
     await swapFeesForNetwork({ routers, network: ARBITRUM })
+    await printFeeHandlerBalances()
   }
 
   if (steps.includes(6)) {
     await fundAccounts()
+    await printFeeHandlerBalances()
   }
 
   if (steps.includes(7)) {
     await updateRewards()
+    await printFeeHandlerBalances()
   }
 
   if (steps.includes(8)) {
     await sendReferralRewards()
+    await printFeeHandlerBalances()
   }
 }
 
