@@ -348,6 +348,21 @@ async function sendReferralRewards() {
     await _sendReferralRewards({
       signer: handlers[network],
       referralSender: deployers[network],
+      shouldSendTxn: false,
+      nativeToken: nativeTokens[network],
+      nativeTokenPrice: feeReference.nativeTokenPrice[network],
+      gmxPrice: feeReference.gmxPrice,
+      values: referralValues[network],
+      network
+    })
+  }
+
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
+
+    await _sendReferralRewards({
+      signer: handlers[network],
+      referralSender: deployers[network],
       shouldSendTxn: true,
       nativeToken: nativeTokens[network],
       nativeTokenPrice: feeReference.nativeTokenPrice[network],
