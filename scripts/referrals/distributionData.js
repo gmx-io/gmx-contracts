@@ -12,6 +12,7 @@ const SHARE_DIVISOR = BigNumber.from("1000000000") // 1e9
 const BONUS_TIER = 2 // for EsGMX distributions
 const USD_DECIMALS = 30
 const GMX_DECIMALS = 18
+const REWARD_THRESHOLD = expandDecimals(1, 28) // 1 cent
 
 function stringToFixed(s, n) {
   return Number(s).toFixed(n)
@@ -86,7 +87,7 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
     referralCondition = `,referral: "${account.toLowerCase()}"`
   }
 
-  const getAffiliateStatsQuery = (skip) => `affiliateStats(first: 1000, skip: ${skip}, where: {
+  const getAffiliateStatsQuery = (skip) => `affiliateStats(first: 10000, skip: ${skip}, where: {
       period: daily,
       timestamp_gte: ${fromTimestamp},
       timestamp_lt: ${toTimestamp},
@@ -107,7 +108,7 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       }
     }`
 
-  const getReferralStatsQuery = (skip) => `referralStats(first: 1000, skip: ${skip}, where: {
+  const getReferralStatsQuery = (skip) => `referralStats(first: 10000, skip: ${skip}, where: {
       period: daily,
       timestamp_gte: ${fromTimestamp},
       timestamp_lt: ${toTimestamp},
@@ -125,18 +126,18 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
 
   const query = `{
     affiliateStats0: ${getAffiliateStatsQuery(0)}
-    affiliateStats1: ${getAffiliateStatsQuery(1000)}
-    affiliateStats2: ${getAffiliateStatsQuery(2000)}
-    affiliateStats3: ${getAffiliateStatsQuery(3000)}
-    affiliateStats4: ${getAffiliateStatsQuery(4000)}
-    affiliateStats5: ${getAffiliateStatsQuery(5000)}
+    affiliateStats1: ${getAffiliateStatsQuery(10000)}
+    affiliateStats2: ${getAffiliateStatsQuery(20000)}
+    affiliateStats3: ${getAffiliateStatsQuery(30000)}
+    affiliateStats4: ${getAffiliateStatsQuery(40000)}
+    affiliateStats5: ${getAffiliateStatsQuery(50000)}
 
     referralStats0: ${getReferralStatsQuery(0)}
-    referralStats1: ${getReferralStatsQuery(1000)}
-    referralStats2: ${getReferralStatsQuery(2000)}
-    referralStats3: ${getReferralStatsQuery(3000)}
-    referralStats4: ${getReferralStatsQuery(4000)}
-    referralStats5: ${getReferralStatsQuery(5000)}
+    referralStats1: ${getReferralStatsQuery(10000)}
+    referralStats2: ${getReferralStatsQuery(20000)}
+    referralStats3: ${getReferralStatsQuery(30000)}
+    referralStats4: ${getReferralStatsQuery(40000)}
+    referralStats5: ${getReferralStatsQuery(50000)}
   }`
 
   let [data, affiliatesTiers] = await Promise.all([
@@ -162,11 +163,11 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
     ...data.referralStats5,
   ]
 
-  if (referralStats.length === 6000) {
+  if (referralStats.length === 60000) {
     throw new Error("Referrals stats should be paginated")
   }
 
-  if (affiliateStats.length === 6000) {
+  if (affiliateStats.length === 60000) {
     throw new Error("Affiliates stats should be paginated")
   }
 
@@ -279,10 +280,12 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
     Number(formatUnits(allAffiliatesRebateUsd, USD_DECIMALS)).toFixed(4)
   )
   let consoleData = []
+  let filteredAffiliatesCount = 0;
   for (const data of Object.values(affiliatesRebatesData)) {
     if (data.share.eq(0)) {
       continue
     }
+    const tooSmall = data.rebateUsd.lt(REWARD_THRESHOLD);
     consoleData.push({
       affiliate: data.account,
       "share, %": stringToFixed(formatUnits(data.share, 7), 4),
@@ -292,7 +295,13 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       tierId: data.tierId,
       "esgmxRewards, $": data.esgmxRewardsUsd ? formatUnits(data.esgmxRewardsUsd, USD_DECIMALS) : null,
       esgmxRewards: data.esgmxRewards ? formatUnits(data.esgmxRewards, GMX_DECIMALS) : null,
+      tooSmall
     })
+
+    if (tooSmall) {
+      filteredAffiliatesCount++;
+      continue;
+    }
     output.affiliates.push({
       account: data.account,
       share: data.share.toString(),
@@ -305,6 +314,12 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       esgmxRewardsUsd: data.esgmxRewardsUsd ? data.esgmxRewardsUsd.toString() : null,
     })
   }
+  console.log(
+    "Filter %s of %s affiliates with rebate < $%s",
+    filteredAffiliatesCount,
+    output.affiliates.length + filteredAffiliatesCount,
+    formatUnits(REWARD_THRESHOLD, USD_DECIMALS)
+  );
   console.table(consoleData)
 
   let allReferralsDiscountUsd = BigNumber.from(0)
@@ -331,16 +346,23 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
     Number(formatUnits(allReferralsDiscountUsd, USD_DECIMALS)).toFixed(4)
   )
   consoleData = []
+  let filteredTradersCount = 0;
   for (const data of Object.values(referralDiscountData)) {
     if (data.share.eq(0)) {
       continue
     }
+    const tooSmall = data.discountUsd.lt(REWARD_THRESHOLD);
     consoleData.push({
       referral: data.account,
       "share, %": stringToFixed(formatUnits(data.share, 7), 4),
       "volume, $": stringToFixed(formatUnits(data.volume, USD_DECIMALS), 4),
       "discountUsd, $": stringToFixed(formatUnits(data.discountUsd, USD_DECIMALS), 4),
+      tooSmall
     })
+    if (tooSmall) {
+      filteredTradersCount++;
+      continue;
+    }
     output.referrals.push({
       account: data.account,
       share: data.share.toString(),
@@ -348,6 +370,12 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       volume: data.volume.toString()
     })
   }
+  console.log(
+    "Filter %s of %s with discount < $%s",
+    filteredTradersCount,
+    filteredTradersCount + output.referrals.length,
+    formatUnits(REWARD_THRESHOLD, USD_DECIMALS)
+  )
   console.table(consoleData)
 
   const filename = `./distribution-data-${network}.json`
