@@ -128,7 +128,7 @@ async function sendReferralRewards({ signer, referralSender, shouldSendTxn, nati
   const nativeTokenForSigner = await contractAt("Token", nativeToken.address, signer)
   const balance = await nativeTokenForSigner.balanceOf(signer.address)
   if (balance.lt(totalNativeAmount)) {
-    throw new Error(`Insufficient balance, required: ${totalNativeAmount.toString}, available: ${balance.toString()}`)
+    throw new Error(`Insufficient balance, required: ${totalNativeAmount.toString()}, available: ${balance.toString()}`)
   }
 
   if (shouldSendTxn) {
