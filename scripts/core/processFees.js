@@ -327,8 +327,8 @@ async function updateRewards() {
     // of spikes in gas prices that may lead to low keeper balances before the next
     // distribution
     const rewardAmount = rewardAmounts[network]
-    const gmxRewardAmount = rewardAmount.gmx.mul(9900).div(10_000)
-    const glpRewardAmount = rewardAmount.glp.mul(9900).div(10_000)
+    const gmxRewardAmount = rewardAmount.gmx.mul(9950).div(10_000)
+    const glpRewardAmount = rewardAmount.glp.mul(9950).div(10_000)
 
     stakingValues[network].rewardTrackerArr[0].transferAmount = gmxRewardAmount
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
