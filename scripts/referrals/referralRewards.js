@@ -125,8 +125,13 @@ async function sendReferralRewards({ signer, referralSender, shouldSendTxn, nati
 
   const batchSize = 150
 
+  const nativeTokenForSigner = await contractAt("Token", nativeToken.address, signer)
+  const balance = await nativeTokenForSigner.balanceOf(signer.address)
+  if (balance.lt(totalNativeAmount)) {
+    throw new Error(`Insufficient balance, required: ${totalNativeAmount.toString()}, available: ${balance.toString()}`)
+  }
+
   if (shouldSendTxn) {
-    const nativeTokenForSigner = await contractAt("Token", nativeToken.address, signer)
     await sendTxn(nativeTokenForSigner.transfer(wallet.address, totalNativeAmount), "nativeTokenForSigner.transfer")
 
     const printBatch = (currentBatch) => {
