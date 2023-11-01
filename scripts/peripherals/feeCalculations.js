@@ -105,7 +105,7 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
   const pricesByTokenAddress = {}
 
   for (tokenPrice of tokenPrices) {
-    pricesByTokenAddress[tokenPrice.tokenAddress.toLowerCase()] = bigNumberify(tokenPrice.minPrice).mul(expandDecimals(1, tokenPrice.oracleDecimals))
+    pricesByTokenAddress[tokenPrice.tokenAddress.toLowerCase()] = bigNumberify(tokenPrice.minPrice)
   }
 
   const multicallReadParams = [];
