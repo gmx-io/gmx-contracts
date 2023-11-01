@@ -152,6 +152,8 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
     .add(referralValues.avax.allAffiliateUsd)
     .add(referralValues.avax.allDiscountUsd)
     .add(keeperCostsAvaxUsd)
+    .add(v2FeesForTreasury.avax)
+    .add(v2FeesForChainlink.avax)
 
   const requiredWavaxBalance = requiredWavaxUsd.mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice)
 
