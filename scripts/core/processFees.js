@@ -315,11 +315,13 @@ async function updateRewards() {
     arbitrum: rewardAmounts.arbitrum.gmx
       .add(rewardAmounts.arbitrum.glp)
       .add(rewardAmounts.arbitrum.treasury)
-      .add(rewardAmounts.arbitrum.chainlink),
+      .add(rewardAmounts.arbitrum.chainlink)
+      .add(feeReference.referralRewards.arbitrum),
     avax: rewardAmounts.avax.gmx
       .add(rewardAmounts.avax.glp)
       .add(rewardAmounts.avax.treasury)
-      .add(rewardAmounts.avax.chainlink),
+      .add(rewardAmounts.avax.chainlink)
+      .add(feeReference.referralRewards.avax),
   }
 
   const stakingValues = {
