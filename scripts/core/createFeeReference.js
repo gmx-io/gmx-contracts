@@ -152,6 +152,8 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
     .add(referralValues.avax.allAffiliateUsd)
     .add(referralValues.avax.allDiscountUsd)
     .add(keeperCostsAvaxUsd)
+    .add(v2FeesForTreasury.avax)
+    .add(v2FeesForChainlink.avax)
 
   const requiredWavaxBalance = requiredWavaxUsd.mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice)
 
@@ -181,6 +183,10 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
     nativeTokenPrice: {
       arbitrum: values.arbitrum.nativeTokenPrice.toString(),
       avax: values.avax.nativeTokenPrice.toString(),
+    },
+    referralRewards: {
+      arbitrum: (referralValues.arbitrum.allDiscountUsd.add(referralValues.avax.allDiscountUsd)).mul(expandDecimals(1, 18)).div(values.arbitrum.nativeTokenPrice).toString(),
+      avax: (referralValues.avax.allDiscountUsd.add(referralValues.avax.allDiscountUsd)).mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice).toString()
     },
     gmxPrice: values.gmxPrice.toString(),
     traderRebates: referralValues.arbitrum.allDiscountUsd.add(referralValues.avax.allDiscountUsd).toString(),

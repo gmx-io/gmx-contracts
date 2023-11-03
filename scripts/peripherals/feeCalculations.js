@@ -105,7 +105,7 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
   const pricesByTokenAddress = {}
 
   for (tokenPrice of tokenPrices) {
-    pricesByTokenAddress[tokenPrice.tokenAddress.toLowerCase()] = bigNumberify(tokenPrice.minPrice).mul(expandDecimals(1, tokenPrice.oracleDecimals))
+    pricesByTokenAddress[tokenPrice.tokenAddress.toLowerCase()] = bigNumberify(tokenPrice.minPrice)
   }
 
   const multicallReadParams = [];
@@ -201,7 +201,7 @@ async function getArbValues() {
   const readerV2 = new ethers.Contract("0x38d91ED96283d62182Fc6d990C24097A918a4d9b", ReaderV2.abi, providers.arbitrum)
   const dataStore = new ethers.Contract("0xFD70de6b91282D8017aA4E741e9Ae325CAb992d8", DataStore.abi, providers.arbitrum)
   const multicall = new ethers.Contract("0xe79118d6D92a4b23369ba356C90b9A7ABf1CB961", Multicall3.abi, providers.arbitrum)
-  const tickersUrl = "https://arbitrum.gmx-oracle.io/prices/tickers"
+  const tickersUrl = "https://arbitrum-api.gmxinfra.io/prices/tickers"
 
   const tokens = allTokens.arbitrum
   const tokenArr = tokenArrRef.arbitrum
@@ -229,7 +229,7 @@ async function getAvaxValues() {
   const readerV2 = new ethers.Contract("0x1D5d64d691FBcD8C80A2FD6A9382dF0fe544cBd8", ReaderV2.abi, providers.avax)
   const dataStore = new ethers.Contract("0x2F0b22339414ADeD7D5F06f9D604c7fF5b2fe3f6", DataStore.abi, providers.avax)
   const multicall = new ethers.Contract("0x50474CAe810B316c294111807F94F9f48527e7F8", Multicall3.abi, providers.avax)
-  const tickersUrl = "https://avalanche.gmx-oracle.io/prices/tickers"
+  const tickersUrl = "https://avalanche-api.gmxinfra.io/prices/tickers"
 
   const tokens = allTokens.avax
   const tokenArr = tokenArrRef.avax

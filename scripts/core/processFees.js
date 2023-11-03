@@ -48,6 +48,11 @@ const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
 const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B"
 
+const chainlinkFeeReceivers = {
+  arbitrum: "0x9Ec49f512eadD1a1ca4FBBd015CE05F62FC3D1BC",
+  avax: "0x521f4eD08dEeDf3300d786417c8495cfaE72A20E"
+}
+
 const providers = {
   arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
@@ -89,8 +94,8 @@ const readersV2 = {
 }
 
 const feeHandlers = {
-  arbitrum: new ethers.Contract("0x8921e1B2FB2e2b95F1dF68A774BC523327E98E9f", FeeHandler.abi, handlers.arbitrum),
-  avax: new ethers.Contract("0x6EDF06Cd12F48b2bf0Fa6e5F98C334810B142814", FeeHandler.abi, handlers.avax),
+  arbitrum: new ethers.Contract("0xbF56A2F030C3F920F0E2aD9Cf456B9954c49383a", FeeHandler.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0xc7D8E3561f1247EBDa491bA5f042699C2807C33C", FeeHandler.abi, handlers.avax),
 }
 
 async function printFeeHandlerBalances() {
@@ -284,22 +289,39 @@ async function fundAccounts() {
 }
 
 async function updateRewards() {
+  // send ~99% to reduce the risk that swap fees, balancing tax, changes in prices
+  // would result in the script failing
+  // if significant fees are accumulated these should be included to be distributed
+  // in the next distribution
+  // the fees kept in the fee distributor can also help to fund keepers in case
+  // of spikes in gas prices that may lead to low keeper balances before the next
+  // distribution
   const rewardAmounts = {
     arbitrum: {
-      gmx: bigNumberify(feeReference.gmxFees.arbitrum),
-      glp: bigNumberify(feeReference.glpFees.arbitrum),
-      treasury: bigNumberify(feeReference.treasuryFees.arbitrum)
+      gmx: bigNumberify(feeReference.gmxFees.arbitrum).mul(9900).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.arbitrum).mul(9900).div(10_000),
+      treasury: bigNumberify(feeReference.treasuryFees.arbitrum),
+      chainlink: bigNumberify(feeReference.chainlinkFees.arbitrum)
     },
     avax: {
-      gmx: bigNumberify(feeReference.gmxFees.avax),
-      glp: bigNumberify(feeReference.glpFees.avax),
-      treasury: bigNumberify(feeReference.treasuryFees.avax)
+      gmx: bigNumberify(feeReference.gmxFees.avax).mul(9900).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.avax).mul(9900).div(10_000),
+      treasury: bigNumberify(feeReference.treasuryFees.avax),
+      chainlink: bigNumberify(feeReference.chainlinkFees.avax)
     }
   }
 
   const expectedMinBalance = {
-    arbitrum: rewardAmounts.arbitrum.gmx.add(rewardAmounts.arbitrum.glp).add(rewardAmounts.arbitrum.treasury),
-    avax: rewardAmounts.avax.gmx.add(rewardAmounts.avax.glp).add(rewardAmounts.avax.treasury),
+    arbitrum: rewardAmounts.arbitrum.gmx
+      .add(rewardAmounts.arbitrum.glp)
+      .add(rewardAmounts.arbitrum.treasury)
+      .add(rewardAmounts.arbitrum.chainlink)
+      .add(feeReference.referralRewards.arbitrum),
+    avax: rewardAmounts.avax.gmx
+      .add(rewardAmounts.avax.glp)
+      .add(rewardAmounts.avax.treasury)
+      .add(rewardAmounts.avax.chainlink)
+      .add(feeReference.referralRewards.avax),
   }
 
   const stakingValues = {
@@ -327,8 +349,8 @@ async function updateRewards() {
     // of spikes in gas prices that may lead to low keeper balances before the next
     // distribution
     const rewardAmount = rewardAmounts[network]
-    const gmxRewardAmount = rewardAmount.gmx.mul(9900).div(10_000)
-    const glpRewardAmount = rewardAmount.glp.mul(9900).div(10_000)
+    const gmxRewardAmount = rewardAmount.gmx
+    const glpRewardAmount = rewardAmount.glp
 
     stakingValues[network].rewardTrackerArr[0].transferAmount = gmxRewardAmount
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
@@ -343,6 +365,9 @@ async function updateRewards() {
 
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+
+    const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
+    await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
   }
 }
 
