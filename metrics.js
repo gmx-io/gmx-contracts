@@ -27,6 +27,7 @@ async function run() {
     "./contracts/gmx/GmxIou.sol",
     "./contracts/gmx/GmxMigrator.sol",
     "./contracts/gmx/MigrationHandler.sol",
+    // the libraries contracts are from https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v3.2.0
     "./contracts/libraries",
     "./contracts/tokens/FaucetToken.sol",
   ];
