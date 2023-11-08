@@ -334,7 +334,7 @@ async function updateRewards() {
     const handler = handlers[network]
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     const balance = await nativeToken.balanceOf(handler.address)
-    console.log(`${network}: ${formatAmount(balance, 18, 2, true)}, ${formatAmount(expectedMinBalance, 18, 2, true)}`)
+    console.log(`${network}: ${formatAmount(balance, 18, 2, true)}, ${formatAmount(expectedMinBalance[network], 18, 2, true)}`)
   }
 
   for (let i = 0; i < networks.length; i++) {
