@@ -43,6 +43,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     address public gmxVester;
     address public glpVester;
 
+    bool public inStrictTransferMode;
+
     mapping (address => address) public pendingReceivers;
 
     event StakeGmx(address account, address token, uint256 amount);
@@ -92,6 +94,10 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         gmxVester = _gmxVester;
         glpVester = _glpVester;
+    }
+
+    function setInStrictTransferMode(bool _inStrictTransferMode) external onlyGov {
+        inStrictTransferMode = _inStrictTransferMode;
     }
 
     // to help users who accidentally send their tokens to this contract
@@ -293,6 +299,13 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         require(IERC20(glpVester).balanceOf(msg.sender) == 0, "RewardRouter: sender has vested tokens");
 
         _validateReceiver(_receiver);
+
+        if (inStrictTransferMode) {
+            uint256 balance = IERC20(feeGmxTracker).balanceOf(msg.sender);
+            uint256 allowance = IERC20(feeGmxTracker).allowance(msg.sender, _receiver);
+            require(allowance >= balance, "RewardRouter: insufficient allowance");
+        }
+
         pendingReceivers[msg.sender] = _receiver;
     }
 
