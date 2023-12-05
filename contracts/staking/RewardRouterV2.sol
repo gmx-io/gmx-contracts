@@ -415,6 +415,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     function _compound(address _account) private {
         _compoundGmx(_account);
         _compoundGlp(_account);
+        _syncVotingPower(_account);
     }
 
     function _compoundGmx(address _account) private {
