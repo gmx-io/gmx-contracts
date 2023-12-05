@@ -321,7 +321,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         _validateReceiver(_receiver);
 
         if (inStrictTransferMode) {
-            uint256 balance = IERC20(feeGmxTracker).balanceOf(msg.sender);
+            uint256 balance = IRewardTracker(feeGmxTracker).stakedAmounts(msg.sender);
             uint256 allowance = IERC20(feeGmxTracker).allowance(msg.sender, _receiver);
             require(allowance >= balance, "insufficient allowance");
         }
@@ -456,7 +456,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         if (bnGmxAmount == 0) { return; }
 
         // get the baseStakedAmount which would be the sum of staked gmx and staked esGmx tokens
-        uint256 baseStakedAmount = IERC20(stakedGmxTracker).balanceOf(_account);
+        uint256 baseStakedAmount = IRewardTracker(stakedGmxTracker).stakedAmounts(_account);
         uint256 maxAllowedBnGmxAmount = baseStakedAmount.mul(maxBoostBasisPoints).div(BASIS_POINTS_DIVISOR);
         uint256 currentBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
         if (currentBnGmxAmount == maxAllowedBnGmxAmount) { return; }
@@ -470,7 +470,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         uint256 maxStakeableBnGmxAmount = maxAllowedBnGmxAmount.sub(currentBnGmxAmount);
-        if (maxStakeableBnGmxAmount > bnGmxAmount) {
+        if (bnGmxAmount > maxStakeableBnGmxAmount) {
             bnGmxAmount = maxStakeableBnGmxAmount;
         }
 
@@ -517,13 +517,13 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         if (votingPowerType == VotingPowerType.BaseStakedAmount) {
-            uint256 baseStakedAmount = IERC20(stakedGmxTracker).balanceOf(_account);
+            uint256 baseStakedAmount = IRewardTracker(stakedGmxTracker).stakedAmounts(_account);
             _syncVotingPower(_account, baseStakedAmount);
             return;
         }
 
         if (votingPowerType == VotingPowerType.BaseAndBonusStakedAmount) {
-            uint256 stakedAmount = IERC20(feeGmxTracker).balanceOf(_account);
+            uint256 stakedAmount = IRewardTracker(feeGmxTracker).stakedAmounts(_account);
             _syncVotingPower(_account, stakedAmount);
             return;
         }

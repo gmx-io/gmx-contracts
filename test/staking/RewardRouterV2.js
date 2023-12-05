@@ -52,6 +52,8 @@ describe("RewardRouterV2", function () {
   let gmxVester
   let glpVester
 
+  let govToken
+
   let rewardRouter
 
   beforeEach(async () => {
@@ -175,6 +177,8 @@ describe("RewardRouterV2", function () {
 
     await esGmx.setInPrivateTransferMode(true)
 
+    govToken = await deployContract("MintableBaseToken", ["GOV", "GOV", 0])
+
     rewardRouter = await deployContract("RewardRouterV2", [])
     await rewardRouter.initialize(
       bnb.address,
@@ -189,7 +193,8 @@ describe("RewardRouterV2", function () {
       stakedGlpTracker.address,
       glpManager.address,
       gmxVester.address,
-      glpVester.address
+      glpVester.address,
+      govToken.address
     )
 
     // allow bonusGmxTracker to stake stakedGmxTracker
@@ -257,6 +262,8 @@ describe("RewardRouterV2", function () {
     await bnGmx.setGov(timelock.address)
     await gmxVester.setGov(timelock.address)
     await glpVester.setGov(timelock.address)
+
+    await rewardRouter.setMaxBoostBasisPoints(20_000)
   })
 
   it("inits", async () => {
@@ -294,8 +301,9 @@ describe("RewardRouterV2", function () {
       stakedGlpTracker.address,
       glpManager.address,
       gmxVester.address,
-      glpVester.address
-    )).to.be.revertedWith("RewardRouter: already initialized")
+      glpVester.address,
+      govToken.address
+    )).to.be.revertedWith("already initialized")
   })
 
   it("stakeGmxForAccount, stakeGmx, stakeEsGmx, unstakeGmx, unstakeEsGmx, claimEsGmx, claimFees, compound, batchCompoundForAccounts", async () => {
@@ -628,7 +636,7 @@ describe("RewardRouterV2", function () {
   it("mintAndStakeGlpETH, unstakeAndRedeemGlpETH", async () => {
     const receiver0 = newWallet()
     await expect(rewardRouter.connect(user0).mintAndStakeGlpETH(expandDecimals(300, 18), expandDecimals(300, 18), { value: 0 }))
-      .to.be.revertedWith("RewardRouter: invalid msg.value")
+      .to.be.revertedWith("invalid msg.value")
 
     await expect(rewardRouter.connect(user0).mintAndStakeGlpETH(expandDecimals(300, 18), expandDecimals(300, 18), { value: expandDecimals(1, 18) }))
       .to.be.revertedWith("GlpManager: insufficient USDG output")
@@ -691,12 +699,12 @@ describe("RewardRouterV2", function () {
     await rewardRouter.connect(user1).claim()
 
     await expect(rewardRouter.connect(user2).signalTransfer(user1.address))
-      .to.be.revertedWith("RewardRouter: stakedGmxTracker.averageStakedAmounts > 0")
+      .to.be.revertedWith("stakedGmxTracker.averageStakedAmounts > 0")
 
     await rewardRouter.connect(user2).signalTransfer(user3.address)
 
     await expect(rewardRouter.connect(user3).acceptTransfer(user1.address))
-      .to.be.revertedWith("RewardRouter: transfer not signalled")
+      .to.be.revertedWith("transfer not signalled")
 
     await gmxVester.setBonusRewards(user2.address, expandDecimals(100, 18))
 
@@ -774,7 +782,7 @@ describe("RewardRouterV2", function () {
     expect(await gmxVester.getPairAmount(user4.address, expandDecimals(992, 18))).lt(expandDecimals(200, 18))
 
     await expect(rewardRouter.connect(user4).acceptTransfer(user3.address))
-      .to.be.revertedWith("RewardRouter: transfer not signalled")
+      .to.be.revertedWith("transfer not signalled")
   })
 
   it("gmx, glp: signalTransfer, acceptTransfer", async () =>{
@@ -823,12 +831,12 @@ describe("RewardRouterV2", function () {
     await rewardRouter.connect(user1).compound()
 
     await expect(rewardRouter.connect(user2).signalTransfer(user1.address))
-      .to.be.revertedWith("RewardRouter: stakedGmxTracker.averageStakedAmounts > 0")
+      .to.be.revertedWith("stakedGmxTracker.averageStakedAmounts > 0")
 
     await rewardRouter.connect(user2).signalTransfer(user3.address)
 
     await expect(rewardRouter.connect(user3).acceptTransfer(user1.address))
-      .to.be.revertedWith("RewardRouter: transfer not signalled")
+      .to.be.revertedWith("transfer not signalled")
 
     await gmxVester.setBonusRewards(user2.address, expandDecimals(100, 18))
 
@@ -894,7 +902,7 @@ describe("RewardRouterV2", function () {
     await rewardRouter.connect(user1).compound()
 
     await expect(rewardRouter.connect(user3).acceptTransfer(user1.address))
-      .to.be.revertedWith("RewardRouter: transfer not signalled")
+      .to.be.revertedWith("transfer not signalled")
 
     await increaseTime(provider, 24 * 60 * 60)
     await mineBlock(provider)
@@ -1205,8 +1213,11 @@ describe("RewardRouterV2", function () {
       stakedGlpTracker.address,
       glpManager.address,
       gmxVester.address,
-      glpVester.address
+      glpVester.address,
+      govToken.address
     )
+
+    await rewardRouterV2.setMaxBoostBasisPoints(20_000)
 
     await timelock.signalSetGov(glpManager.address, timelockV2.address)
     await timelock.signalSetGov(stakedGmxTracker.address, timelockV2.address)
