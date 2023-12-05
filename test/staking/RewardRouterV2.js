@@ -1720,4 +1720,38 @@ describe("RewardRouterV2", function () {
 
     expect(await bnb.balanceOf(user1.address)).eq("994009000000000000")
   })
+
+  it("caps stakeable bnGMX", async () => {
+    await gmx.setMinter(wallet.address, true)
+    await gmx.mint(user1.address, expandDecimals(100, 18))
+    await esGmx.mint(user1.address, expandDecimals(25, 18))
+    await bnGmx.mint(user1.address, expandDecimals(1000, 18))
+
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(100, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(100, 18))
+    await rewardRouter.connect(user1).stakeGmx(expandDecimals(100, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    expect(await esGmx.balanceOf(user1.address)).eq(expandDecimals(25, 18))
+    await rewardRouter.connect(user1).stakeEsGmx(expandDecimals(25, 18))
+    expect(await esGmx.balanceOf(user1.address)).eq(0)
+
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(125, 18))
+
+    expect(await bnGmx.balanceOf(user1.address)).eq(expandDecimals(1000, 18))
+    await rewardRouter.connect(user1).handleRewards(
+      false, // _shouldClaimGmx
+      false, // _shouldStakeGmx
+      false, // _shouldClaimEsGmx
+      false, // _shouldStakeEsGmx
+      true, // _shouldStakeMultiplierPoints
+      false, // _shouldClaimWeth
+      false // _shouldConvertWethToEth
+    )
+    expect(await bnGmx.balanceOf(user1.address)).gt(expandDecimals(749, 18))
+    expect(await bnGmx.balanceOf(user1.address)).lt(expandDecimals(751, 18))
+
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(125 + 249, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(125 + 251, 18))
+  })
 })
