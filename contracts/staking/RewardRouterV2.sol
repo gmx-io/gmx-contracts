@@ -298,6 +298,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
                 IRewardTracker(feeGlpTracker).claimForAccount(account, account);
             }
         }
+
+        _syncVotingPower(account);
     }
 
     function batchCompoundForAccounts(address[] memory _accounts) external nonReentrant onlyGov {
