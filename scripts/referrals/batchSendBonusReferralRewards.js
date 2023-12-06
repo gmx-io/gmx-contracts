@@ -101,7 +101,7 @@ async function main() {
       }
     }
 
-    await sendTxn(gmx.approve(batchSender.address, totalAmount, { gasLimit: 1000000 }), "gmx.approve")
+    await sendTxn(gmx.approve(batchSender.address, totalAmount), "gmx.approve")
 
     await processBatch([affiliateAccounts, affiliateAmounts], batchSize, async (currentBatch) => {
       printBatch(currentBatch)

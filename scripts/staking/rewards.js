@@ -59,7 +59,7 @@ async function updateRewards({ signer, values, intervalUpdater }) {
     console.log("convertedTransferAmount", convertedTransferAmount.toString())
     console.log("rewardsPerInterval", rewardsPerInterval.toString())
 
-    await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount, { gasLimit: 3000000 }), `rewardToken.transfer ${i}`)
+    await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount), `rewardToken.transfer ${i}`)
     await updateTokensPerInterval(rewardDistributor, rewardsPerInterval, "rewardDistributor")
   }
 }

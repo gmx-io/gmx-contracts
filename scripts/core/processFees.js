@@ -372,10 +372,10 @@ async function updateRewards() {
     })
 
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
-    await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+    await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
 
     const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
-    await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+    await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
   }
 }
 
