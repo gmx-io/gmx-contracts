@@ -13,6 +13,7 @@ const BONUS_TIER = 2 // for EsGMX distributions
 const USD_DECIMALS = 30
 const GMX_DECIMALS = 18
 const REWARD_THRESHOLD = expandDecimals(1, 28) // 1 cent
+const ESGMX_REWARDS_THRESHOLD = expandDecimals(1, 16) // 0.01 esGMX
 
 function stringToFixed(s, n) {
   return Number(s).toFixed(n)
@@ -173,7 +174,6 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
 
   let allAffiliatesRebateUsd = BigNumber.from(0)
   let totalReferralVolume = BigNumber.from(0)
-  let bonusTierReferralVolume = BigNumber.from(0)
   let totalRebateUsd = BigNumber.from(0)
   const affiliatesRebatesData = affiliateStats.reduce((memo, item) => {
     const tierId = affiliatesTiers[item.affiliate] || 0
@@ -185,6 +185,7 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
       tradesCount: 0,
       tierId
     }
+
     const affiliateRebatesUsd = BigNumber.from(item.v1Data.totalRebateUsd).sub(BigNumber.from(item.v1Data.discountUsd))
     allAffiliatesRebateUsd = allAffiliatesRebateUsd.add(affiliateRebatesUsd)
     memo[item.affiliate].rebateUsd = memo[item.affiliate].rebateUsd.add(affiliateRebatesUsd)
@@ -197,9 +198,6 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
 
     totalRebateUsd = totalRebateUsd.add(BigNumber.from(item.v1Data.totalRebateUsd))
     totalReferralVolume = totalReferralVolume.add(BigNumber.from(item.v1Data.volume))
-    if (tierId === BONUS_TIER) {
-      bonusTierReferralVolume = bonusTierReferralVolume.add(BigNumber.from(item.v1Data.volume))
-    }
     return memo
   }, {})
 
@@ -212,7 +210,6 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
     data.allAffiliatesRebateUsd = allAffiliatesRebateUsd
     data.account = account
     data.share = data.rebateUsd.mul(SHARE_DIVISOR).div(allAffiliatesRebateUsd)
-    data.esgmxUsd
   })
   if (gmxPrice && esgmxRewards) {
     const esgmxRewardsUsdLimit = esgmxRewards.mul(gmxPrice).div(expandDecimals(1, GMX_DECIMALS))
@@ -282,10 +279,9 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
   let consoleData = []
   let filteredAffiliatesCount = 0;
   for (const data of Object.values(affiliatesRebatesData)) {
-    if (data.share.eq(0)) {
-      continue
-    }
-    const tooSmall = data.rebateUsd.lt(REWARD_THRESHOLD);
+    const tooSmallEsgmx = !data.esgmxRewards || data.esgmxRewards.lt(ESGMX_REWARDS_THRESHOLD);
+    const tooSmallReward = data.rebateUsd.lt(REWARD_THRESHOLD)
+    const tooSmall = tooSmallReward && tooSmallEsgmx;
     consoleData.push({
       affiliate: data.account,
       "share, %": stringToFixed(formatUnits(data.share, 7), 4),
@@ -300,6 +296,12 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
 
     if (tooSmall) {
       filteredAffiliatesCount++;
+      console.log(
+        "skip affiliate %s small rewards %s and esGMX %s",
+        data.account,
+        stringToFixed(formatUnits(data.rebateUsd, USD_DECIMALS), 2),
+        stringToFixed(formatUnits(data.esgmxRewards || 0, 18), 2)
+      );
       continue;
     }
     output.affiliates.push({
