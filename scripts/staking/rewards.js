@@ -59,6 +59,7 @@ async function updateRewards({ signer, values, intervalUpdater, skipTransferInde
     console.log("convertedTransferAmount", convertedTransferAmount.toString())
     console.log("rewardsPerInterval", rewardsPerInterval.toString())
 
+    console.log("skipTransferIndex", skipTransferIndex)
     if (i === skipTransferIndex) {
       console.log("sendTxn rewardToken.transfer")
       // await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount), `rewardToken.transfer ${i}`)
