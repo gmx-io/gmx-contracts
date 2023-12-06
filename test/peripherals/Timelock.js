@@ -84,6 +84,7 @@ describe("Timelock", function () {
       stakedGlpTracker.address,
       AddressZero,
       AddressZero,
+      AddressZero,
       AddressZero
     )
 
