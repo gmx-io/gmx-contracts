@@ -80,15 +80,15 @@ async function getArbValues() {
     },
     {
       address: "0xE47b36382DC50b90bCF6176Ddb159C4b9333A7AB", // v2 keeper 1
-      targetFunds: "5"
+      targetFunds: "7.5"
     },
     {
       address: "0xC539cB358a58aC67185BaAD4d5E3f7fCfc903700", // v2 keeper 2
-      targetFunds: "5"
+      targetFunds: "7.5"
     },
     {
       address: "0xf1e1B2F4796d984CCb8485d43db0c64B83C1FA6d", // v2 keeper 3
-      targetFunds: "5"
+      targetFunds: "7.5"
     }
   ]
 
