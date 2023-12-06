@@ -343,7 +343,7 @@ async function updateRewards() {
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     const balance = await nativeToken.balanceOf(handler.address)
     if (balance.lt(expectedMinBalance[network])) {
-      // throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance[network].toString()}`)
+      throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance[network].toString()}`)
     }
   }
 
@@ -364,7 +364,7 @@ async function updateRewards() {
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
 
     const handler = handlers[network]
-    const skipTransferIndex = network === "arbitrum" ? 0 : undefined
+    const skipTransferIndex = undefined
 
     console.log(`updateStakingRewards for ${network}`)
     await updateStakingRewards({
