@@ -374,11 +374,11 @@ async function updateRewards() {
       intervalUpdater: deployers[network]
     })
 
-    // const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
-    // await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
-    //
-    // const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
-    // await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+    const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
+    await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+
+    const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
+    await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
   }
 }
 
