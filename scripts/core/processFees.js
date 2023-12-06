@@ -366,6 +366,7 @@ async function updateRewards() {
     const handler = handlers[network]
     const skipTransferIndex = network === "arbitrum" ? 0 : undefined
 
+    console.log(`updateStakingRewards for ${network}`)
     await updateStakingRewards({
       skipTransferIndex,
       signer: handler,
