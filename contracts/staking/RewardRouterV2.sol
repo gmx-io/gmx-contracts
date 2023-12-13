@@ -367,7 +367,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         uint256 bnGmxBalance = IERC20(bnGmx).balanceOf(_sender);
         if (bnGmxBalance > 0) {
-            IERC20(bnGmx).transferFrom(_sender, receiver, bnGmxBalance);
+            IMintable(bnGmx).burn(_sender, bnGmxBalance);
+            IMintable(bnGmx).mint(receiver, bnGmxBalance);
         }
 
         uint256 glpAmount = IRewardTracker(feeGlpTracker).depositBalances(_sender, glp);
