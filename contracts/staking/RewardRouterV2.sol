@@ -441,15 +441,14 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         IRewardTracker(bonusGmxTracker).stakeForAccount(_account, _account, stakedGmxTracker, _amount);
         IRewardTracker(feeGmxTracker).stakeForAccount(_account, _account, bonusGmxTracker, _amount);
 
-        if (_fundingAccount != _account) {
-            _syncVotingPower(_fundingAccount);
-        }
-
         _syncVotingPower(_account);
 
         emit StakeGmx(_account, _token, _amount);
     }
 
+    // note that _syncVotingPower is not called here, it should be ensured that
+    // in functions which call _stakeBnGmx it should be ensured that
+    // _syncVotingPower is called after
     function _stakeBnGmx(address _account) private {
         IRewardTracker(bonusGmxTracker).claimForAccount(_account, _account);
 
@@ -478,7 +477,6 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         IRewardTracker(feeGmxTracker).stakeForAccount(_account, _account, bnGmx, bnGmxAmount);
-        _syncVotingPower(_account);
     }
 
     function _unstakeGmx(address _account, address _token, uint256 _amount, bool _shouldReduceBnGmx) private {
