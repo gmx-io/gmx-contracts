@@ -176,6 +176,7 @@ describe("RewardRouterV2", function () {
     await stakedGlpTracker.setInPrivateStakingMode(true)
 
     await esGmx.setInPrivateTransferMode(true)
+    await bnGmx.setInPrivateTransferMode(true)
 
     govToken = await deployContract("MintableBaseToken", ["GOV", "GOV", 0])
 
@@ -232,6 +233,9 @@ describe("RewardRouterV2", function () {
     await esGmx.setHandler(gmxVester.address, true)
     await esGmx.setHandler(glpVester.address, true)
 
+    await bnGmx.setHandler(bonusGmxDistributor.address, true)
+    await bnGmx.setHandler(bonusGmxTracker.address, true)
+
     await glpManager.setHandler(rewardRouter.address, true)
     await stakedGmxTracker.setHandler(rewardRouter.address, true)
     await bonusGmxTracker.setHandler(rewardRouter.address, true)
@@ -239,7 +243,6 @@ describe("RewardRouterV2", function () {
     await feeGlpTracker.setHandler(rewardRouter.address, true)
     await stakedGlpTracker.setHandler(rewardRouter.address, true)
 
-    await esGmx.setHandler(rewardRouter.address, true)
     await bnGmx.setMinter(rewardRouter.address, true)
     await esGmx.setMinter(gmxVester.address, true)
     await esGmx.setMinter(glpVester.address, true)
