@@ -87,6 +87,7 @@ describe("RewardRouterV2", function () {
       tokenManager.address, // _tokenManager
       tokenManager.address, // _mintReceiver
       glpManager.address, // _glpManager
+      glpManager.address, // _prevGlpManager
       user0.address, // _rewardRouter
       expandDecimals(1000000, 18), // _maxTokenSupply
       10, // marginFeeBasisPoints

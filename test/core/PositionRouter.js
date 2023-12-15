@@ -59,6 +59,7 @@ describe("PositionRouter", function () {
       ethers.constants.AddressZero, // _tokenManager
       ethers.constants.AddressZero, // _mintReceiver
       ethers.constants.AddressZero, // _glpManager
+      ethers.constants.AddressZero, // _prevGlpManager
       ethers.constants.AddressZero, // _rewardRouter
       expandDecimals(1000, 18), // _maxTokenSupply
       10, // marginFeeBasisPoints 0.1%

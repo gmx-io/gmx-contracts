@@ -135,6 +135,7 @@ describe("PositionManager", function () {
         ethers.constants.AddressZero, // _tokenManager
         ethers.constants.AddressZero, // _mintReceiver
         ethers.constants.AddressZero, // _glpManager
+        ethers.constants.AddressZero, // _prevGlpManager
         ethers.constants.AddressZero, // _rewardRouter
         expandDecimals(1000, 18), // _maxTokenSupply
         10, // _marginFeeBasisPoints
@@ -909,6 +910,7 @@ describe("PositionManager next short data calculations", function () {
       ethers.constants.AddressZero, // _tokenManager
       ethers.constants.AddressZero, // _mintReceiver
       ethers.constants.AddressZero, // _glpManager
+      ethers.constants.AddressZero, // _prevGlpManager
       ethers.constants.AddressZero, // _rewardRouter
       expandDecimals(1000, 18), // _maxTokenSupply
       10, // _marginFeeBasisPoints

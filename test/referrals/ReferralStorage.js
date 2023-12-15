@@ -26,6 +26,7 @@ describe("ReferralStorage", function () {
       tokenManager.address, // _tokenManager
       mintReceiver.address, // _mintReceiver
       user0.address, // _glpManager
+      user0.address, // _prevGlpManager
       user1.address, // _rewardRouter
       expandDecimals(1000, 18), // _maxTokenSupply
       50, // marginFeeBasisPoints 0.5%
