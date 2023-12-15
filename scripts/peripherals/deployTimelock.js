@@ -44,7 +44,9 @@ async function main() {
 
   const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
   const buffer = 24 * 60 * 60
-  const maxTokenSupply = expandDecimals("13250000", 18)
+  // the GmxTimelock should have a cap of 13.25m tokens, for other tokens
+  // like Multiplier Points, the supply max exceed 13.25m tokens
+  const maxTokenSupply = expandDecimals(100_000_000, 18)
 
   const { vault, tokenManager, glpManager, rewardRouter, positionRouter, positionManager, gmx } = await getValues()
   const mintReceiver = tokenManager
