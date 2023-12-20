@@ -255,7 +255,8 @@ async function bridgeTokensToArbitrum() {
     return
   }
 
-  await sendTxn(usdc.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
+  console.log(`sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
+  // await sendTxn(usdc.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
 
   // send tokens to arbitrum
   // await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
