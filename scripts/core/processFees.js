@@ -229,6 +229,8 @@ async function swapFeesForAvax({ routers }) {
   const wavax = await contractAt("Token", nativeTokens.avax.address, handlers.avax)
   const wavaxBalance = await wavax.balanceOf(handlers.avax.address)
   const excessWavax = wavaxBalance.sub(requiredWavaxBalance)
+  console.info("requiredWavaxBalance", requiredWavaxBalance.toString())
+  console.info("wavaxBalance", wavaxBalance.toString())
   console.info("excessWavax", excessWavax.toString())
 
   if (excessWavax.gt(0)) {
