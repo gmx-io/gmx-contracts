@@ -23,7 +23,7 @@ async function getAvaxValues() {
   const tokenManager = { address: "0x8b25Ba1cAEAFaB8e9926fabCfB6123782e3B4BC2" }
   const glpManager = { address: "0xD152c7F25db7F4B95b7658323c5F33d176818EE4" }
   const prevGlpManager = { address: "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F" }
-  const rewardRouter = { address: "0xB70B91CE0771d3f4c81D87660f71Da31d48eB3B3" }
+  const rewardRouter = { address: "0x0000000000000000000000000000000000000000" }
 
   const positionRouter = { address: "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8" }
   const positionManager = { address: "0xA21B83E579f4315951bA658654c371520BDcB866" }
