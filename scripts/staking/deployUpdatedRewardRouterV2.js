@@ -3,10 +3,8 @@ const { deployContract, contractAt, sendTxn, writeTmpAddresses } = require("../s
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
 
-async function main() {
+async function deployForArb() {
   const { nativeToken } = tokens
-
-  const vestingDuration = 365 * 24 * 60 * 60
 
   // use AddressZero for the glpManager since GLP mint / burn should be done using
   // the GLP RewardRouter instead
@@ -46,7 +44,59 @@ async function main() {
     glpVester.address,
     govToken.address
   ), "rewardRouter.initialize")
+}
 
+async function deployForAvax() {
+  const { nativeToken } = tokens
+
+  // use AddressZero for the glpManager since GLP mint / burn should be done using
+  // the GLP RewardRouter instead
+  const glpManager = await contractAt("GlpManager", ethers.constants.AddressZero)
+  const glp = await contractAt("GLP", "0x01234181085565ed162a948b6a5e88758CD7c7b8")
+
+  const gmx = await contractAt("GMX", "0x62edc0692BD897D2295872a9FFCac5425011c661");
+  const esGmx = await contractAt("EsGMX", "0xFf1489227BbAAC61a9209A08929E4c2a526DdD17");
+  const bnGmx = await contractAt("MintableBaseToken", "0x8087a341D32D445d9aC8aCc9c14F5781E04A26d2");
+
+  const stakedGmxTracker = await contractAt("RewardTracker", "0x2bD10f8E93B3669b6d42E74eEedC65dd1B0a1342");
+  const bonusGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4");
+  const feeGmxTracker = await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13");
+
+  const feeGlpTracker = await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F");
+  const stakedGlpTracker = await contractAt("RewardTracker", "0x9e295B5B976a184B14aD8cd72413aD846C299660");
+
+  const gmxVester = await contractAt("Vester", "0x472361d3cA5F49c8E633FB50385BfaD1e018b445")
+  const glpVester = await contractAt("Vester", "0x62331A7Bd1dfB3A7642B7db50B5509E57CA3154A")
+
+  const govToken = await contractAt("MintableBaseToken", "0x0ff183E29f1924ad10475506D7722169010CecCb")
+
+  const rewardRouter = await deployContract("RewardRouterV2", [])
+  await sendTxn(rewardRouter.initialize(
+    nativeToken.address,
+    gmx.address,
+    esGmx.address,
+    bnGmx.address,
+    glp.address,
+    stakedGmxTracker.address,
+    bonusGmxTracker.address,
+    feeGmxTracker.address,
+    feeGlpTracker.address,
+    stakedGlpTracker.address,
+    glpManager.address,
+    gmxVester.address,
+    glpVester.address,
+    govToken.address
+  ), "rewardRouter.initialize")
+}
+
+async function main() {
+  if (network === "arbitrum") {
+    await deployForArb()
+  }
+
+  if (network === "avax") {
+    await deployForAvax()
+  }
 }
 
 main()
