@@ -56,7 +56,7 @@ async function createSigningServer() {
     res.send("ok");
 
     let hasPendingTransaction = false;
-    for (const [index, { transactionKey }] of unsignedTransactionList) {
+    for (const [index, { transactionKey }] of unsignedTransactionList.entries()) {
       if (signedTransactions[transactionKey] === undefined) {
         console.log(`pending transaction at index ${index}`)
         hasPendingTransaction = true;
