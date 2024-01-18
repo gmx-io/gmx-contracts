@@ -229,6 +229,8 @@ async function swapFeesForAvax({ routers }) {
   const wavax = await contractAt("Token", nativeTokens.avax.address, handlers.avax)
   const wavaxBalance = await wavax.balanceOf(handlers.avax.address)
   const excessWavax = wavaxBalance.sub(requiredWavaxBalance)
+  console.info("requiredWavaxBalance", requiredWavaxBalance.toString())
+  console.info("wavaxBalance", wavaxBalance.toString())
   console.info("excessWavax", excessWavax.toString())
 
   if (excessWavax.gt(0)) {
@@ -255,7 +257,8 @@ async function bridgeTokensToArbitrum() {
     return
   }
 
-  await sendTxn(usdc.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
+  console.log(`sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
+  // await sendTxn(usdc.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 6)} to be bridged`)
 
   // send tokens to arbitrum
   // await bridgeTokens({ signer: handlers.avax, inputAmount: bridgeAmount })
@@ -334,6 +337,14 @@ async function updateRewards() {
     const handler = handlers[network]
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     const balance = await nativeToken.balanceOf(handler.address)
+    console.log(`${network}: ${formatAmount(balance, 18, 2, true)}, ${formatAmount(expectedMinBalance[network], 18, 2, true)}`)
+  }
+
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
+    const handler = handlers[network]
+    const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
+    const balance = await nativeToken.balanceOf(handler.address)
     if (balance.lt(expectedMinBalance[network])) {
       throw new Error(`balance < expectedMinBalance: ${balance.toString()}, ${expectedMinBalance[network].toString()}`)
     }
@@ -356,18 +367,21 @@ async function updateRewards() {
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
 
     const handler = handlers[network]
+    const skipTransferIndex = undefined
 
+    console.log(`updateStakingRewards for ${network}`)
     await updateStakingRewards({
+      skipTransferIndex,
       signer: handler,
       values: stakingValues[network],
       intervalUpdater: deployers[network]
     })
 
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
-    await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+    await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
 
     const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
-    await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink, { gasLimit: 3000000 }), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+    await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
   }
 }
 

@@ -34,6 +34,7 @@ contract Timelock is ITimelock {
     address public tokenManager;
     address public mintReceiver;
     address public glpManager;
+    address public prevGlpManager;
     address public rewardRouter;
     uint256 public maxTokenSupply;
 
@@ -92,6 +93,7 @@ contract Timelock is ITimelock {
         address _tokenManager,
         address _mintReceiver,
         address _glpManager,
+        address _prevGlpManager,
         address _rewardRouter,
         uint256 _maxTokenSupply,
         uint256 _marginFeeBasisPoints,
@@ -103,6 +105,7 @@ contract Timelock is ITimelock {
         tokenManager = _tokenManager;
         mintReceiver = _mintReceiver;
         glpManager = _glpManager;
+        prevGlpManager = _prevGlpManager;
         rewardRouter = _rewardRouter;
         maxTokenSupply = _maxTokenSupply;
 
@@ -310,18 +313,20 @@ contract Timelock is ITimelock {
         }
     }
 
-    function updateUsdgSupply(uint256 usdgAmount) external onlyKeeperAndAbove {
-        address usdg = IGlpManager(glpManager).usdg();
-        uint256 balance = IERC20(usdg).balanceOf(glpManager);
+    function updateUsdgSupply(address _glpManager, uint256 usdgAmount) external onlyKeeperAndAbove {
+        require(_glpManager == glpManager || _glpManager == prevGlpManager, "Timelock: invalid _glpManager");
+
+        address usdg = IGlpManager(_glpManager).usdg();
+        uint256 balance = IERC20(usdg).balanceOf(_glpManager);
 
         IUSDG(usdg).addVault(address(this));
 
         if (usdgAmount > balance) {
             uint256 mintAmount = usdgAmount.sub(balance);
-            IUSDG(usdg).mint(glpManager, mintAmount);
+            IUSDG(usdg).mint(_glpManager, mintAmount);
         } else {
             uint256 burnAmount = balance.sub(usdgAmount);
-            IUSDG(usdg).burn(glpManager, burnAmount);
+            IUSDG(usdg).burn(_glpManager, burnAmount);
         }
 
         IUSDG(usdg).removeVault(address(this));
@@ -473,6 +478,19 @@ contract Timelock is ITimelock {
         _validateAction(action);
         _clearAction(action);
         IHandlerTarget(_target).setHandler(_handler, _isActive);
+    }
+
+    function signalSetMinter(address _target, address _minter, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setMinter", _target, _minter, _isActive));
+        _setPendingAction(action);
+        emit SignalSetHandler(_target, _minter, _isActive, action);
+    }
+
+    function setMinter(address _target, address _minter, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setMinter", _target, _minter, _isActive));
+        _validateAction(action);
+        _clearAction(action);
+        IMintable(_target).setMinter(_minter, _isActive);
     }
 
     function signalSetPriceFeed(address _vault, address _priceFeed) external onlyAdmin {

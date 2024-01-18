@@ -43,7 +43,7 @@ async function getAvaxValues(signer) {
   return { rewardToken, tokenDecimals, rewardTrackerArr }
 }
 
-async function updateRewards({ signer, values, intervalUpdater }) {
+async function updateRewards({ signer, values, intervalUpdater, skipTransferIndex }) {
   const { rewardToken, tokenDecimals, rewardTrackerArr } = values
 
   for (let i = 0; i < rewardTrackerArr.length; i++) {
@@ -59,7 +59,14 @@ async function updateRewards({ signer, values, intervalUpdater }) {
     console.log("convertedTransferAmount", convertedTransferAmount.toString())
     console.log("rewardsPerInterval", rewardsPerInterval.toString())
 
-    await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount, { gasLimit: 3000000 }), `rewardToken.transfer ${i}`)
+    console.log("skipTransferIndex", skipTransferIndex)
+    if (skipTransferIndex !== undefined && i === skipTransferIndex) {
+      console.log("skipping transfer")
+    } else {
+      console.log("sendTxn rewardToken.transfer")
+      await sendTxn(rewardToken.transfer(rewardDistributorAddress, convertedTransferAmount), `rewardToken.transfer ${i}`)
+    }
+    console.log("sendTxn updateTokensPerInterval")
     await updateTokensPerInterval(rewardDistributor, rewardsPerInterval, "rewardDistributor")
   }
 }

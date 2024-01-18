@@ -156,6 +156,8 @@ async function main() {
     }
   }
 
+  console.log("\n")
+
   for (let i = 0; i < contractAccessList.length; i++) {
     const info = contractAccessList[i]
     console.log([info.contractLabel, info.contractAddress, info.method, info.accessor].join(","))

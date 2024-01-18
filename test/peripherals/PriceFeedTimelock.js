@@ -77,6 +77,7 @@ describe("PriceFeedTimelock", function () {
       tokenManager.address, // tokenManager
       mintReceiver.address, // mintReceiver
       glpManager.address, // glpManager
+      glpManager.address, // prevGlpManager
       user0.address, // rewardRouter
       expandDecimals(1000, 18), // maxTokenSupply
       50, // marginFeeBasisPoints 0.5%
@@ -163,6 +164,7 @@ describe("PriceFeedTimelock", function () {
       tokenManager.address, // _tokenManager
       mintReceiver.address, // _mintReceiver
       user0.address, // _glpManager
+      user0.address, // _prevGlpManager
       user1.address, // _rewardRouter
       1000, // _maxTokenSupply
       10, // marginFeeBasisPoints

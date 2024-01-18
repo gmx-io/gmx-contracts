@@ -249,7 +249,25 @@ contract BasePositionManager is IBasePositionManager, ReentrancyGuard, Governabl
         IWETH _weth = IWETH(weth);
         _weth.withdraw(_amountOut);
 
-        (bool success, /* bytes memory data */) = _receiver.call{ value: _amountOut, gas: ethTransferGasLimit }("");
+        // re-assign ethTransferGasLimit since only local variables
+        // can be used in assembly calls
+        uint256 _ethTransferGasLimit = ethTransferGasLimit;
+
+        bool success;
+        // use an assembly call to avoid loading large data into memory
+        // input mem[in…(in+insize)]
+        // output area mem[out…(out+outsize))]
+        assembly {
+            success := call(
+                _ethTransferGasLimit, // gas limit
+                _receiver, // receiver
+                _amountOut, // value
+                0, // in
+                0, // insize
+                0, // out
+                0 // outsize
+            )
+        }
 
         if (success) { return; }
 

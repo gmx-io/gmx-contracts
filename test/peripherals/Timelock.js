@@ -84,6 +84,7 @@ describe("Timelock", function () {
       stakedGlpTracker.address,
       AddressZero,
       AddressZero,
+      AddressZero,
       AddressZero
     )
 
@@ -93,6 +94,7 @@ describe("Timelock", function () {
       tokenManager.address, // tokenManager
       mintReceiver.address, // mintReceiver
       glpManager.address, // glpManager
+      glpManager.address, // prevGlpManager
       rewardRouter.address, // rewardRouter
       expandDecimals(1000, 18), // maxTokenSupply
       50, // marginFeeBasisPoints 0.5%
@@ -142,6 +144,7 @@ describe("Timelock", function () {
       tokenManager.address, // tokenManager
       mintReceiver.address, // mintReceiver
       glpManager.address, // glpManager
+      glpManager.address, // prevGlpManager
       user0.address, // rewardRouter
       1000, // maxTokenSupply
       10, // marginFeeBasisPoints
@@ -269,20 +272,20 @@ describe("Timelock", function () {
     expect(await usdg.balanceOf(glpManager.address)).eq(1000)
     expect(await usdg.totalSupply()).eq(1000)
 
-    await expect(timelock.connect(user0).updateUsdgSupply(500))
+    await expect(timelock.connect(user0).updateUsdgSupply(glpManager.address, 500))
       .to.be.revertedWith("Timelock: forbidden")
 
-    await expect(timelock.updateUsdgSupply(500))
+    await expect(timelock.updateUsdgSupply(glpManager.address, 500))
       .to.be.revertedWith("YieldToken: forbidden")
 
     await usdg.setGov(timelock.address)
 
-    await timelock.updateUsdgSupply(500)
+    await timelock.updateUsdgSupply(glpManager.address, 500)
 
     expect(await usdg.balanceOf(glpManager.address)).eq(500)
     expect(await usdg.totalSupply()).eq(500)
 
-    await timelock.updateUsdgSupply(2000)
+    await timelock.updateUsdgSupply(glpManager.address, 2000)
 
     expect(await usdg.balanceOf(glpManager.address)).eq(2000)
     expect(await usdg.totalSupply()).eq(2000)
@@ -295,6 +298,7 @@ describe("Timelock", function () {
       tokenManager.address, // _tokenManager
       mintReceiver.address, // _mintReceiver
       user0.address, // _glpManager
+      user0.address, // _prevGlpManager
       user1.address, // _rewardRouter
       1000, // _maxTokenSupply
       10, // _marginFeeBasisPoints
@@ -673,7 +677,7 @@ describe("Timelock", function () {
 
     await timelock.connect(wallet).signalSetHandler(vester.address, user1.address, true)
 
-    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, expandDecimals(100, 18)))
+    await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, true))
       .to.be.revertedWith("Timelock: action time not yet passed")
 
     const action0 = ethers.utils.solidityKeccak256(["string", "address", "address", "bool"], ["setHandler", bnb.address, user1.address, true])
@@ -688,6 +692,79 @@ describe("Timelock", function () {
     await timelock.connect(wallet).cancelAction(action1)
 
     await expect(timelock.connect(wallet).setHandler(vester.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+  })
+
+  it("setMinter", async () => {
+    await timelock.setContractHandler(user0.address, true)
+    const token = await deployContract("MintableBaseToken", ["Token", "TKN", 0])
+    await token.setGov(timelock.address)
+
+    await expect(timelock.connect(user0).setMinter(token.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(user0).signalSetMinter(token.address, user1.address, true))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await timelock.connect(wallet).signalSetMinter(token.address, user1.address, true)
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 4 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    await increaseTime(provider, 1 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setMinter(bnb.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user2.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user1.address, false))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    expect(await token.isMinter(user1.address)).eq(false)
+    await expect(token.connect(user1).mint(user2.address, 100)).to.be.revertedWith("MintableBaseToken: forbidden")
+
+    await timelock.connect(wallet).setMinter(token.address, user1.address, true)
+
+    expect(await token.isMinter(user1.address)).eq(true)
+
+    expect(await token.balanceOf(user2.address)).eq(0)
+
+    await token.connect(user1).mint(user2.address, 100)
+
+    expect(await token.balanceOf(user2.address)).eq(100)
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action not signalled")
+
+    await timelock.connect(wallet).signalSetMinter(token.address, user1.address, true)
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user1.address, true))
+      .to.be.revertedWith("Timelock: action time not yet passed")
+
+    const action0 = ethers.utils.solidityKeccak256(["string", "address", "address", "bool"], ["setMinter", bnb.address, user1.address, true])
+    const action1 = ethers.utils.solidityKeccak256(["string", "address", "address", "bool"], ["setMinter", token.address, user1.address, true])
+
+    await expect(timelock.connect(user0).cancelAction(action0))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    await expect(timelock.connect(wallet).cancelAction(action0))
+      .to.be.revertedWith("Timelock: invalid _action")
+
+    await timelock.connect(wallet).cancelAction(action1)
+
+    await expect(timelock.connect(wallet).setMinter(token.address, user1.address, true))
       .to.be.revertedWith("Timelock: action not signalled")
   })
 
