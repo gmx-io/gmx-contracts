@@ -8,7 +8,8 @@ const tokens = require('./tokens')[network];
 // TODO: update timelock address
 async function getArbValues() {
   const vault = await contractAt("Vault", "0x489ee077994B6658eAfA855C308275EAd8097C4A")
-  const timelock = await contractAt("Timelock", await vault.gov())
+  const glpManager = await contractAt("GlpManager", "0x3963FfC9dff443c2A94f21b129D429891E32ec18")
+  const timelock = await contractAt("Timelock", "0xF3Cf3D73E00D3149BA25c55951617151C67b2350")
   const reader = await contractAt("Reader", "0x2b43c90D1B727cEe1Df34925bcd5Ace52Ec37694")
 
   const { btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai } = tokens
@@ -16,12 +17,13 @@ async function getArbValues() {
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, eth.address, 1, tokenArr.map(t => t.address))
 
-  return { vault, timelock, reader, tokenArr, vaultTokenInfo }
+  return { vault, glpManager, timelock, reader, tokenArr, vaultTokenInfo }
 }
 
 async function getAvaxValues() {
   const vault = await contractAt("Vault", "0x9ab2De34A33fB459b538c43f251eB825645e8595")
-  const timelock = await contractAt("Timelock", await vault.gov())
+  const glpManager = await contractAt("GlpManager", "0xD152c7F25db7F4B95b7658323c5F33d176818EE4")
+  const timelock = await contractAt("Timelock", "0x60145eEd66E1917B4bDd4754c03b7998B616687A")
   const reader = await contractAt("Reader", "0x2eFEE1950ededC65De687b40Fd30a7B5f4544aBd")
 
   const { avax, eth, btc, btcb, usdce, usdc } = tokens
@@ -29,7 +31,7 @@ async function getAvaxValues() {
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, avax.address, 1, tokenArr.map(t => t.address))
 
-  return { vault, timelock, reader, tokenArr, vaultTokenInfo }
+  return { vault, glpManager, timelock, reader, tokenArr, vaultTokenInfo }
 }
 
 async function getValues() {
@@ -43,7 +45,7 @@ async function getValues() {
 }
 
 async function main() {
-  const { vault, timelock, reader, tokenArr, vaultTokenInfo } = await getValues()
+  const { vault, glpManager, timelock, reader, tokenArr, vaultTokenInfo } = await getValues()
 
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)
@@ -95,7 +97,7 @@ async function main() {
   console.log("totalUsdgAmount", totalUsdgAmount.toString())
 
   if (shouldSendTxn) {
-    await sendTxn(timelock.updateUsdgSupply(totalUsdgAmount), "timelock.updateUsdgSupply")
+    await sendTxn(timelock.updateUsdgSupply(glpManager.address, totalUsdgAmount), "timelock.updateUsdgSupply")
   }
 }
 
