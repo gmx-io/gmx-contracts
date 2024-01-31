@@ -31,8 +31,6 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     uint256 public override totalSupply;
     uint256 public pairSupply;
 
-    bool public hasMaxVestableAmount;
-
     mapping (address => uint256) public balances;
     mapping (address => uint256) public override pairAmounts;
     mapping (address => uint256) public override cumulativeClaimAmounts;
@@ -70,18 +68,10 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         claimableToken = _claimableToken;
 
         rewardTracker = _rewardTracker;
-
-        if (rewardTracker != address(0)) {
-            hasMaxVestableAmount = true;
-        }
     }
 
     function setHandler(address _handler, bool _isActive) external onlyGov {
         isHandler[_handler] = _isActive;
-    }
-
-    function setHasMaxVestableAmount(bool _hasMaxVestableAmount) external onlyGov {
-        hasMaxVestableAmount = _hasMaxVestableAmount;
     }
 
     function deposit(uint256 _amount) external nonReentrant {
@@ -140,7 +130,7 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         transferredAverageStakedAmounts[_sender] = 0;
 
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_sender];
-        uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_sender);
+        uint256 cumulativeReward = hasRewardTracker() ? IRewardTracker(rewardTracker).cumulativeRewards(_sender) : 0;
 
         transferredCumulativeRewards[_receiver] = transferredCumulativeReward.add(cumulativeReward);
         cumulativeRewardDeductions[_sender] = cumulativeReward;
@@ -177,12 +167,14 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     }
 
     function getMaxVestableAmount(address _account) public override view returns (uint256) {
-        if (!hasRewardTracker()) { return 0; }
-
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_account];
         uint256 bonusReward = bonusRewards[_account];
-        uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_account);
-        uint256 maxVestableAmount = cumulativeReward.add(transferredCumulativeReward).add(bonusReward);
+        uint256 maxVestableAmount = transferredCumulativeReward.add(bonusReward);
+
+        if (hasRewardTracker()) {
+            uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_account);
+            maxVestableAmount = maxVestableAmount.add(cumulativeReward);
+        }
 
         uint256 cumulativeRewardDeduction = cumulativeRewardDeductions[_account];
 
@@ -194,6 +186,8 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
     }
 
     function getCombinedAverageStakedAmount(address _account) public override view returns (uint256) {
+        if (!hasRewardTracker()) { return 0; }
+
         uint256 cumulativeReward = IRewardTracker(rewardTracker).cumulativeRewards(_account);
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_account];
         uint256 totalCumulativeReward = cumulativeReward.add(transferredCumulativeReward);
@@ -323,10 +317,8 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
             }
         }
 
-        if (hasMaxVestableAmount) {
-            uint256 maxAmount = getMaxVestableAmount(_account);
-            require(getTotalVested(_account) <= maxAmount, "Vester: max vestable amount exceeded");
-        }
+        uint256 maxAmount = getMaxVestableAmount(_account);
+        require(getTotalVested(_account) <= maxAmount, "Vester: max vestable amount exceeded");
 
         emit Deposit(_account, _amount);
     }
