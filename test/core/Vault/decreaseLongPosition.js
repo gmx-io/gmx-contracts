@@ -347,7 +347,7 @@ describe("Vault.decreaseLongPosition", function () {
     expect(delta[1]).eq(toUsd(0.9))
 
     await expect(vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(4), toUsd(50), true, user2.address))
-      .to.be.revertedWith("liquidation fees exceed collateral")
+      .to.be.revertedWith("Vault: liquidation fees exceed collateral")
 
     const tx = await vault.connect(user0).decreasePosition(user0.address, btc.address, btc.address, toUsd(0), toUsd(50), true, user2.address)
     await reportGasUsed(provider, tx, "decreasePosition gas used")

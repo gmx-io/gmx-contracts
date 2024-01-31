@@ -229,7 +229,7 @@ describe("PositionManager", function () {
     const timelock = await deployTimelock()
 
     await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
-      .to.be.revertedWith("forbidden")
+      .to.be.revertedWith("PositionManager: forbidden")
 
     await vault.setGov(timelock.address)
     await router.addPlugin(positionManager.address)
