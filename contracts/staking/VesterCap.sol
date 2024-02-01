@@ -16,6 +16,7 @@ contract VesterCap is ReentrancyGuard, Governable {
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
+    address public gmxVester;
     address public stakedGmxTracker;
     address public feeGmxTracker;
     address public bnGmx;
@@ -23,11 +24,13 @@ contract VesterCap is ReentrancyGuard, Governable {
     uint256 public maxBoostBasisPoints;
 
     constructor (
+        address _gmxVester,
         address _stakedGmxTracker,
         address _feeGmxTracker,
         address _bnGmx,
         uint256 _maxBoostBasisPoints
     ) public {
+        gmxVester = _gmxVester;
         stakedGmxTracker = _stakedGmxTracker;
         feeGmxTracker = _feeGmxTracker;
         bnGmx = _bnGmx;
@@ -51,6 +54,6 @@ contract VesterCap is ReentrancyGuard, Governable {
             return;
         }
 
-        IERC20(feeGmxTracker).safeTransfer(_account, amountToUnvest);
+        IERC20(feeGmxTracker).safeTransferFrom(gmxVester, _account, amountToUnvest);
     }
 }
