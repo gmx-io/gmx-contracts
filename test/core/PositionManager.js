@@ -244,7 +244,7 @@ describe("PositionManager", function () {
 
     // path length should be 1 or 2
     await expect(positionManager.connect(user0).increasePosition([btc.address, bnb.address, dai.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
-      .to.be.revertedWith("invalid _path.length")
+      .to.be.revertedWith("PositionManager: invalid _path.length")
 
     await timelock.setContractHandler(positionManager.address, true)
     await timelock.setShouldToggleIsLeverageEnabled(true)
@@ -306,7 +306,7 @@ describe("PositionManager", function () {
 
     await positionManager.setInLegacyMode(false)
     await expect(positionManager.connect(user0).decreasePosition(btc.address, btc.address, position[1], position[0], true, user0.address, 0))
-      .to.be.revertedWith("forbidden")
+      .to.be.revertedWith("PositionManager: forbidden")
     await positionManager.setInLegacyMode(true)
 
     expect(await btc.balanceOf(user0.address)).to.be.equal("298500000")
@@ -317,7 +317,7 @@ describe("PositionManager", function () {
     expect(position[1]).eq(0) // collateral
 
     await positionManager.setInLegacyMode(false)
-    await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))).to.be.revertedWith("forbidden")
+    await expect(positionManager.connect(user0).increasePosition([dai.address, btc.address], btc.address, expandDecimals(200, 18), "332333", toUsd(2000), true, toNormalizedPrice(60000))).to.be.revertedWith("PositionManager: forbidden")
 
     // partners should have access in non-legacy mode
     expect(await positionManager.isPartner(user0.address)).to.be.false
