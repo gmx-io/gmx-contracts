@@ -126,27 +126,6 @@ contract Timelock is ITimelock {
         isHandler[_handler] = _isActive;
     }
 
-    function initGlpManager() external onlyAdmin {
-        IGlpManager _glpManager = IGlpManager(glpManager);
-
-        IMintable glp = IMintable(_glpManager.glp());
-        glp.setMinter(glpManager, true);
-
-        IUSDG usdg = IUSDG(_glpManager.usdg());
-        usdg.addVault(glpManager);
-
-        IVault vault = _glpManager.vault();
-        vault.setManager(glpManager, true);
-    }
-
-    function initRewardRouter() external onlyAdmin {
-        IRewardRouterV2 _rewardRouter = IRewardRouterV2(rewardRouter);
-
-        IHandlerTarget(_rewardRouter.feeGlpTracker()).setHandler(rewardRouter, true);
-        IHandlerTarget(_rewardRouter.stakedGlpTracker()).setHandler(rewardRouter, true);
-        IHandlerTarget(glpManager).setHandler(rewardRouter, true);
-    }
-
     function setKeeper(address _keeper, bool _isActive) external onlyAdmin {
         isKeeper[_keeper] = _isActive;
     }
