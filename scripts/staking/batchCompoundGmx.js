@@ -1,6 +1,6 @@
 const { contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
-const compoundGmxList = require("../../data/staking/compoundGmxList.json")
+const compoundGmxList = require("../../data/staking/compoundGmxList3.json")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
@@ -48,7 +48,9 @@ async function main() {
       "0xff0db36bdf740ce4190892e0d930bc411420ef44",
       "0x83580f96035c1f7192fe4cb5b3357ba0e699cedf",
       "0xc4ed448e7d7bdd954e943954459017be63584f69",
-      "0x557dd3d21b31cae70c22bf26bdc4ae315e5a6942"
+      "0x557dd3d21b31cae70c22bf26bdc4ae315e5a6942",
+      "0x04a8c5f571020aa0cae7e036beddfe8cc4f4e147",
+      "0xd47d0ff8c77bc2a7fdaef21cbf0c0a1715b77fa0"
     ].includes(account)) {
       continue
     }
