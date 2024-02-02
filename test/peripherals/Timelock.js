@@ -345,43 +345,6 @@ describe("Timelock", function () {
     expect(await timelock.isHandler(user1.address)).eq(true)
   })
 
-  it("initGlpManager", async () => {
-    await expect(timelock.connect(user0).initGlpManager())
-      .to.be.revertedWith("Timelock: forbidden")
-
-      await glp.setGov(timelock.address)
-      await usdg.setGov(timelock.address)
-
-      expect(await glp.isMinter(glpManager.address)).eq(false)
-      expect(await usdg.vaults(glpManager.address)).eq(false)
-      expect(await vault.isManager(glpManager.address)).eq(false)
-
-      await timelock.initGlpManager()
-
-      expect(await glp.isMinter(glpManager.address)).eq(true)
-      expect(await usdg.vaults(glpManager.address)).eq(true)
-      expect(await vault.isManager(glpManager.address)).eq(true)
-  })
-
-  it("initRewardRouter", async () => {
-    await expect(timelock.connect(user0).initRewardRouter())
-      .to.be.revertedWith("Timelock: forbidden")
-
-      await stakedGlpTracker.setGov(timelock.address)
-      await feeGlpTracker.setGov(timelock.address)
-      await glpManager.setGov(timelock.address)
-
-      expect(await stakedGlpTracker.isHandler(rewardRouter.address)).eq(false)
-      expect(await feeGlpTracker.isHandler(rewardRouter.address)).eq(false)
-      expect(await glpManager.isHandler(rewardRouter.address)).eq(false)
-
-      await timelock.initRewardRouter()
-
-      expect(await stakedGlpTracker.isHandler(rewardRouter.address)).eq(true)
-      expect(await feeGlpTracker.isHandler(rewardRouter.address)).eq(true)
-      expect(await glpManager.isHandler(rewardRouter.address)).eq(true)
-  })
-
   it("setKeeper", async() => {
     await expect(timelock.connect(user0).setKeeper(user1.address, true))
       .to.be.revertedWith("Timelock: forbidden")

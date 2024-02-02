@@ -41,19 +41,33 @@ contract VesterCap is ReentrancyGuard, Governable {
         uint256 baseStakedAmount = IRewardTracker(stakedGmxTracker).stakedAmounts(_account);
         uint256 maxAllowedBnGmxAmount = baseStakedAmount.mul(maxBoostBasisPoints).div(BASIS_POINTS_DIVISOR);
         uint256 currentBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
-        uint256 amountToUnstake = currentBnGmxAmount.sub(maxAllowedBnGmxAmount);
-        uint256 feeGmxTrackerBalance = IERC20(feeGmxTracker).balanceOf(_account);
 
-        uint256 amountToUnvest;
-
-        if (feeGmxTrackerBalance < amountToUnstake) {
-            amountToUnvest = amountToUnstake - feeGmxTrackerBalance;
-        }
-
-        if (amountToUnvest == 0) {
+        if (currentBnGmxAmount <= maxAllowedBnGmxAmount) {
             return;
         }
 
+        uint256 amountToUnstake = currentBnGmxAmount.sub(maxAllowedBnGmxAmount);
+        uint256 feeGmxTrackerBalance = IERC20(feeGmxTracker).balanceOf(_account);
+
+        if (amountToUnstake <= feeGmxTrackerBalance) {
+            return;
+        }
+
+        uint256 amountToUnvest = amountToUnstake.sub(feeGmxTrackerBalance);
+
         IERC20(feeGmxTracker).safeTransferFrom(gmxVester, _account, amountToUnvest);
+        IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bnGmx, amountToUnstake, _account);
+    }
+
+    function syncFeeGmxTrackerBalance(address _account) external nonReentrant onlyGov {
+        uint256 stakedAmount = IRewardTracker(feeGmxTracker).stakedAmounts(_account);
+        uint256 feeGmxTrackerBalance = IERC20(feeGmxTracker).balanceOf(_account);
+
+        if (feeGmxTrackerBalance <= stakedAmount) {
+            return;
+        }
+
+        uint256 amountToTransfer = feeGmxTrackerBalance.sub(stakedAmount);
+        IERC20(feeGmxTracker).safeTransferFrom(_account, gmxVester, amountToTransfer);
     }
 }
