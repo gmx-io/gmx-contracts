@@ -1932,6 +1932,8 @@ describe("RewardRouterV2", function () {
     expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(375, 18))
     expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).eq(expandDecimals(250, 18))
 
+    await expect(vesterCap.connect(user0).syncFeeGmxTrackerBalance(user1.address)).to.be.revertedWith("Governable: forbidden")
+
     await vesterCap.syncFeeGmxTrackerBalance(user1.address)
 
     expect(await feeGmxTracker.balanceOf(user1.address)).eq(expandDecimals(375, 18))
