@@ -136,13 +136,13 @@ describe("Vester", function () {
 
   it("deposit, claim, withdraw", async () => {
     const vester = await deployContract("Vester", [
-      "Vested GMX",
-      "veGMX",
-      secondsPerYear,
-      esGmx.address,
-      AddressZero,
-      gmx.address,
-      AddressZero
+      "Vested GMX", // name
+      "veGMX", // symbol
+      secondsPerYear, // vestingDuration
+      esGmx.address, // esToken
+      AddressZero, // pairToken
+      gmx.address, // claimableToken
+      AddressZero // rewardTracker
     ])
     await vester.setHandler(wallet.address, true)
     await esGmx.setMinter(vester.address, true)

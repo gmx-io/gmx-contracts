@@ -1068,6 +1068,43 @@ describe("Timelock", function () {
     expect(await vester.bonusRewards(user3.address)).eq(900)
   })
 
+  it("batchIncreaseBonusRewards", async () => {
+    const vester = await deployContract("Vester", [
+      "Vested GMX",
+      "veGMX",
+      365 * 24 * 60 * 60,
+      AddressZero,
+      AddressZero,
+      AddressZero,
+      AddressZero
+    ])
+    await vester.setGov(timelock.address)
+
+    const accounts = [user1.address, user2.address, user3.address]
+    let amounts = [700, 500, 900]
+
+    await expect(timelock.connect(user0).batchIncreaseBonusRewards(vester.address, accounts, amounts))
+      .to.be.revertedWith("Timelock: forbidden")
+
+    expect(await vester.bonusRewards(user1.address)).eq(0)
+    expect(await vester.bonusRewards(user2.address)).eq(0)
+    expect(await vester.bonusRewards(user3.address)).eq(0)
+
+    await timelock.connect(wallet).batchIncreaseBonusRewards(vester.address, accounts, amounts)
+
+    expect(await vester.bonusRewards(user1.address)).eq(700)
+    expect(await vester.bonusRewards(user2.address)).eq(500)
+    expect(await vester.bonusRewards(user3.address)).eq(900)
+
+    amounts = [7, 1, 9]
+
+    await timelock.connect(wallet).batchIncreaseBonusRewards(vester.address, accounts, amounts)
+
+    expect(await vester.bonusRewards(user1.address)).eq(707)
+    expect(await vester.bonusRewards(user2.address)).eq(501)
+    expect(await vester.bonusRewards(user3.address)).eq(909)
+  })
+
   it("setAdmin", async () => {
     await expect(timelock.setAdmin(user1.address))
       .to.be.revertedWith("Timelock: forbidden")
