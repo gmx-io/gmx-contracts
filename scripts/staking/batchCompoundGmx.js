@@ -1,16 +1,32 @@
 const { contractAt, sendTxn } = require("../shared/helpers")
 const { expandDecimals } = require("../../test/shared/utilities")
-const compoundGmxList = require("../../data/staking/compoundGmxList3.json")
+const compoundGmxList = require("../../data/staking/compoundGmxList4.json")
+
+const {
+  ARBITRUM_URL,
+  AVAX_URL,
+  REWARD_ROUTER_KEEPER_KEY
+} = require("../../env.json");
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
+const providers = {
+  arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
+  avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
+}
+
+const keepers = {
+  arbitrum: new ethers.Wallet(REWARD_ROUTER_KEEPER_KEY).connect(providers.arbitrum),
+  avax: new ethers.Wallet(REWARD_ROUTER_KEEPER_KEY).connect(providers.avax)
+}
+
 async function getArbValues() {
-  const rewardRouter = await contractAt("RewardRouter", "0x159854e14A862Df9E39E1D128b8e5F70B4A3cE9B")
+  const rewardRouter = await contractAt("RewardRouter", "0x159854e14A862Df9E39E1D128b8e5F70B4A3cE9B", keepers.arbitrum)
   return { rewardRouter }
 }
 
 async function getAvaxValues() {
-  const rewardRouter = await contractAt("RewardRouter", "0xa192D0681E2b9484d1fA48083D36B8A2D0Da1809")
+  const rewardRouter = await contractAt("RewardRouter", "0xa192D0681E2b9484d1fA48083D36B8A2D0Da1809", keepers.avax)
   return { rewardRouter }
 }
 
