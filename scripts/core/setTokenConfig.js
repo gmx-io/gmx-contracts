@@ -10,13 +10,16 @@ async function getArbValues() {
   const timelock = await contractAt("Timelock", await vault.gov())
   const reader = await contractAt("Reader", "0x2b43c90D1B727cEe1Df34925bcd5Ace52Ec37694")
 
+  const glpManager = await contractAt("GlpManager", "0x3963FfC9dff443c2A94f21b129D429891E32ec18")
+  const usdgTimelock = await contractAt("Timelock", "0xF3Cf3D73E00D3149BA25c55951617151C67b2350")
+
   const { btc, eth, usdce, usdc, link, uni, usdt, frax, dai } = tokens
   const tokenArr = [ btc, eth, usdce, usdc, link, uni, usdt, frax, dai ]
   // const tokenArr = [ usdt, frax, dai ]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, eth.address, 1, tokenArr.map(t => t.address))
 
-  return { vault, timelock, reader, tokenArr, vaultTokenInfo }
+  return { vault, timelock, reader, glpManager, usdgTimelock, tokenArr, vaultTokenInfo }
 }
 
 async function getAvaxValues() {
@@ -24,12 +27,15 @@ async function getAvaxValues() {
   const timelock = await contractAt("Timelock", await vault.gov())
   const reader = await contractAt("Reader", "0x2eFEE1950ededC65De687b40Fd30a7B5f4544aBd")
 
+  const glpManager = await contractAt("GlpManager", "0xD152c7F25db7F4B95b7658323c5F33d176818EE4")
+  const usdgTimelock = await contractAt("Timelock", "0x60145eEd66E1917B4bDd4754c03b7998B616687A")
+
   const { avax, eth, btcb, btc, usdc, usdce } = tokens
   const tokenArr = [ avax, eth, btcb, btc, usdc, usdce ]
 
   const vaultTokenInfo = await reader.getVaultTokenInfoV2(vault.address, avax.address, 1, tokenArr.map(t => t.address))
 
-  return { vault, timelock, reader, tokenArr, vaultTokenInfo }
+  return { vault, timelock, reader, glpManager, usdgTimelock, tokenArr, vaultTokenInfo }
 }
 
 async function getValues() {
@@ -43,7 +49,7 @@ async function getValues() {
 }
 
 async function main() {
-  const { vault, timelock, tokenArr, vaultTokenInfo } = await getValues()
+  const { vault, timelock, glpManager, usdgTimelock, tokenArr, vaultTokenInfo } = await getValues()
 
   console.log("vault", vault.address)
   console.log("timelock", timelock.address)
@@ -130,6 +136,10 @@ async function main() {
         usdgAmount
       ), `vault.setTokenConfig(${tokenItem.name}) ${tokenItem.address}`)
     }
+  }
+
+  if (shouldSendTxn) {
+    await sendTxn(usdgTimelock.updateUsdgSupply(glpManager.address, totalUsdgAmount), "timelock.updateUsdgSupply")
   }
 
   console.log("")
