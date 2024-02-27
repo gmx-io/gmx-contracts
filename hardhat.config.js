@@ -112,7 +112,7 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      mainnet: MAINNET_DEPLOY_KEY,
+      mainnet: ETHERSCAN_API_KEY,
       arbitrumOne: ARBISCAN_API_KEY,
       avalanche: SNOWTRACE_API_KEY,
       bsc: BSCSCAN_API_KEY,
