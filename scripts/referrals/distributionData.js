@@ -390,12 +390,12 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
   console.log("Data saved to: %s", filename)
 }
 
-async function getEsGMXReferralRewardsData(
+async function getEsGMXReferralRewardsData({
   network,
-  fromTimestamp,
-  toTimestamp,
+  from,
+  to,
   account
-) {
+}) {
   const esGmxTokenAddress = ES_GMX_TOKEN_ADDRESS[network];
 
   let accountCondition = '';
@@ -407,8 +407,8 @@ async function getEsGMXReferralRewardsData(
         where: {
           typeId: "1",
           tokens_contains: ["${esGmxTokenAddress}"]
-          timestamp_gte: ${fromTimestamp},
-          timestamp_lt: ${toTimestamp}${accountCondition}
+          timestamp_gte: ${from},
+          timestamp_lt: ${to}${accountCondition}
         }
         orderBy: timestamp
         orderDirection: desc
@@ -431,7 +431,6 @@ async function getEsGMXReferralRewardsData(
   }`;
 
   const [data] = await Promise.all([requestSubgraph(network, query)]);
-  console.log("data", data)
 
   const esGmxDistributions = [
     ...data.esGmxDistribution0,
@@ -471,9 +470,19 @@ async function getEsGMXReferralRewardsData(
   );
 
   console.table(nonZeroDistributionsByReceiver)
-  const filename = `./es-gmx-referral-data-${network}.json`;
-  fs.writeFileSync(filename, JSON.stringify(nonZeroDistributionsByReceiver, null, 4));
-  console.log('Data saved to: %s', filename);
+  // const filename = `./es-gmx-referral-data-${network}.json`;
+  // fs.writeFileSync(filename, JSON.stringify(nonZeroDistributionsByReceiver, null, 4));
+  // console.log('Data saved to: %s', filename);
+
+  const list = []
+  for (const [account, amount] of Object.entries(nonZeroDistributionsByReceiver)) {
+    list.push({
+      account,
+      amount
+    })
+  }
+
+  return list
 }
 
 module.exports = {

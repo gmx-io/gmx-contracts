@@ -24,24 +24,28 @@ const avaxData = require(avalancheFile)
 const { AddressZero } = ethers.constants
 
 async function getArbValues(referralSender) {
+  const vester = await contractAt("Vester", "0x7c100c0F55A15221A4c1C5a25Db8C98A81df49B2", referralSender)
+  const timelock = await contractAt("Timelock", await vester.gov(), referralSender)
   const batchSender = await contractAt("BatchSender", "0x1070f775e8eb466154BBa8FA0076C4Adc7FE17e8", referralSender)
   const esGmx = await contractAt("Token", "0xf42Ae1D54fd613C9bb14810b0588FaAa09a426cA", referralSender)
   const data = arbitrumData
 
-  return { batchSender, esGmx, data }
+  return { vester, timelock, batchSender, esGmx, data }
 }
 
 async function getAvaxValues(referralSender) {
+  const vester = await contractAt("Vester", "0x754eC029EF9926184b4CFDeA7756FbBAE7f326f7", referralSender)
+  const timelock = await contractAt("Timelock", await vester.gov(), referralSender)
   const batchSender = await contractAt("BatchSender", "0xF0f929162751DD723fBa5b86A9B3C88Dc1D4957b", referralSender)
   const esGmx = await contractAt("Token", "0xFf1489227BbAAC61a9209A08929E4c2a526DdD17", referralSender)
   const data = avaxData
 
-  return { batchSender, esGmx, data }
+  return { vester, timelock, batchSender, esGmx, data }
 }
 
 async function sendReferralRewards({ signer, referralSender, shouldSendTxn, nativeToken, nativeTokenPrice, gmxPrice, values, network }) {
   const wallet = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
-  const { batchSender, esGmx, data } = values
+  const { vester, timelock, batchSender, esGmx, data } = values
   const nativeTokenContract = await contractAt("Token", nativeToken.address, referralSender)
 
   const affiliatesData = data.affiliates
@@ -172,6 +176,7 @@ async function sendReferralRewards({ signer, referralSender, shouldSendTxn, nati
       const amounts = currentBatch.map((item) => item[1])
 
       await sendTxn(batchSender.sendAndEmit(esGmx.address, accounts, amounts, affiliateRewardsTypeId), "batchSender.sendAndEmit(nativeToken, esGmx affiliate rewards)")
+      await sendTxn(timelock.batchIncreaseBonusRewards(vester.address, accounts, amounts), "timelock.batchSetBonusRewards(vester.address, accounts, amounts)")
     })
   }
 }

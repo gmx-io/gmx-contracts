@@ -3,7 +3,7 @@ const { getEsGMXReferralRewardsData } = require("./distributionData")
 
 async function main() {
   const network = "arbitrum"
-  await getEsGMXReferralRewardsData(network, 1711929600, 1709157600)
+  await getEsGMXReferralRewardsData({ network, from: 1648771200, to: 1709157600 })
 }
 
 main()
