@@ -14,11 +14,13 @@ data/contractList
 data/staking
 flattened
 distribution-data*.json
+es-gmx-referral-data*.json
 fee-reference.json
 uniswap-fee-reference.json
 keys
 tmp
 **/.DS_Store
+out/
 
 #Hardhat files
 cache
