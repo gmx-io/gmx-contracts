@@ -1,7 +1,7 @@
 const { setBonusReferralRewards } = require("./bonusReferralRewards")
 
 async function main() {
-  await setBonusReferralRewards({ network: "arbitrum", from: 1648771200, to: 1709157600 })
+  await setBonusReferralRewards({ from: 1648771200, to: 1709157600 })
 }
 
 main()

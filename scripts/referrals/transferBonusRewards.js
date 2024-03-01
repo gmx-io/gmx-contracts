@@ -34,42 +34,47 @@ async function getAvaxValues() {
   return { vester }
 }
 
-async function setBonusReferralRewards({ from, to }) {
+async function transferBonusRewards() {
   const values = {
     arbitrum: await getArbValues(),
     avalanche: await getAvaxValues(),
   }
 
-  const remapBase = {
-    "0x43e37ae780aac89aadd10097bd90d5a79e1192ed": "0x5fd4c8565f7711e04bff0e8b5c155ad891993b51"
-  }
-
-  const remap = {}
-
-  for (const [account0, account1] of Object.entries(remapBase)) {
-    remap[account0.toLowerCase()] = account1.toLowerCase()
-  }
+  const transfers = [
+    { from: "0xe7CE1c48C62412115f212DE69860B063765DE10a", to: "0x59c453476EfC41164614883eaa8aA54D9798fF76" }
+  ]
 
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
     const { vester } = values[network]
     const timelock = await contractAt("Timelock", await vester.gov(), deployers[network])
-    const list = await getEsGMXReferralRewardsData({ network, from, to })
-    await processBatch([list], 10, async (currentBatch) => {
-      const accounts = currentBatch.map(item => item[0].account)
-      for (let j = 0; j < accounts.length; j++) {
-        const account = accounts[j]
-        if (remap[account]) {
-          accounts[j] = remap[account]
-        }
-      }
-      const amounts = currentBatch.map(item => item[0].amount)
-      console.log("accounts", accounts)
-      console.log("amounts", amounts)
-      await sendTxn(timelock.batchSetBonusRewards(vester.address, accounts, amounts), "timelock.batchSetBonusRewards(vester.address, accounts, amounts)")
-    })
-  }
 
+    for (let j = 0; j < transfers.length; j++) {
+      const transfer = transfers[j]
+      const fromAmount = await vester.bonusRewards(transfer.from)
+      const toAmount = await vester.bonusRewards(transfer.to)
+      if (fromAmount.eq(0)) {
+        console.log(`skipping transfer for ${transfer.from} as fromAmount is zero`)
+      }
+      if (toAmount.gt(0)) {
+        console.log(`skipping transfer for ${transfer.to} as toAmount is more than zero`)
+      }
+
+      console.log(`transferring from ${transfer.from} to ${transfer.to}: ${fromAmount.toString()}`)
+      if (process.env.WRITE === "true") {
+        await sendTxn(timelock.batchSetBonusRewards(vester.address, [transfer.from, transfer.to], [0, fromAmount]), "timelock.batchSetBonusRewards(vester.address, accounts, amounts)")
+      }
+    }
+  }
 }
 
-module.exports = { setBonusReferralRewards }
+async function main() {
+  await transferBonusRewards()
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error)
+    process.exit(1)
+  })
