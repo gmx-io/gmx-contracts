@@ -159,6 +159,13 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
       shortTokenPrice = stablecoinPrices[market.shortToken.toLowerCase()]
     }
 
+    if (!longTokenPrice) {
+      throw new Error(`missing longTokenPrice for ${market.longToken}`)
+    }
+    if (!shortTokenPrice) {
+      throw new Error(`missing shortTokenPrice for ${market.shortToken}`)
+    }
+
     const longTokenFeeUsd = longTokenFeeAmount.mul(longTokenPrice)
     const shortTokenFeeUsd = shortTokenFeeAmount.mul(shortTokenPrice)
 
