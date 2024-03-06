@@ -148,6 +148,10 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
     const longTokenFeeAmount = bigNumberify(result[i * 2].returnData)
     const shortTokenFeeAmount = bigNumberify(result[i * 2 + 1].returnData)
 
+    if (longTokenFeeAmount.eq(0) && shortTokenFeeAmount.eq(0)) {
+      continue
+    }
+
     let longTokenPrice = pricesByTokenAddress[market.longToken.toLowerCase()]
     let shortTokenPrice = pricesByTokenAddress[market.shortToken.toLowerCase()]
 
