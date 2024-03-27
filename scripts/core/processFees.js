@@ -372,7 +372,7 @@ async function updateRewards() {
     stakingValues[network].rewardTrackerArr[1].transferAmount = glpRewardAmount
 
     const handler = handlers[network]
-    const skipTransferIndex = undefined
+    const skipTransferIndex = network === ARBITRUM ? 0 : undefined
 
     console.log(`updateStakingRewards for ${network}`)
     await updateStakingRewards({
@@ -381,6 +381,23 @@ async function updateRewards() {
       values: stakingValues[network],
       intervalUpdater: deployers[network]
     })
+  }
+}
+
+async function sendPayments() {
+  const rewardAmounts = {
+    arbitrum: {
+      treasury: bigNumberify(feeReference.treasuryFees.arbitrum),
+      chainlink: bigNumberify(feeReference.chainlinkFees.arbitrum)
+    },
+    avax: {
+      treasury: bigNumberify(feeReference.treasuryFees.avax),
+      chainlink: bigNumberify(feeReference.chainlinkFees.avax)
+    }
+  }
+
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
 
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     await sendTxn(nativeToken.transfer(treasuries[network], rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
@@ -481,6 +498,11 @@ async function processFees({ steps }) {
   }
 
   if (steps.includes(8)) {
+    await sendPayments()
+    await printFeeHandlerBalances()
+  }
+
+  if (steps.includes(9)) {
     await sendReferralRewards()
     await printFeeHandlerBalances()
   }
