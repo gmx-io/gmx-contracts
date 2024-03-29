@@ -92,6 +92,12 @@ module.exports = {
       chainId: 42161,
       accounts: getEnvAccounts(ARBITRUM_DEPLOY_KEY)
     },
+    base: {
+      url: "https://base.llamarpc.com",
+      gasPrice: 30000000000,
+      chainId: 8453,
+      accounts: getEnvAccounts(ARBITRUM_DEPLOY_KEY)
+    },
     avax: {
       url: AVAX_URL,
       gasPrice: 100000000000,
