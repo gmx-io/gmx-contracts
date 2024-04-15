@@ -39,8 +39,12 @@ async function main() {
   console.log("account", account)
   console.log("latestNonce", latestNonce)
 
+  if (process.env.START_INDEX === undefined) {
+    throw new Error("Empty START_INDEX")
+  }
+
   const potentialContracts = []
-  for (let i = 0; i < latestNonce; i++) {
+  for (let i = parseInt(process.env.START_INDEX); i < latestNonce; i++) {
     const nonce = i
     const contractAddress = ethers.utils.getContractAddress({ from: account, nonce })
     potentialContracts.push({
