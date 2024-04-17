@@ -53,6 +53,7 @@ contract Timelock is ITimelock {
     event SignalMint(address token, address receiver, uint256 amount, bytes32 action);
     event SignalSetGov(address target, address gov, bytes32 action);
     event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
+    event SignalSetMinter(address target, address minter, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
     event SignalRedeemUsdg(address vault, address token, uint256 amount);
     event SignalVaultSetTokenConfig(
@@ -477,7 +478,7 @@ contract Timelock is ITimelock {
     function signalSetMinter(address _target, address _minter, bool _isActive) external onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setMinter", _target, _minter, _isActive));
         _setPendingAction(action);
-        emit SignalSetHandler(_target, _minter, _isActive, action);
+        emit SignalSetMinter(_target, _minter, _isActive, action);
     }
 
     function setMinter(address _target, address _minter, bool _isActive) external onlyAdmin {
