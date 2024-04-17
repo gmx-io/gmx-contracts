@@ -67,6 +67,7 @@ async function createSigningServer() {
     if (!hasPendingTransaction) {
       console.log("no pending transactions left, closing server")
       server.close();
+      process.exit(1);
     }
   });
 }
