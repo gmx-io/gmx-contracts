@@ -447,9 +447,9 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         emit StakeGmx(_account, _token, _amount);
     }
 
-    // note that _syncVotingPower is not called here, it should be ensured that
-    // in functions which call _stakeBnGmx it should be ensured that
-    // _syncVotingPower is called after
+    // note that _syncVotingPower is not called here, in functions which
+    // call _stakeBnGmx it should be ensured that _syncVotingPower is called
+    // after
     function _stakeBnGmx(address _account) private {
         IRewardTracker(bonusGmxTracker).claimForAccount(_account, _account);
 
