@@ -7,7 +7,7 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/ITimelockTarget.sol";
 import "./interfaces/ITimelock.sol";
 import "./interfaces/IHandlerTarget.sol";
-import "./Multicall.sol";
+import "./BasicMulticall.sol";
 
 import "../access/interfaces/IAdmin.sol";
 import "../access/interfaces/IGovRequester.sol";
@@ -541,17 +541,17 @@ contract Timelock is ITimelock, BasicMulticall {
         IVault(_vault).setPriceFeed(_priceFeed);
     }
 
-    function signalSetGovRequester(address _requester) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("setGovRequester", _requester));
+    function signalSetGovRequester(address _requester, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setGovRequester", _requester, _isActive));
         _setPendingAction(action);
         emit SignalSetGovRequester(_requester);
     }
 
-    function setGovRequester(address _requester) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("setGovRequester", _requester));
+    function setGovRequester(address _requester, bool _isActive) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setGovRequester", _requester, _isActive));
         _validateAction(action);
         _clearAction(action);
-        govRequesters[_requester] = true;
+        govRequesters[_requester] = _isActive;
     }
 
     function cancelAction(bytes32 _action) external onlyAdmin {

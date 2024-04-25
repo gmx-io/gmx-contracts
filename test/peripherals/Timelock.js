@@ -1261,4 +1261,72 @@ describe("Timelock", function () {
     await timelock.setGlpCooldownDuration(3600)
     expect(await glpManager.cooldownDuration()).eq(3600)
   })
+
+  it("multicall", async () => {
+    expect(await timelock.isHandler(user1.address)).eq(false)
+    expect(await timelock.isHandler(user2.address)).eq(false)
+
+    await timelock.multicall(
+      [
+        timelock.interface.encodeFunctionData("setContractHandler", [user1.address, true]),
+        timelock.interface.encodeFunctionData("setContractHandler", [user2.address, true]),
+      ]
+    )
+
+    expect(await timelock.isHandler(user1.address)).eq(true)
+    expect(await timelock.isHandler(user2.address)).eq(true)
+  })
+
+  it("setGovRequester", async () => {
+    await timelock.setContractHandler(user0.address, true)
+
+    await expect(timelock.connect(user0).setGovRequester(vault.address, true))
+      .to.be.revertedWith("forbidden")
+
+    await expect(timelock.connect(wallet).setGovRequester(vault.address, true))
+      .to.be.revertedWith("action not signalled")
+
+    await expect(timelock.connect(user0).signalSetGovRequester(vault.address, true))
+      .to.be.revertedWith("forbidden")
+
+    await timelock.connect(wallet).signalSetGovRequester(vault.address, true)
+
+    await expect(timelock.connect(wallet).setGovRequester(vault.address, true))
+      .to.be.revertedWith("action time not yet passed")
+
+    await increaseTime(provider, 4 * 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setGovRequester(vault.address, true))
+      .to.be.revertedWith("action time not yet passed")
+
+    await increaseTime(provider, 1 * 24 * 60 * 60 + 10)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).setGovRequester(user2.address, true))
+      .to.be.revertedWith("action not signalled")
+
+    await expect(timelock.connect(wallet).setGovRequester(vault.address, false))
+      .to.be.revertedWith("action not signalled")
+    //
+    expect(await timelock.govRequesters(vault.address)).eq(false)
+    await timelock.connect(wallet).setGovRequester(vault.address, true)
+    expect(await timelock.govRequesters(vault.address)).eq(true)
+
+    await timelock.connect(wallet).signalSetGovRequester(vault.address, false)
+
+    await expect(timelock.connect(wallet).setGovRequester(vault.address, false))
+      .to.be.revertedWith("action time not yet passed")
+
+    const action0 = ethers.utils.solidityKeccak256(["string", "address", "bool"], ["setGovRequester", user1.address, false])
+    const action1 = ethers.utils.solidityKeccak256(["string", "address", "bool"], ["setGovRequester", vault.address, false])
+
+    await expect(timelock.connect(wallet).cancelAction(action0))
+      .to.be.revertedWith("invalid _action")
+
+    await timelock.connect(wallet).cancelAction(action1)
+
+    await expect(timelock.connect(wallet).setGovRequester(vault.address, user2.address))
+      .to.be.revertedWith("action not signalled")
+  })
 })
