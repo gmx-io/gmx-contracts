@@ -191,7 +191,7 @@ describe("Vault.withdrawFees", function () {
     await vault.setGov(timelock.address)
 
     await expect(timelock.connect(user0).withdrawFees(vault.address, bnb.address, user2.address))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     expect(await bnb.balanceOf(user2.address)).eq(0)
     await timelock.withdrawFees(vault.address, bnb.address, user2.address)
@@ -273,7 +273,7 @@ describe("Vault.withdrawFees", function () {
     await vault.setGov(timelock.address)
 
     await expect(timelock.connect(user0).batchWithdrawFees(vault.address, [bnb.address, btc.address]))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     expect(await bnb.balanceOf(wallet.address)).eq(0)
     expect(await btc.balanceOf(wallet.address)).eq(0)

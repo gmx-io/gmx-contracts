@@ -1062,7 +1062,7 @@ describe("PositionRouter", function () {
     await vault.buyUSDG(bnb.address, user1.address)
 
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await timelock.setContractHandler(positionRouter.address, true)
 
@@ -1317,7 +1317,7 @@ describe("PositionRouter", function () {
     await vault.buyUSDG(dai.address, user1.address)
 
     await expect(positionRouter.connect(positionKeeper).executeIncreasePosition(key, executionFeeReceiver.address))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await timelock.setContractHandler(positionRouter.address, true)
 

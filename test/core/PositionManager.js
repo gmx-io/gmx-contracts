@@ -240,7 +240,7 @@ describe("PositionManager", function () {
 
     await positionManager.setInLegacyMode(true)
     await expect(positionManager.connect(user0).increasePosition([btc.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     // path length should be 1 or 2
     await expect(positionManager.connect(user0).increasePosition([btc.address, bnb.address, dai.address], btc.address, expandDecimals(1, 7), 0, 0, true, toUsd(100000)))
@@ -338,7 +338,7 @@ describe("PositionManager", function () {
 
     await positionManager.setInLegacyMode(true)
     await expect(positionManager.connect(user0).increasePositionETH([bnb.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     // path[0] should always be weth
     await expect(positionManager.connect(user0).increasePositionETH([btc.address], bnb.address, 0, 0, true, toUsd(100000), { value: expandDecimals(1, 18) }))

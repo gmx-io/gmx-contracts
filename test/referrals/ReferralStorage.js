@@ -193,7 +193,7 @@ describe("ReferralStorage", function () {
       .to.be.revertedWith("Governable: forbidden")
 
     await expect(timelock.connect(user0).setTier(referralStorage.address, 1, 12, 20))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await timelock.setContractHandler(user0.address, true)
 
@@ -215,7 +215,7 @@ describe("ReferralStorage", function () {
       .to.be.revertedWith("Governable: forbidden")
 
     await expect(timelock.connect(user0).setReferrerTier(referralStorage.address, user1.address, 2))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await timelock.setContractHandler(user0.address, true)
 
@@ -232,7 +232,7 @@ describe("ReferralStorage", function () {
       .to.be.revertedWith("Governable: forbidden")
 
     await expect(timelock.connect(user0).govSetCodeOwner(referralStorage.address, code, user1.address))
-      .to.be.revertedWith("Timelock: forbidden")
+      .to.be.revertedWith("forbidden")
 
     await timelock.setContractHandler(user0.address, true)
 
