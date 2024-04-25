@@ -9,4 +9,6 @@ interface ITimelock {
     function disableLeverage(address _vault) external;
     function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external;
     function signalSetGov(address _target, address _gov) external;
+    function setGov(address _target) external;
+    function requestGov(address[] memory _targets) external;
 }

@@ -2,10 +2,16 @@
 
 pragma solidity 0.6.12;
 
+pragma experimental ABIEncoderV2;
+
 import "./interfaces/ITimelockTarget.sol";
 import "./interfaces/ITimelock.sol";
 import "./interfaces/IHandlerTarget.sol";
+import "./Multicall.sol";
+
 import "../access/interfaces/IAdmin.sol";
+import "../access/interfaces/IGovRequester.sol";
+import "../access/Governable.sol";
 import "../core/interfaces/IVault.sol";
 import "../core/interfaces/IVaultUtils.sol";
 import "../core/interfaces/IGlpManager.sol";
@@ -20,7 +26,7 @@ import "../staking/interfaces/IRewardRouterV2.sol";
 import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
 
-contract Timelock is ITimelock {
+contract Timelock is ITimelock, BasicMulticall {
     using SafeMath for uint256;
 
     uint256 public constant PRICE_PRECISION = 10 ** 30;
@@ -47,6 +53,8 @@ contract Timelock is ITimelock {
     mapping (address => bool) public isHandler;
     mapping (address => bool) public isKeeper;
 
+    mapping (address => bool) public govRequesters;
+
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
     event SignalWithdrawToken(address target, address token, address receiver, uint256 amount, bytes32 action);
@@ -55,6 +63,7 @@ contract Timelock is ITimelock {
     event SignalSetHandler(address target, address handler, bool isActive, bytes32 action);
     event SignalSetMinter(address target, address minter, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
+    event SignalSetGovRequester(address requester);
     event SignalRedeemUsdg(address vault, address token, uint256 amount);
     event SignalVaultSetTokenConfig(
         address vault,
@@ -69,22 +78,27 @@ contract Timelock is ITimelock {
     event ClearAction(bytes32 action);
 
     modifier onlyAdmin() {
-        require(msg.sender == admin, "Timelock: forbidden");
+        require(msg.sender == admin, "forbidden");
         _;
     }
 
     modifier onlyHandlerAndAbove() {
-        require(msg.sender == admin || isHandler[msg.sender], "Timelock: forbidden");
+        require(msg.sender == admin || isHandler[msg.sender], "forbidden");
         _;
     }
 
     modifier onlyKeeperAndAbove() {
-        require(msg.sender == admin || isHandler[msg.sender] || isKeeper[msg.sender], "Timelock: forbidden");
+        require(msg.sender == admin || isHandler[msg.sender] || isKeeper[msg.sender], "forbidden");
         _;
     }
 
     modifier onlyTokenManager() {
-        require(msg.sender == tokenManager, "Timelock: forbidden");
+        require(msg.sender == tokenManager, "forbidden");
+        _;
+    }
+
+    modifier onlyGovRequester() {
+        require(govRequesters[msg.sender], "forbidden");
         _;
     }
 
@@ -100,7 +114,7 @@ contract Timelock is ITimelock {
         uint256 _marginFeeBasisPoints,
         uint256 _maxMarginFeeBasisPoints
     ) public {
-        require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
+        require(_buffer <= MAX_BUFFER, "invalid _buffer");
         admin = _admin;
         buffer = _buffer;
         tokenManager = _tokenManager;
@@ -114,12 +128,26 @@ contract Timelock is ITimelock {
         maxMarginFeeBasisPoints = _maxMarginFeeBasisPoints;
     }
 
+    function requestGov(address[] memory _targets) external override onlyGovRequester {
+        // handover gov to requester
+        for (uint256 i; i < _targets.length; i++) {
+            Governable(_targets[i]).setGov(msg.sender);
+        }
+
+        IGovRequester(msg.sender).afterGovGranted();
+
+        // validate that gov was handed back
+        for (uint256 i; i < _targets.length; i++) {
+            require(Governable(_targets[i]).gov() == address(this), "gov != this");
+        }
+    }
+
     function setAdmin(address _admin) external override onlyTokenManager {
         admin = _admin;
     }
 
     function setExternalAdmin(address _target, address _admin) external onlyAdmin {
-        require(_target != address(this), "Timelock: invalid _target");
+        require(_target != address(this), "invalid _target");
         IAdmin(_target).setAdmin(_admin);
     }
 
@@ -132,19 +160,19 @@ contract Timelock is ITimelock {
     }
 
     function setBuffer(uint256 _buffer) external onlyAdmin {
-        require(_buffer <= MAX_BUFFER, "Timelock: invalid _buffer");
-        require(_buffer > buffer, "Timelock: buffer cannot be decreased");
+        require(_buffer <= MAX_BUFFER, "invalid _buffer");
+        require(_buffer > buffer, "buffer cannot be decreased");
         buffer = _buffer;
     }
 
     function setMaxLeverage(address _vault, uint256 _maxLeverage) external onlyAdmin {
-      require(_maxLeverage > MAX_LEVERAGE_VALIDATION, "Timelock: invalid _maxLeverage");
+      require(_maxLeverage > MAX_LEVERAGE_VALIDATION, "invalid _maxLeverage");
       IVault(_vault).setMaxLeverage(_maxLeverage);
     }
 
     function setFundingRate(address _vault, uint256 _fundingInterval, uint256 _fundingRateFactor, uint256 _stableFundingRateFactor) external onlyKeeperAndAbove {
-        require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _fundingRateFactor");
-        require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "Timelock: invalid _stableFundingRateFactor");
+        require(_fundingRateFactor < MAX_FUNDING_RATE_FACTOR, "invalid _fundingRateFactor");
+        require(_stableFundingRateFactor < MAX_FUNDING_RATE_FACTOR, "invalid _stableFundingRateFactor");
         IVault(_vault).setFundingRate(_fundingInterval, _fundingRateFactor, _stableFundingRateFactor);
     }
 
@@ -263,10 +291,10 @@ contract Timelock is ITimelock {
         uint256 _bufferAmount,
         uint256 _usdgAmount
     ) external onlyKeeperAndAbove {
-        require(_minProfitBps <= 500, "Timelock: invalid _minProfitBps");
+        require(_minProfitBps <= 500, "invalid _minProfitBps");
 
         IVault vault = IVault(_vault);
-        require(vault.whitelistedTokens(_token), "Timelock: token not yet whitelisted");
+        require(vault.whitelistedTokens(_token), "token not yet whitelisted");
 
         uint256 tokenDecimals = vault.tokenDecimals(_token);
         bool isStable = vault.stableTokens(_token);
@@ -294,7 +322,7 @@ contract Timelock is ITimelock {
     }
 
     function updateUsdgSupply(address _glpManager, uint256 usdgAmount) external onlyKeeperAndAbove {
-        require(_glpManager == glpManager || _glpManager == prevGlpManager, "Timelock: invalid _glpManager");
+        require(_glpManager == glpManager || _glpManager == prevGlpManager, "invalid _glpManager");
 
         address usdg = IGlpManager(_glpManager).usdg();
         uint256 balance = IERC20(usdg).balanceOf(_glpManager);
@@ -317,7 +345,7 @@ contract Timelock is ITimelock {
     }
 
     function setGlpCooldownDuration(uint256 _cooldownDuration) external onlyAdmin {
-        require(_cooldownDuration < 2 hours, "Timelock: invalid _cooldownDuration");
+        require(_cooldownDuration < 2 hours, "invalid _cooldownDuration");
         IGlpManager(glpManager).setCooldownDuration(_cooldownDuration);
     }
 
@@ -377,7 +405,7 @@ contract Timelock is ITimelock {
     }
 
     function batchSetBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyKeeperAndAbove {
-        require(_accounts.length == _amounts.length, "Timelock: invalid lengths");
+        require(_accounts.length == _amounts.length, "invalid lengths");
 
         IHandlerTarget(_vester).setHandler(address(this), true);
 
@@ -391,7 +419,7 @@ contract Timelock is ITimelock {
     }
 
     function batchIncreaseBonusRewards(address _vester, address[] memory _accounts, uint256[] memory _amounts) external onlyKeeperAndAbove {
-        require(_accounts.length == _amounts.length, "Timelock: invalid lengths");
+        require(_accounts.length == _amounts.length, "invalid lengths");
 
         IHandlerTarget(_vester).setHandler(address(this), true);
 
@@ -449,16 +477,28 @@ contract Timelock is ITimelock {
         _mint(_token, _receiver, _amount);
     }
 
+    // process to change gov:
+    // - a.gov() == gov_1
+    // - gov_1.signalSetGov(a, gov_2)
+    // - gov_2.acceptGov(a)
     function signalSetGov(address _target, address _gov) external override onlyAdmin {
         bytes32 action = keccak256(abi.encodePacked("setGov", _target, _gov));
         _setPendingAction(action);
         emit SignalSetGov(_target, _gov, action);
     }
 
-    function setGov(address _target, address _gov) external onlyAdmin {
+    function acceptGov(address _target) external onlyAdmin {
+        address prevGov = Governable(_target).gov();
+        ITimelock(prevGov).setGov(_target);
+    }
+
+    function setGov(address _target) external override {
+        address _gov = msg.sender;
         bytes32 action = keccak256(abi.encodePacked("setGov", _target, _gov));
+
         _validateAction(action);
         _clearAction(action);
+
         ITimelockTarget(_target).setGov(_gov);
     }
 
@@ -501,100 +541,17 @@ contract Timelock is ITimelock {
         IVault(_vault).setPriceFeed(_priceFeed);
     }
 
-    function signalRedeemUsdg(address _vault, address _token, uint256 _amount) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("redeemUsdg", _vault, _token, _amount));
+    function signalSetGovRequester(address _requester) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setGovRequester", _requester));
         _setPendingAction(action);
-        emit SignalRedeemUsdg(_vault, _token, _amount);
+        emit SignalSetGovRequester(_requester);
     }
 
-    function redeemUsdg(address _vault, address _token, uint256 _amount) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked("redeemUsdg", _vault, _token, _amount));
+    function setGovRequester(address _requester) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("setGovRequester", _requester));
         _validateAction(action);
         _clearAction(action);
-
-        address usdg = IVault(_vault).usdg();
-        IVault(_vault).setManager(address(this), true);
-        IUSDG(usdg).addVault(address(this));
-
-        IUSDG(usdg).mint(address(this), _amount);
-        IERC20(usdg).transfer(address(_vault), _amount);
-
-        IVault(_vault).sellUSDG(_token, mintReceiver);
-
-        IVault(_vault).setManager(address(this), false);
-        IUSDG(usdg).removeVault(address(this));
-    }
-
-    function signalVaultSetTokenConfig(
-        address _vault,
-        address _token,
-        uint256 _tokenDecimals,
-        uint256 _tokenWeight,
-        uint256 _minProfitBps,
-        uint256 _maxUsdgAmount,
-        bool _isStable,
-        bool _isShortable
-    ) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked(
-            "vaultSetTokenConfig",
-            _vault,
-            _token,
-            _tokenDecimals,
-            _tokenWeight,
-            _minProfitBps,
-            _maxUsdgAmount,
-            _isStable,
-            _isShortable
-        ));
-
-        _setPendingAction(action);
-
-        emit SignalVaultSetTokenConfig(
-            _vault,
-            _token,
-            _tokenDecimals,
-            _tokenWeight,
-            _minProfitBps,
-            _maxUsdgAmount,
-            _isStable,
-            _isShortable
-        );
-    }
-
-    function vaultSetTokenConfig(
-        address _vault,
-        address _token,
-        uint256 _tokenDecimals,
-        uint256 _tokenWeight,
-        uint256 _minProfitBps,
-        uint256 _maxUsdgAmount,
-        bool _isStable,
-        bool _isShortable
-    ) external onlyAdmin {
-        bytes32 action = keccak256(abi.encodePacked(
-            "vaultSetTokenConfig",
-            _vault,
-            _token,
-            _tokenDecimals,
-            _tokenWeight,
-            _minProfitBps,
-            _maxUsdgAmount,
-            _isStable,
-            _isShortable
-        ));
-
-        _validateAction(action);
-        _clearAction(action);
-
-        IVault(_vault).setTokenConfig(
-            _token,
-            _tokenDecimals,
-            _tokenWeight,
-            _minProfitBps,
-            _maxUsdgAmount,
-            _isStable,
-            _isShortable
-        );
+        govRequesters[_requester] = true;
     }
 
     function cancelAction(bytes32 _action) external onlyAdmin {
@@ -607,24 +564,24 @@ contract Timelock is ITimelock {
         mintable.setMinter(address(this), true);
 
         mintable.mint(_receiver, _amount);
-        require(IERC20(_token).totalSupply() <= maxTokenSupply, "Timelock: maxTokenSupply exceeded");
+        require(IERC20(_token).totalSupply() <= maxTokenSupply, "maxTokenSupply exceeded");
 
         mintable.setMinter(address(this), false);
     }
 
     function _setPendingAction(bytes32 _action) private {
-        require(pendingActions[_action] == 0, "Timelock: action already signalled");
+        require(pendingActions[_action] == 0, "action already signalled");
         pendingActions[_action] = block.timestamp.add(buffer);
         emit SignalPendingAction(_action);
     }
 
     function _validateAction(bytes32 _action) private view {
-        require(pendingActions[_action] != 0, "Timelock: action not signalled");
-        require(pendingActions[_action] < block.timestamp, "Timelock: action time not yet passed");
+        require(pendingActions[_action] != 0, "action not signalled");
+        require(pendingActions[_action] < block.timestamp, "action time not yet passed");
     }
 
     function _clearAction(bytes32 _action) private {
-        require(pendingActions[_action] != 0, "Timelock: invalid _action");
+        require(pendingActions[_action] != 0, "invalid _action");
         delete pendingActions[_action];
         emit ClearAction(_action);
     }
