@@ -3,11 +3,11 @@
 pragma solidity 0.6.12;
 
 import "./BaseMigrator.sol";
-import "./BeefyTimelockCaller.sol";
+import "./StabilizeCaller.sol";
 
-contract BeefyMigrator is BaseMigrator {
+contract StabilizeMigrator is BaseMigrator {
 
-    address public immutable beefyTimelockCaller;
+    address public immutable stabilizeCaller;
 
     constructor(
         address _admin,
@@ -21,7 +21,7 @@ contract BeefyMigrator is BaseMigrator {
         address _esGmx,
         address _bnGmx,
         address _rewardRouter,
-        address _beefyTimelockCaller
+        address _stabilizeCaller
     ) public BaseMigrator(
         _admin,
         _stakedGmxTracker,
@@ -35,10 +35,10 @@ contract BeefyMigrator is BaseMigrator {
         _bnGmx,
         _rewardRouter
     ) {
-        beefyTimelockCaller = _beefyTimelockCaller;
+        stabilizeCaller = _stabilizeCaller;
     }
 
     function _makeExternalCall() internal override {
-        BeefyTimelockCaller(beefyTimelockCaller).executeProposals();
+        StabilizeCaller(stabilizeCaller).completeMove();
     }
 }

@@ -3,11 +3,10 @@
 pragma solidity 0.6.12;
 
 import "./interfaces/ITimelockController.sol";
-import "./interfaces/IBeefyTimelockCaller.sol";
 
 pragma experimental ABIEncoderV2;
 
-contract BeefyTimelockCaller is IBeefyTimelockCaller {
+contract BeefyTimelockCaller {
     bool public isInitialized;
     address public parent;
     address public gov;
@@ -29,7 +28,7 @@ contract BeefyTimelockCaller is IBeefyTimelockCaller {
         parent = _parent;
     }
 
-    function executeProposals() external override {
+    function executeProposals() external {
         require(msg.sender == parent, "forbidden");
 
         if (chainId == 42161) {
