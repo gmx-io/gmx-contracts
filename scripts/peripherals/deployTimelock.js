@@ -67,15 +67,11 @@ async function main() {
 
   const deployedTimelock = await contractAt("Timelock", timelock.address)
 
-  await signExternally(await deployedTimelock.populateTransaction.setShouldToggleIsLeverageEnabled(true));
-  await signExternally(await deployedTimelock.populateTransaction.setContractHandler(positionRouter.address, true));
-  await signExternally(await deployedTimelock.populateTransaction.setContractHandler(positionManager.address, true));
+  const multicallWriteParams = []
 
-  // // update gov of vault
-  // const vaultGov = await contractAt("Timelock", await vault.gov())
-
-  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
-  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
+  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setShouldToggleIsLeverageEnabled", [true]));
+  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionRouter.address, true]));
+  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionManager.address, true]));
 
   const handlers = [
     "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
@@ -86,7 +82,7 @@ async function main() {
 
   for (let i = 0; i < handlers.length; i++) {
     const handler = handlers[i]
-    await signExternally(await deployedTimelock.populateTransaction.setContractHandler(handler, true));
+    multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [handler, true]));
   }
 
   const keepers = [
@@ -95,10 +91,17 @@ async function main() {
 
   for (let i = 0; i < keepers.length; i++) {
     const keeper = keepers[i]
-    await signExternally(await deployedTimelock.populateTransaction.setContractHandler(keeper, true));
+    multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [keeper, true]));
   }
 
-  await signExternally(await deployedTimelock.populateTransaction.signalApprove(gmx.address, admin, "1000000000000000000"));
+  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("signalApprove", [gmx.address, admin, "1000000000000000000"]));
+  await signExternally(await deployedTimelock.populateTransaction.multicall(multicallWriteParams));
+
+  // // update gov of vault
+  // const vaultGov = await contractAt("Timelock", await vault.gov())
+
+  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
+  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
 }
 
 main().catch((ex) => {
