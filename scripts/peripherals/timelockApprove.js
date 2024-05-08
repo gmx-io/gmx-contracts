@@ -1,29 +1,27 @@
-const { contractAt, sendTxn, getFrameSigner, sleep } = require("../shared/helpers")
+const { contractAt, sendTxn, sleep } = require("../shared/helpers")
+const { signExternally } = require("../shared/signer")
 const { expandDecimals } = require("../../test/shared/utilities")
 
 async function approveTokens({ network }) {
-  const signer = await getFrameSigner({ network })
-  const timelock = await contractAt("Timelock", "0xfA7046e0a049ed8528f1c40d3bD66c1555f7Ec9C", signer)
+  const timelock = await contractAt("Timelock", "0xa252b87040E4b97AFb617962e6b7E90cB508A45F")
 
   const method = process.env.METHOD
   if (!["signalApprove", "approve"].includes(method)) {
     throw new Error(`Invalid method ${method}`)
   }
 
-  const token = "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"
-  const spender = "0xf66c5E4a91FF10466E78BD50F87449a802053112"
-  const amount = expandDecimals(155_000, 6)
+  const token = "0x62edc0692BD897D2295872a9FFCac5425011c661"
+  const spender = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
+  const amount = "1000000000000000000"
 
-  await sendTxn(timelock[method](token, spender, amount), `timelock.${method}`)
+  await signExternally(await timelock.populateTransaction[method](token, spender, amount));
 }
 
 async function main() {
   await approveTokens({ network: process.env.HARDHAT_NETWORK })
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })
+main().catch((ex) => {
+  console.error(ex);
+  process.exit(1);
+});

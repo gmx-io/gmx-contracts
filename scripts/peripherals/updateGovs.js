@@ -68,14 +68,14 @@ async function getValues() {
 }
 
 async function setGov(target, nextTimelock, signer) {
-    const prevTimelock = await contractAt("Timelock", await target.gov(), signer)
+    const prevTimelock = await contractAt("GmxTimelock", await target.gov(), signer)
     if (prevTimelock.address === nextTimelock.address) {
       console.info("gov already set to nextTimelock, skipping", target.address)
       return
     }
 
-  await signExternally(await prevTimelock.populateTransaction.signalSetGov(target.address, nextTimelock.address));
-  // await signExternally(await prevTimelock.populateTransaction.setGov(target.address, nextTimelock.address));
+  // await signExternally(await prevTimelock.populateTransaction.signalSetGov(target.address, nextTimelock.address));
+  await signExternally(await prevTimelock.populateTransaction.setGov(target.address, nextTimelock.address));
 }
 
 async function main() {
