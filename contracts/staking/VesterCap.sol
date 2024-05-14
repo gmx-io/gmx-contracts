@@ -37,7 +37,25 @@ contract VesterCap is ReentrancyGuard, Governable {
         maxBoostBasisPoints = _maxBoostBasisPoints;
     }
 
-    function unreservePairToken(address _account) external nonReentrant onlyGov {
+    function unreservePairToken(address[] memory _accounts) external nonReentrant onlyGov {
+        for (uint256 i; i < _accounts.length; i++) {
+            _unreservePairToken(_accounts[i]);
+        }
+    }
+
+    function syncFeeGmxTrackerBalance(address _account) external nonReentrant onlyGov {
+        uint256 stakedAmount = IRewardTracker(feeGmxTracker).stakedAmounts(_account);
+        uint256 feeGmxTrackerBalance = IERC20(feeGmxTracker).balanceOf(_account);
+
+        if (feeGmxTrackerBalance <= stakedAmount) {
+            return;
+        }
+
+        uint256 amountToTransfer = feeGmxTrackerBalance.sub(stakedAmount);
+        IERC20(feeGmxTracker).safeTransferFrom(_account, gmxVester, amountToTransfer);
+    }
+
+    function _unreservePairToken(address _account) internal {
         uint256 baseStakedAmount = IRewardTracker(stakedGmxTracker).stakedAmounts(_account);
         uint256 maxAllowedBnGmxAmount = baseStakedAmount.mul(maxBoostBasisPoints).div(BASIS_POINTS_DIVISOR);
         uint256 currentBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
@@ -57,17 +75,5 @@ contract VesterCap is ReentrancyGuard, Governable {
 
         IERC20(feeGmxTracker).safeTransferFrom(gmxVester, _account, amountToUnvest);
         IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bnGmx, amountToUnstake, _account);
-    }
-
-    function syncFeeGmxTrackerBalance(address _account) external nonReentrant onlyGov {
-        uint256 stakedAmount = IRewardTracker(feeGmxTracker).stakedAmounts(_account);
-        uint256 feeGmxTrackerBalance = IERC20(feeGmxTracker).balanceOf(_account);
-
-        if (feeGmxTrackerBalance <= stakedAmount) {
-            return;
-        }
-
-        uint256 amountToTransfer = feeGmxTrackerBalance.sub(stakedAmount);
-        IERC20(feeGmxTracker).safeTransferFrom(_account, gmxVester, amountToTransfer);
     }
 }
