@@ -67,13 +67,11 @@ contract VesterCap is ReentrancyGuard, Governable {
         uint256 amountToUnstake = currentBnGmxAmount.sub(maxAllowedBnGmxAmount);
         uint256 feeGmxTrackerBalance = IERC20(feeGmxTracker).balanceOf(_account);
 
-        if (amountToUnstake <= feeGmxTrackerBalance) {
-            return;
+        if (amountToUnstake > feeGmxTrackerBalance) {
+            uint256 amountToUnvest = amountToUnstake.sub(feeGmxTrackerBalance);
+            IERC20(feeGmxTracker).safeTransferFrom(gmxVester, _account, amountToUnvest);
         }
 
-        uint256 amountToUnvest = amountToUnstake.sub(feeGmxTrackerBalance);
-
-        IERC20(feeGmxTracker).safeTransferFrom(gmxVester, _account, amountToUnvest);
         IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bnGmx, amountToUnstake, _account);
     }
 }
