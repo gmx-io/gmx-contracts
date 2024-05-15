@@ -37,9 +37,9 @@ contract VesterCap is ReentrancyGuard, Governable {
         maxBoostBasisPoints = _maxBoostBasisPoints;
     }
 
-    function unreservePairToken(address[] memory _accounts) external nonReentrant onlyGov {
+    function unstakeBnGmx(address[] memory _accounts) external nonReentrant onlyGov {
         for (uint256 i; i < _accounts.length; i++) {
-            _unreservePairToken(_accounts[i]);
+            _unstakeBnGmx(_accounts[i]);
         }
     }
 
@@ -55,7 +55,7 @@ contract VesterCap is ReentrancyGuard, Governable {
         IERC20(feeGmxTracker).safeTransferFrom(_account, gmxVester, amountToTransfer);
     }
 
-    function _unreservePairToken(address _account) internal {
+    function _unstakeBnGmx(address _account) internal {
         uint256 baseStakedAmount = IRewardTracker(stakedGmxTracker).stakedAmounts(_account);
         uint256 maxAllowedBnGmxAmount = baseStakedAmount.mul(maxBoostBasisPoints).div(BASIS_POINTS_DIVISOR);
         uint256 currentBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
