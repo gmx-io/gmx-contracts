@@ -1896,10 +1896,10 @@ describe("RewardRouterV2", function () {
 
     await timelock.setHandler(feeGmxTracker.address, vesterCap.address, true);
 
-    await expect(vesterCap.connect(user1).unreservePairToken(user1.address)).to.be.revertedWith("Governable: forbidden")
+    await expect(vesterCap.connect(user1).unstakeBnGmx([user1.address])).to.be.revertedWith("Governable: forbidden")
 
     expect(await bnGmx.balanceOf(user1.address)).eq(0)
-    await vesterCap.unreservePairToken(user1.address)
+    await vesterCap.unstakeBnGmx([user1.address])
     expect(await bnGmx.balanceOf(user1.address)).closeTo(expandDecimals(750, 18), expandDecimals(1, 18))
 
     expect(await gmxVester.balanceOf(user1.address)).eq(expandDecimals(50, 18))
