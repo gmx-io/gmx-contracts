@@ -126,6 +126,16 @@ async function main() {
     )
 
     if (shouldSendTxn) {
+      console.info("sending set token config", {
+        vault: vault.address,
+        token: tokenItem.address, // _token
+        tokenWeight: tokenItem.tokenWeight, // _tokenWeight
+        minProfitBps: tokenItem.minProfitBps, // _minProfitBps
+        adjustedMaxUsdgAmount: adjustedMaxUsdgAmount.toString(), // _maxUsdgAmount
+        adjustedBufferAmount: adjustedBufferAmount.toString(), // _bufferAmount
+        usgdAmount: usdgAmount.toString()
+      })
+
       await sendTxn(timelock.setTokenConfig(
         vault.address,
         tokenItem.address, // _token
