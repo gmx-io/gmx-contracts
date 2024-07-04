@@ -75,7 +75,8 @@ contract VesterCap is ReentrancyGuard, Governable {
 
         uint256 stakedBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
         uint256 claimableBnGmxAmount = IRewardTracker(stakedGmxTracker).claimable(_account);
-        uint256 totalBnGmxAmount = stakedBnGmxAmount.add(claimableBnGmxAmount);
+        uint256 bnGmxBalance = IERC20(bnGmx).balanceOf(_account);
+        uint256 totalBnGmxAmount = stakedBnGmxAmount.add(claimableBnGmxAmount).add(bnGmxBalance);
 
         uint256 esGmxToMint = totalBnGmxAmount / bnGmxToEsGmxConversionDivisor;
 
