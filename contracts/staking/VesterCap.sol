@@ -9,6 +9,8 @@ import "../libraries/utils/ReentrancyGuard.sol";
 
 import "../access/Governable.sol";
 import "./interfaces/IRewardTracker.sol";
+import "./interfaces/IVester.sol";
+import "../tokens/Token.sol";
 
 contract VesterCap is ReentrancyGuard, Governable {
     using SafeMath for uint256;
@@ -16,30 +18,39 @@ contract VesterCap is ReentrancyGuard, Governable {
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
-    address public gmxVester;
-    address public stakedGmxTracker;
-    address public feeGmxTracker;
-    address public bnGmx;
+    address public immutable gmxVester;
+    address public immutable stakedGmxTracker;
+    address public immutable feeGmxTracker;
+    address public immutable bnGmx;
+    address public immutable esGmx;
 
-    uint256 public maxBoostBasisPoints;
+    uint256 public immutable maxBoostBasisPoints;
+    uint256 public immutable bnGmxToEsGmxConversionDivisor;
+
+    mapping (address => bool) public isUpdateCompleted;
 
     constructor (
         address _gmxVester,
         address _stakedGmxTracker,
         address _feeGmxTracker,
         address _bnGmx,
-        uint256 _maxBoostBasisPoints
+        address _esGmx,
+        uint256 _maxBoostBasisPoints,
+        uint256 _bnGmxToEsGmxConversionDivisor
     ) public {
         gmxVester = _gmxVester;
         stakedGmxTracker = _stakedGmxTracker;
         feeGmxTracker = _feeGmxTracker;
         bnGmx = _bnGmx;
+        esGmx = _esGmx;
+
         maxBoostBasisPoints = _maxBoostBasisPoints;
+        bnGmxToEsGmxConversionDivisor = _bnGmxToEsGmxConversionDivisor;
     }
 
-    function unstakeBnGmx(address[] memory _accounts) external nonReentrant onlyGov {
+    function updateBnGmxForAccounts(address[] memory _accounts) external nonReentrant onlyGov {
         for (uint256 i; i < _accounts.length; i++) {
-            _unstakeBnGmx(_accounts[i]);
+            _updateBnGmxForAccount(_accounts[i]);
         }
     }
 
@@ -55,18 +66,42 @@ contract VesterCap is ReentrancyGuard, Governable {
         IERC20(feeGmxTracker).safeTransferFrom(_account, gmxVester, amountToTransfer);
     }
 
-    function _unstakeBnGmx(address _account) internal {
-        uint256 baseStakedAmount = IRewardTracker(stakedGmxTracker).stakedAmounts(_account);
-        uint256 maxAllowedBnGmxAmount = baseStakedAmount.mul(maxBoostBasisPoints).div(BASIS_POINTS_DIVISOR);
-        uint256 currentBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
-
-        if (currentBnGmxAmount <= maxAllowedBnGmxAmount) {
+    function _updateBnGmxForAccount(address _account) internal {
+        if (isUpdateCompleted[_account]) {
             return;
         }
 
-        uint256 amountToUnstake = currentBnGmxAmount.sub(maxAllowedBnGmxAmount);
+        isUpdateCompleted[_account] = true;
+
+        uint256 stakedBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
+        uint256 claimableBnGmxAmount = IRewardTracker(stakedGmxTracker).claimable(_account);
+        uint256 totalBnGmxAmount = stakedBnGmxAmount.add(claimableBnGmxAmount);
+
+        uint256 esGmxToMint = totalBnGmxAmount / bnGmxToEsGmxConversionDivisor;
+
+        // mint esGMX to account and increase vestable esGMX amount
+        if (esGmxToMint > 0) {
+            Token(esGmx).mint(_account, esGmxToMint);
+            uint256 bonusReward = IVester(gmxVester).bonusRewards(_account);
+            IVester(gmxVester).setBonusRewards(_account, bonusReward.add(esGmxToMint));
+        }
+
+        uint256 baseStakedAmount = IRewardTracker(stakedGmxTracker).stakedAmounts(_account);
+        uint256 maxAllowedBnGmxAmount = baseStakedAmount.mul(maxBoostBasisPoints).div(BASIS_POINTS_DIVISOR);
+
+        if (stakedBnGmxAmount <= maxAllowedBnGmxAmount) {
+            return;
+        }
+
+        uint256 amountToUnstake = stakedBnGmxAmount.sub(maxAllowedBnGmxAmount);
         uint256 feeGmxTrackerBalance = IERC20(feeGmxTracker).balanceOf(_account);
 
+        // a user's feeGmxTracker tokens could be transferred to the gmxVester contract
+        // if the amountToUnstake is greater than the feeGmxTrackerBalance then
+        // feeGmxTracker.unstakeForAccount would revert as the reduction of the user's staked
+        // amount would cause an underflow
+        // to avoid this issue, transfer the required amount from the feeGmxTracker back to the
+        // user's account
         if (amountToUnstake > feeGmxTrackerBalance) {
             uint256 amountToUnvest = amountToUnstake.sub(feeGmxTrackerBalance);
             IERC20(feeGmxTracker).safeTransferFrom(gmxVester, _account, amountToUnvest);
