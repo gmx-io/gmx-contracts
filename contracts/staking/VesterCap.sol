@@ -20,6 +20,7 @@ contract VesterCap is ReentrancyGuard, Governable {
 
     address public immutable gmxVester;
     address public immutable stakedGmxTracker;
+    address public immutable bonusGmxTracker;
     address public immutable feeGmxTracker;
     address public immutable bnGmx;
     address public immutable esGmx;
@@ -32,6 +33,7 @@ contract VesterCap is ReentrancyGuard, Governable {
     constructor (
         address _gmxVester,
         address _stakedGmxTracker,
+        address _bonusGmxTracker,
         address _feeGmxTracker,
         address _bnGmx,
         address _esGmx,
@@ -40,6 +42,7 @@ contract VesterCap is ReentrancyGuard, Governable {
     ) public {
         gmxVester = _gmxVester;
         stakedGmxTracker = _stakedGmxTracker;
+        bonusGmxTracker = _bonusGmxTracker;
         feeGmxTracker = _feeGmxTracker;
         bnGmx = _bnGmx;
         esGmx = _esGmx;
@@ -74,7 +77,7 @@ contract VesterCap is ReentrancyGuard, Governable {
         isUpdateCompleted[_account] = true;
 
         uint256 stakedBnGmxAmount = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
-        uint256 claimableBnGmxAmount = IRewardTracker(stakedGmxTracker).claimable(_account);
+        uint256 claimableBnGmxAmount = IRewardTracker(bonusGmxTracker).claimable(_account);
         uint256 bnGmxBalance = IERC20(bnGmx).balanceOf(_account);
         uint256 totalBnGmxAmount = stakedBnGmxAmount.add(claimableBnGmxAmount).add(bnGmxBalance);
 
