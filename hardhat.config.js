@@ -92,9 +92,15 @@ module.exports = {
       chainId: 42161,
       accounts: getEnvAccounts(ARBITRUM_DEPLOY_KEY)
     },
+    base: {
+      url: "https://base.llamarpc.com",
+      gasPrice: 30000000000,
+      chainId: 8453,
+      accounts: getEnvAccounts(ARBITRUM_DEPLOY_KEY)
+    },
     avax: {
       url: AVAX_URL,
-      gasPrice: 3000000000000,
+      gasPrice: 100000000000,
       chainId: 43114,
       accounts: getEnvAccounts(AVAX_DEPLOY_KEY)
     },
@@ -112,7 +118,7 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      mainnet: MAINNET_DEPLOY_KEY,
+      mainnet: ETHERSCAN_API_KEY,
       arbitrumOne: ARBISCAN_API_KEY,
       avalanche: SNOWTRACE_API_KEY,
       bsc: BSCSCAN_API_KEY,

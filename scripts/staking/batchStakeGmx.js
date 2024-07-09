@@ -5,7 +5,7 @@ const stakeGmxList = require("../../data/gmxMigration/stakeGmxList6.json")
 async function main() {
   const wallet = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
   const gmx = await contractAt("GMX", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a");
-  const rewardRouter = await contractAt("RewardRouter", "0xc73d553473dC65CE56db96c58e6a091c20980fbA")
+  const rewardRouter = await contractAt("RewardRouter", "0x159854e14A862Df9E39E1D128b8e5F70B4A3cE9B")
   const stakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4")
   const shouldStake = false
 

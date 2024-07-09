@@ -148,6 +148,10 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
     const longTokenFeeAmount = bigNumberify(result[i * 2].returnData)
     const shortTokenFeeAmount = bigNumberify(result[i * 2 + 1].returnData)
 
+    if (longTokenFeeAmount.eq(0) && shortTokenFeeAmount.eq(0)) {
+      continue
+    }
+
     let longTokenPrice = pricesByTokenAddress[market.longToken.toLowerCase()]
     let shortTokenPrice = pricesByTokenAddress[market.shortToken.toLowerCase()]
 
@@ -157,6 +161,13 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
 
     if (!shortTokenPrice) {
       shortTokenPrice = stablecoinPrices[market.shortToken.toLowerCase()]
+    }
+
+    if (!longTokenPrice) {
+      throw new Error(`missing longTokenPrice for ${market.longToken}`)
+    }
+    if (!shortTokenPrice) {
+      throw new Error(`missing shortTokenPrice for ${market.shortToken}`)
     }
 
     const longTokenFeeUsd = longTokenFeeAmount.mul(longTokenPrice)
@@ -229,7 +240,7 @@ async function getAvaxValues() {
   const readerV2 = new ethers.Contract("0x1D5d64d691FBcD8C80A2FD6A9382dF0fe544cBd8", ReaderV2.abi, providers.avax)
   const dataStore = new ethers.Contract("0x2F0b22339414ADeD7D5F06f9D604c7fF5b2fe3f6", DataStore.abi, providers.avax)
   const multicall = new ethers.Contract("0x50474CAe810B316c294111807F94F9f48527e7F8", Multicall3.abi, providers.avax)
-  const tickersUrl = "https://avalanche-api.gmxinfra.io/prices/tickers"
+  const tickersUrl = "https://avalanche-api.gmxinfra2.io/prices/tickers"
 
   const tokens = allTokens.avax
   const tokenArr = tokenArrRef.avax

@@ -6,6 +6,11 @@ const ethers = require('ethers')
 const ARBITRUM_SUBGRAPH_ENDPOINT = 'https://subgraph.satsuma-prod.com/3b2ced13c8d9/gmx/gmx-arbitrum-referrals/api'
 const AVALANCHE_SUBGRAPH_ENDPOINT = 'https://subgraph.satsuma-prod.com/3b2ced13c8d9/gmx/gmx-avalanche-referrals/api'
 
+const ES_GMX_TOKEN_ADDRESS = {
+  arbitrum: '0xf42ae1d54fd613c9bb14810b0588faaa09a426ca',
+  avalanche: '0xff1489227bbaac61a9209a08929e4c2a526ddd17',
+};
+
 const BigNumber = ethers.BigNumber
 const { formatUnits, parseUnits } = ethers.utils
 const SHARE_DIVISOR = BigNumber.from("1000000000") // 1e9
@@ -385,6 +390,102 @@ async function saveDistributionData(network, fromTimestamp, toTimestamp, account
   console.log("Data saved to: %s", filename)
 }
 
+async function getEsGMXReferralRewardsData({
+  network,
+  from,
+  to,
+  account
+}) {
+  const esGmxTokenAddress = ES_GMX_TOKEN_ADDRESS[network];
+
+  let accountCondition = '';
+  if (account) {
+    accountCondition = `, receiver: "${account}"`;
+  }
+  function getEsGmxDistributionQuery(skip) {
+    return `distributions(
+        where: {
+          typeId: "1",
+          tokens_contains: ["${esGmxTokenAddress}"]
+          timestamp_gte: ${from},
+          timestamp_lt: ${to}${accountCondition}
+        }
+        orderBy: timestamp
+        orderDirection: desc
+        first: 10000
+        skip: ${skip}
+      ) {
+        tokens
+        amounts
+        receiver
+      }`;
+  }
+
+  const query = `{
+    esGmxDistribution0: ${getEsGmxDistributionQuery(0)}
+    esGmxDistribution1: ${getEsGmxDistributionQuery(10000)}
+    esGmxDistribution2: ${getEsGmxDistributionQuery(20000)}
+    esGmxDistribution3: ${getEsGmxDistributionQuery(30000)}
+    esGmxDistribution4: ${getEsGmxDistributionQuery(40000)}
+    esGmxDistribution5: ${getEsGmxDistributionQuery(50000)}
+  }`;
+
+  const [data] = await Promise.all([requestSubgraph(network, query)]);
+
+  const esGmxDistributions = [
+    ...data.esGmxDistribution0,
+    ...data.esGmxDistribution1,
+    ...data.esGmxDistribution2,
+    ...data.esGmxDistribution3,
+    ...data.esGmxDistribution4,
+    ...data.esGmxDistribution5,
+  ];
+
+  if (esGmxDistributions.length === 60000) {
+    throw new Error('esGMX distributions should be paginated');
+  }
+
+  const aggregatedDistributionsByReceiver = esGmxDistributions.reduce((distribution, item) => {
+    const receiver = item.receiver;
+    const amountIndex = item.tokens.indexOf(esGmxTokenAddress);
+    if (amountIndex !== -1) {
+      const amount = ethers.BigNumber.from(item.amounts[amountIndex]);
+      if (!distribution[receiver]) {
+        distribution[receiver] = amount;
+      } else {
+        distribution[receiver] = distribution[receiver].add(amount);
+      }
+    }
+    return distribution;
+  }, {});
+
+  const nonZeroDistributionsByReceiver = Object.entries(aggregatedDistributionsByReceiver).reduce(
+    (acc, [receiver, amount]) => {
+      if (!amount.isZero()) {
+        acc[receiver] = amount.toString();
+      }
+      return acc;
+    },
+    {}
+  );
+
+  console.table(nonZeroDistributionsByReceiver)
+  // const filename = `./es-gmx-referral-data-${network}.json`;
+  // fs.writeFileSync(filename, JSON.stringify(nonZeroDistributionsByReceiver, null, 4));
+  // console.log('Data saved to: %s', filename);
+
+  const list = []
+  for (const [account, amount] of Object.entries(nonZeroDistributionsByReceiver)) {
+    list.push({
+      account,
+      amount
+    })
+  }
+
+  return list
+}
+
 module.exports = {
-  saveDistributionData
+  saveDistributionData,
+  getEsGMXReferralRewardsData
 }

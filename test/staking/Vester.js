@@ -48,7 +48,6 @@ describe("Vester", function () {
     expect(await vester.rewardTracker()).eq(AddressZero)
     expect(await vester.hasPairToken()).eq(false)
     expect(await vester.hasRewardTracker()).eq(false)
-    expect(await vester.hasMaxVestableAmount()).eq(false)
   })
 
   it("setTransferredAverageStakedAmounts", async () => {
@@ -137,14 +136,15 @@ describe("Vester", function () {
 
   it("deposit, claim, withdraw", async () => {
     const vester = await deployContract("Vester", [
-      "Vested GMX",
-      "veGMX",
-      secondsPerYear,
-      esGmx.address,
-      AddressZero,
-      gmx.address,
-      AddressZero
+      "Vested GMX", // name
+      "veGMX", // symbol
+      secondsPerYear, // vestingDuration
+      esGmx.address, // esToken
+      AddressZero, // pairToken
+      gmx.address, // claimableToken
+      AddressZero // rewardTracker
     ])
+    await vester.setHandler(wallet.address, true)
     await esGmx.setMinter(vester.address, true)
 
     await expect(vester.connect(user0).deposit(0))
@@ -167,6 +167,7 @@ describe("Vester", function () {
     expect(await vester.lastVestingTimes(user0.address)).eq(0)
 
     await esGmx.mint(user0.address, expandDecimals(1000, 18))
+    await vester.setBonusRewards(user0.address, expandDecimals(10_000, 18))
     await vester.connect(user0).deposit(expandDecimals(1000, 18))
 
     let blockTime = await getBlockTime(provider)
@@ -332,6 +333,7 @@ describe("Vester", function () {
       .to.be.revertedWith("Vester: forbidden")
 
     await vester.setHandler(user2.address, true)
+    await vester.setBonusRewards(user0.address, expandDecimals(10_000, 18))
     await vester.connect(user2).depositForAccount(user0.address, expandDecimals(1000, 18))
 
     let blockTime = await getBlockTime(provider)
@@ -413,6 +415,7 @@ describe("Vester", function () {
     expect(await vester.lastVestingTimes(user0.address)).eq(0)
 
     await esGmx.mint(user0.address, expandDecimals(1000, 18))
+    await vester.setBonusRewards(user0.address, expandDecimals(10_000, 18))
     await vester.connect(user0).deposit(expandDecimals(1000, 18))
 
     let blockTime = await getBlockTime(provider)
@@ -562,7 +565,6 @@ describe("Vester", function () {
     expect(await vester.rewardTracker()).eq(stakedGmxTracker.address)
     expect(await vester.hasPairToken()).eq(true)
     expect(await vester.hasRewardTracker()).eq(true)
-    expect(await vester.hasMaxVestableAmount()).eq(true)
 
     // allow vester to transfer feeGmxTracker tokens
     await feeGmxTracker.setHandler(vester.address, true)
@@ -779,7 +781,6 @@ describe("Vester", function () {
     expect(await vester.rewardTracker()).eq(stakedGmxTracker.address)
     expect(await vester.hasPairToken()).eq(true)
     expect(await vester.hasRewardTracker()).eq(true)
-    expect(await vester.hasMaxVestableAmount()).eq(true)
 
     // allow vester to transfer feeGmxTracker tokens
     await feeGmxTracker.setHandler(vester.address, true)

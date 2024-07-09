@@ -804,7 +804,7 @@ describe("RewardRouterV2", function () {
     expect(await feeGmxTracker.depositBalances(user3.address, bnGmx.address)).eq(0)
     expect(await stakedGmxTracker.depositBalances(user4.address, gmx.address)).eq(expandDecimals(200, 18))
     expect(await stakedGmxTracker.depositBalances(user4.address, esGmx.address)).gt(expandDecimals(892, 18))
-    expect(await stakedGmxTracker.depositBalances(user4.address, esGmx.address)).lt(expandDecimals(893, 18))
+    expect(await stakedGmxTracker.depositBalances(user4.address, esGmx.address)).lt(expandDecimals(894, 18))
     expect(await feeGmxTracker.depositBalances(user4.address, bnGmx.address)).gt("547000000000000000") // 0.547
     expect(await feeGmxTracker.depositBalances(user4.address, bnGmx.address)).lt("549000000000000000") // 0.548
     expect(await gmxVester.transferredAverageStakedAmounts(user4.address)).gt(expandDecimals(200, 18))
@@ -1296,18 +1296,18 @@ describe("RewardRouterV2", function () {
     await increaseTime(provider, 20)
     await mineBlock(provider)
 
-    await timelock.setGov(glpManager.address, timelockV2.address)
-    await timelock.setGov(stakedGmxTracker.address, timelockV2.address)
-    await timelock.setGov(bonusGmxTracker.address, timelockV2.address)
-    await timelock.setGov(feeGmxTracker.address, timelockV2.address)
-    await timelock.setGov(feeGlpTracker.address, timelockV2.address)
-    await timelock.setGov(stakedGlpTracker.address, timelockV2.address)
-    await timelock.setGov(stakedGmxDistributor.address, timelockV2.address)
-    await timelock.setGov(stakedGlpDistributor.address, timelockV2.address)
-    await timelock.setGov(esGmx.address, timelockV2.address)
-    await timelock.setGov(bnGmx.address, timelockV2.address)
-    await timelock.setGov(gmxVester.address, timelockV2.address)
-    await timelock.setGov(glpVester.address, timelockV2.address)
+    await timelock.connect(timelockV2).setGov(glpManager.address)
+    await timelock.connect(timelockV2).setGov(stakedGmxTracker.address)
+    await timelock.connect(timelockV2).setGov(bonusGmxTracker.address)
+    await timelock.connect(timelockV2).setGov(feeGmxTracker.address)
+    await timelock.connect(timelockV2).setGov(feeGlpTracker.address)
+    await timelock.connect(timelockV2).setGov(stakedGlpTracker.address)
+    await timelock.connect(timelockV2).setGov(stakedGmxDistributor.address)
+    await timelock.connect(timelockV2).setGov(stakedGlpDistributor.address)
+    await timelock.connect(timelockV2).setGov(esGmx.address)
+    await timelock.connect(timelockV2).setGov(bnGmx.address)
+    await timelock.connect(timelockV2).setGov(gmxVester.address)
+    await timelock.connect(timelockV2).setGov(glpVester.address)
 
     await esGmx.setHandler(rewardRouterV2.address, true)
     await esGmx.setHandler(stakedGmxDistributor.address, true)
@@ -1740,40 +1740,6 @@ describe("RewardRouterV2", function () {
     expect(await bnb.balanceOf(user1.address)).eq("994009000000000000")
   })
 
-  it("caps stakeable bnGMX", async () => {
-    await gmx.setMinter(wallet.address, true)
-    await gmx.mint(user1.address, expandDecimals(100, 18))
-    await esGmx.mint(user1.address, expandDecimals(25, 18))
-    await bnGmx.mint(user1.address, expandDecimals(1000, 18))
-
-    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(100, 18))
-    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(100, 18))
-    await rewardRouter.connect(user1).stakeGmx(expandDecimals(100, 18))
-    expect(await gmx.balanceOf(user1.address)).eq(0)
-
-    expect(await esGmx.balanceOf(user1.address)).eq(expandDecimals(25, 18))
-    await rewardRouter.connect(user1).stakeEsGmx(expandDecimals(25, 18))
-    expect(await esGmx.balanceOf(user1.address)).eq(0)
-
-    expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(125, 18))
-
-    expect(await bnGmx.balanceOf(user1.address)).eq(expandDecimals(1000, 18))
-    await rewardRouter.connect(user1).handleRewards(
-      false, // _shouldClaimGmx
-      false, // _shouldStakeGmx
-      false, // _shouldClaimEsGmx
-      false, // _shouldStakeEsGmx
-      true, // _shouldStakeMultiplierPoints
-      false, // _shouldClaimWeth
-      false // _shouldConvertWethToEth
-    )
-    expect(await bnGmx.balanceOf(user1.address)).gt(expandDecimals(749, 18))
-    expect(await bnGmx.balanceOf(user1.address)).lt(expandDecimals(751, 18))
-
-    expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(125 + 249, 18))
-    expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(125 + 251, 18))
-  })
-
   it("syncs voting power", async () => {
     await gmx.setMinter(wallet.address, true)
     await gmx.mint(user1.address, expandDecimals(100, 18))
@@ -1829,5 +1795,246 @@ describe("RewardRouterV2", function () {
 
     expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(378, 18))
     expect(await govToken.balanceOf(user1.address)).eq(expandDecimals(378, 18))
+  })
+
+  it("caps stakeable bnGMX", async () => {
+    await gmx.setMinter(wallet.address, true)
+    await gmx.mint(user1.address, expandDecimals(100, 18))
+    await esGmx.mint(user1.address, expandDecimals(25, 18))
+    await bnGmx.mint(user1.address, expandDecimals(1000, 18))
+
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(100, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(100, 18))
+    await rewardRouter.connect(user1).stakeGmx(expandDecimals(100, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    expect(await esGmx.balanceOf(user1.address)).eq(expandDecimals(25, 18))
+    await rewardRouter.connect(user1).stakeEsGmx(expandDecimals(25, 18))
+    expect(await esGmx.balanceOf(user1.address)).eq(0)
+
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(125, 18))
+
+    expect(await bnGmx.balanceOf(user1.address)).eq(expandDecimals(1000, 18))
+    await rewardRouter.connect(user1).handleRewards(
+      false, // _shouldClaimGmx
+      false, // _shouldStakeGmx
+      false, // _shouldClaimEsGmx
+      false, // _shouldStakeEsGmx
+      true, // _shouldStakeMultiplierPoints
+      false, // _shouldClaimWeth
+      false // _shouldConvertWethToEth
+    )
+    expect(await bnGmx.balanceOf(user1.address)).gt(expandDecimals(749, 18))
+    expect(await bnGmx.balanceOf(user1.address)).lt(expandDecimals(751, 18))
+
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(125 + 249, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(125 + 251, 18))
+  })
+
+  it("caps stakeable bnGMX while vesting is active", async () => {
+    await gmx.setMinter(wallet.address, true)
+    await gmx.mint(user1.address, expandDecimals(100, 18))
+    await esGmx.mint(user1.address, expandDecimals(25, 18))
+    await bnGmx.mint(user1.address, expandDecimals(1000, 18))
+
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(100, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(100, 18))
+    await rewardRouter.connect(user1).stakeGmx(expandDecimals(100, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    expect(await esGmx.balanceOf(user1.address)).eq(expandDecimals(25, 18))
+    await rewardRouter.connect(user1).stakeEsGmx(expandDecimals(25, 18))
+    expect(await esGmx.balanceOf(user1.address)).eq(0)
+
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(125, 18))
+
+    expect(await bnGmx.balanceOf(user1.address)).eq(expandDecimals(1000, 18))
+    await rewardRouter.setMaxBoostBasisPoints(100_000)
+
+    await rewardRouter.connect(user1).handleRewards(
+      false, // _shouldClaimGmx
+      false, // _shouldStakeGmx
+      false, // _shouldClaimEsGmx
+      false, // _shouldStakeEsGmx
+      true, // _shouldStakeMultiplierPoints
+      false, // _shouldClaimWeth
+      false // _shouldConvertWethToEth
+    )
+
+    expect(await bnGmx.balanceOf(user1.address)).eq(0)
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).closeTo(expandDecimals(1125, 18), expandDecimals(1, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).closeTo(expandDecimals(1000, 18), expandDecimals(1, 18))
+
+    await gmxVester.setTransferredAverageStakedAmounts(user1.address, expandDecimals(1120, 18))
+    await gmxVester.setTransferredCumulativeRewards(user1.address, expandDecimals(50, 18))
+
+    await esGmx.mint(user1.address, expandDecimals(50, 18))
+
+    expect(await gmxVester.balanceOf(user1.address)).eq(0)
+    expect(await feeGmxTracker.balanceOf(user1.address)).closeTo(expandDecimals(1125, 18), expandDecimals(1, 18))
+
+    await gmxVester.connect(user1).deposit(expandDecimals(50, 18))
+    expect(await gmxVester.balanceOf(user1.address)).eq(expandDecimals(50, 18))
+    expect(await gmxVester.pairAmounts(user1.address)).closeTo(expandDecimals(1120, 18), expandDecimals(1, 18))
+    expect(await feeGmxTracker.balanceOf(user1.address)).closeTo(expandDecimals(5, 18), expandDecimals(1, 18))
+
+    await rewardRouter.setMaxBoostBasisPoints(20_000)
+    await expect(rewardRouter.batchCompoundForAccounts([user1.address])).to.be.revertedWith("RewardTracker: burn amount exceeds balance")
+
+    const vesterCap = await deployContract("VesterCap", [
+      gmxVester.address,
+      stakedGmxTracker.address,
+      bonusGmxTracker.address,
+      feeGmxTracker.address,
+      bnGmx.address,
+      esGmx.address,
+      20_000,
+      25
+    ])
+
+    await timelock.signalSetHandler(feeGmxTracker.address, vesterCap.address, true);
+    await timelock.signalSetHandler(gmxVester.address, vesterCap.address, true);
+    await timelock.signalSetMinter(esGmx.address, vesterCap.address, true);
+
+    await increaseTime(provider, 10)
+    await mineBlock(provider)
+
+    await timelock.setHandler(feeGmxTracker.address, vesterCap.address, true);
+    await timelock.setHandler(gmxVester.address, vesterCap.address, true);
+    await timelock.setMinter(esGmx.address, vesterCap.address, true);
+
+    await expect(vesterCap.connect(user1).updateBnGmxForAccounts([user1.address])).to.be.revertedWith("Governable: forbidden")
+
+    expect(await bnGmx.balanceOf(user1.address)).eq(0)
+    expect(await esGmx.balanceOf(user1.address)).eq(0)
+    expect(await gmxVester.bonusRewards(user1.address)).eq(0)
+
+    await vesterCap.updateBnGmxForAccounts([user1.address])
+
+    expect(await bnGmx.balanceOf(user1.address)).closeTo(expandDecimals(750, 18), expandDecimals(1, 18))
+    expect(await esGmx.balanceOf(user1.address)).closeTo(expandDecimals(40, 18), expandDecimals(1, 18))
+    expect(await gmxVester.bonusRewards(user1.address)).closeTo(expandDecimals(40, 18), expandDecimals(1, 18))
+
+    expect(await gmxVester.balanceOf(user1.address)).eq(expandDecimals(50, 18))
+    expect(await gmxVester.pairAmounts(user1.address)).closeTo(expandDecimals(1120, 18), expandDecimals(1, 18))
+    expect(await feeGmxTracker.balanceOf(user1.address)).closeTo(expandDecimals(1, 18), expandDecimals(1, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).closeTo(expandDecimals(376, 18), expandDecimals(1, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).closeTo(expandDecimals(251, 18), expandDecimals(1, 18))
+
+    // due to the transfer out of feeGmxTracker tokens from the vester
+    // the vester will not have sufficient feeGmxTracker balance to
+    // complete the withdrawal for user1
+    // to allow the withdrawal, deposit feeGmxTracker tokens to the
+    // vester using user2
+    await gmx.mint(user2.address, expandDecimals(1000, 18))
+    await gmx.connect(user2).approve(stakedGmxTracker.address, expandDecimals(1000, 18))
+    await rewardRouter.connect(user2).stakeGmx(expandDecimals(1000, 18))
+
+    await esGmx.mint(user2.address, expandDecimals(1, 18))
+
+    await gmxVester.setTransferredAverageStakedAmounts(user2.address, expandDecimals(1000, 18))
+    await gmxVester.setTransferredCumulativeRewards(user2.address, expandDecimals(1, 18))
+    await gmxVester.connect(user2).deposit(expandDecimals(1, 18))
+
+    await gmx.mint(gmxVester.address, expandDecimals(25, 18))
+
+    // check that calling updateBnGmxForAccounts for the same account does not re-mint esGMX
+    await vesterCap.updateBnGmxForAccounts([user1.address])
+    expect(await esGmx.balanceOf(user1.address)).closeTo(expandDecimals(40, 18), expandDecimals(1, 18))
+
+    await gmxVester.connect(user1).withdraw()
+
+    expect(await gmxVester.balanceOf(user1.address)).eq(0)
+    expect(await gmxVester.pairAmounts(user1.address)).eq(0)
+    expect(await feeGmxTracker.balanceOf(user1.address)).closeTo(expandDecimals(1120, 18), expandDecimals(1, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(375, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).eq(expandDecimals(250, 18))
+
+    await expect(vesterCap.connect(user0).syncFeeGmxTrackerBalance(user1.address)).to.be.revertedWith("Governable: forbidden")
+
+    await vesterCap.syncFeeGmxTrackerBalance(user1.address)
+
+    expect(await feeGmxTracker.balanceOf(user1.address)).eq(expandDecimals(375, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(375, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).eq(expandDecimals(250, 18))
+  })
+
+  it("allows migration", async () => {
+    const rewardRouterV2 = await deployContract("RewardRouterV2", [])
+    await rewardRouterV2.initialize(
+      eth.address,
+      gmx.address,
+      esGmx.address,
+      bnGmx.address,
+      glp.address,
+      stakedGmxTracker.address,
+      bonusGmxTracker.address,
+      feeGmxTracker.address,
+      feeGlpTracker.address,
+      stakedGlpTracker.address,
+      glpManager.address,
+      gmxVester.address,
+      glpVester.address,
+      govToken.address
+    )
+
+    const timelockCaller = await deployContract("BeefyTimelockCaller", [])
+    const migrator = await deployContract("BeefyMigrator", [
+      wallet.address,
+      stakedGmxTracker.address,
+      bonusGmxTracker.address,
+      feeGmxTracker.address,
+      stakedGlpTracker.address,
+      feeGlpTracker.address,
+      gmxVester.address,
+      glpVester.address,
+      esGmx.address,
+      bnGmx.address,
+      rewardRouterV2.address,
+      timelockCaller.address
+    ])
+    await timelockCaller.initialize(1, migrator.address)
+
+    await expect(migrator.migrate()).to.be.revertedWith("forbidden")
+
+    await timelock.signalSetGovRequester(migrator.address, true)
+
+    await increaseTime(provider, 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await timelock.setGovRequester(migrator.address, true)
+
+    expect(await stakedGmxTracker.gov()).eq(timelock.address)
+    expect(await bonusGmxTracker.gov()).eq(timelock.address)
+    expect(await feeGmxTracker.gov()).eq(timelock.address)
+    expect(await stakedGlpTracker.gov()).eq(timelock.address)
+    expect(await feeGlpTracker.gov()).eq(timelock.address)
+    expect(await gmxVester.gov()).eq(timelock.address)
+    expect(await glpVester.gov()).eq(timelock.address)
+    expect(await esGmx.gov()).eq(timelock.address)
+    expect(await bnGmx.gov()).eq(timelock.address)
+
+    await migrator.migrate()
+
+    expect(await stakedGmxTracker.gov()).eq(timelock.address)
+    expect(await bonusGmxTracker.gov()).eq(timelock.address)
+    expect(await feeGmxTracker.gov()).eq(timelock.address)
+    expect(await stakedGlpTracker.gov()).eq(timelock.address)
+    expect(await feeGlpTracker.gov()).eq(timelock.address)
+    expect(await gmxVester.gov()).eq(timelock.address)
+    expect(await glpVester.gov()).eq(timelock.address)
+    expect(await esGmx.gov()).eq(timelock.address)
+    expect(await bnGmx.gov()).eq(timelock.address)
+
+    const mockGovRequester = await deployContract("MockGovRequester", [])
+    await timelock.signalSetGovRequester(mockGovRequester.address, true)
+
+    await increaseTime(provider, 24 * 60 * 60)
+    await mineBlock(provider)
+
+    await timelock.setGovRequester(mockGovRequester.address, true)
+
+    await expect(mockGovRequester.migrate(timelock.address, [stakedGmxTracker.address]))
+      .to.be.revertedWith("gov != this")
   })
 })

@@ -48,6 +48,11 @@ const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
 const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B"
 
+const treasuries = {
+  arbitrum: "0x68863dDE14303BcED249cA8ec6AF85d4694dea6A",
+  avax: "0x0339740d92fb8BAf73bAB0E9eb9494bc0Df1CaFD"
+}
+
 const chainlinkFeeReceivers = {
   arbitrum: "0x9Ec49f512eadD1a1ca4FBBd015CE05F62FC3D1BC",
   avax: "0x521f4eD08dEeDf3300d786417c8495cfaE72A20E"
@@ -376,9 +381,28 @@ async function updateRewards() {
       values: stakingValues[network],
       intervalUpdater: deployers[network]
     })
+  }
+}
+
+async function sendPayments() {
+  const rewardAmounts = {
+    arbitrum: {
+      treasury: bigNumberify(feeReference.treasuryFees.arbitrum),
+      chainlink: bigNumberify(feeReference.chainlinkFees.arbitrum)
+    },
+    avax: {
+      treasury: bigNumberify(feeReference.treasuryFees.avax),
+      chainlink: bigNumberify(feeReference.chainlinkFees.avax)
+    }
+  }
+
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
+
+    const handler = handlers[network]
 
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
-    await sendTxn(nativeToken.transfer(FEE_KEEPER, rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+    await sendTxn(nativeToken.transfer(treasuries[network], rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
 
     const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
     await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
@@ -476,6 +500,11 @@ async function processFees({ steps }) {
   }
 
   if (steps.includes(8)) {
+    await sendPayments()
+    await printFeeHandlerBalances()
+  }
+
+  if (steps.includes(9)) {
     await sendReferralRewards()
     await printFeeHandlerBalances()
   }
