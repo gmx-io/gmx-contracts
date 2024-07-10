@@ -137,18 +137,19 @@ async function sendReferralRewards({ skipSendNativeToken, signer, referralSender
     }
   }
 
+  const printBatch = (currentBatch) => {
+    for (let i = 0; i < currentBatch.length; i++) {
+      const item = currentBatch[i]
+      const account = item[0]
+      const amount = item[1]
+      console.log(account, ethers.utils.formatUnits(amount, 18))
+    }
+  }
+
   if (shouldSendTxn) {
     if (!skipSendNativeToken) {
       await sendTxn(nativeTokenForSigner.transfer(wallet.address, totalNativeAmount), "nativeTokenForSigner.transfer")
 
-      const printBatch = (currentBatch) => {
-        for (let i = 0; i < currentBatch.length; i++) {
-          const item = currentBatch[i]
-          const account = item[0]
-          const amount = item[1]
-          console.log(account, ethers.utils.formatUnits(amount, 18))
-        }
-      }
 
       await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
 
