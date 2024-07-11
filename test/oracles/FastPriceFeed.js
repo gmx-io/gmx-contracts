@@ -90,7 +90,6 @@ describe("FastPriceFeed", function () {
       [bnb.address, btc.address, eth.address],
       [bnbFeedId, btcFeedId, ethFeedId]
     )
-    await fastPriceFeed.connect(tokenManager).setPriceDataInterval(1 * 60)
 
     await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
 
@@ -324,6 +323,7 @@ describe("FastPriceFeed", function () {
   })
 
   it("getPrice", async () => {
+    await fastPriceFeed.connect(tokenManager).setPriceDataInterval(1 * 60)
     await fastPriceFeed.connect(tokenManager).setMaxCumulativeDeltaDiffs([bnb.address], [2000000]) // 20%
 
     await bnbPriceFeed.setLatestAnswer(800)
