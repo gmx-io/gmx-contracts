@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 
+pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+
 import "../libraries/math/SafeMath.sol";
 
 import "./interfaces/ISecondaryPriceFeed.sol";
@@ -10,9 +13,7 @@ import "../core/interfaces/IPositionRouter.sol";
 import "../access/Governable.sol";
 
 import "./interfaces/IPyth.sol";
-/* import "./interfaces/PythStructs.sol"; */
-
-pragma solidity 0.6.12;
+import "./interfaces/PythStructs.sol";
 
 contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     using SafeMath for uint256;
@@ -130,27 +131,31 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         address[] memory _signers,
         address[] memory _updaters,
         address[] memory _tokens,
-        uint256[] memory _tokenPrecisions
+        bytes32[] memory _priceFeedIds
     ) public onlyGov {
         require(!isInitialized, "FastPriceFeed: already initialized");
-        require(_tokens.length == _tokenPrecisions.length, "FastPriceFeed: invalid lengths");
+        require(_tokens.length == _priceFeedIds.length, "FastPriceFeed: invalid lengths");
 
         isInitialized = true;
 
         minAuthorizations = _minAuthorizations;
 
-        for (uint256 i = 0; i < _signers.length; i++) {
+        for (uint256 i; i < _signers.length; i++) {
             address signer = _signers[i];
             isSigner[signer] = true;
         }
 
-        for (uint256 i = 0; i < _updaters.length; i++) {
+        for (uint256 i; i < _updaters.length; i++) {
             address updater = _updaters[i];
             isUpdater[updater] = true;
         }
 
         tokens = _tokens;
-        tokenPrecisions = _tokenPrecisions;
+
+        for (uint256 i; i < _tokens.length; i++) {
+            address token = _tokens[i];
+            priceFeedIds[token] = _priceFeedIds[i];
+        }
     }
 
     function setSigner(address _account, bool _isActive) external override onlyGov {
@@ -199,7 +204,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function setMaxCumulativeDeltaDiffs(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyTokenManager {
-        for (uint256 i = 0; i < _tokens.length; i++) {
+        for (uint256 i; i < _tokens.length; i++) {
             address token = _tokens[i];
             maxCumulativeDeltaDiffs[token] = _maxCumulativeDeltaDiffs[i];
         }
@@ -214,19 +219,18 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function setPricesWithData(PriceUpdate[] memory _priceUpdates) external onlyUpdater {
-        _setPricesWithBits(_priceBits, _timestamp);
+        _setPricesWithData(_priceUpdates);
     }
 
-    function setPricesWithBitsAndExecute(
+    function setPricesWithDataAndExecute(
         address _positionRouter,
-        uint256 _priceBits,
-        uint256 _timestamp,
+        PriceUpdate[] memory _priceUpdates,
         uint256 _endIndexForIncreasePositions,
         uint256 _endIndexForDecreasePositions,
         uint256 _maxIncreasePositions,
         uint256 _maxDecreasePositions
     ) external onlyUpdater {
-        _setPricesWithBits(_priceBits, _timestamp);
+        _setPricesWithData(_priceUpdates);
 
         IPositionRouter positionRouter = IPositionRouter(_positionRouter);
         uint256 maxEndIndexForIncrease = positionRouter.increasePositionRequestKeysStart().add(_maxIncreasePositions);
@@ -340,7 +344,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         _setLastUpdatedValues();
 
         for (uint256 i; i < _priceUpdates.length; i++) {
-            PriceUpdate[] priceUpdate = _priceUpdates[i];
+            PriceUpdate memory priceUpdate = _priceUpdates[i];
             uint256 fee = pyth.getUpdateFee(priceUpdate.data);
             pyth.updatePriceFeeds{ value: fee }(priceUpdate.data);
         }
@@ -356,12 +360,17 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             uint256 price = uint256(pythPrice.price);
 
             if (pythPrice.expo < 0) {
-
+                uint256 divisor = 10 ** uint256(-pythPrice.expo);
+                // if divisor < PRICE_PRECISION there would be some rounding of price
+                // it is assumed that rounding of precision after 30 decimals should
+                // not cause significant differences in price calculations
+                price = price * PRICE_PRECISION / divisor;
+            } else {
+                uint256 multiplier = 10 ** uint256(pythPrice.expo);
+                price = price * PRICE_PRECISION * multiplier;
             }
 
-            uint256 adjustedPrice = price.mul(PRICE_PRECISION).div(tokenPrecision);
-
-            _setPrice(token, adjustedPrice);
+            _setPrice(token, price);
         }
     }
 
