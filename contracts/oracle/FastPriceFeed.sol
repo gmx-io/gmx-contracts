@@ -107,8 +107,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _maxPriceUpdateDelay,
       uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
-      address _fastPriceEvents,
       address _vaultPriceFeed,
+      address _fastPriceEvents,
       address _tokenManager
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
@@ -340,6 +340,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         _setLastUpdatedValues();
 
         uint256 fee = pyth.getUpdateFee(priceUpdateData);
+        require(msg.value >= fee, "insufficient value");
         pyth.updatePriceFeeds{ value: fee }(priceUpdateData);
 
         uint256 tokenCount = tokens.length;

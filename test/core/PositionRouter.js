@@ -14,6 +14,12 @@ describe("PositionRouter", function () {
   const [wallet, positionKeeper, minter, user0, user1, user2, user3, user4, tokenManager, mintReceiver, signer0, signer1, updater0, updater1] = provider.getWallets()
   const depositFee = 50
   const minExecutionFee = 4000
+  const updateFee = "1000000000000"
+
+  let bnbFeedId = ethers.utils.keccak256("0x01")
+  let btcFeedId = ethers.utils.keccak256("0x02")
+  let ethFeedId = ethers.utils.keccak256("0x03")
+
   let vault
   let timelock
   let usdg
@@ -31,6 +37,7 @@ describe("PositionRouter", function () {
   let daiPriceFeed
   let distributor0
   let yieldTracker0
+  let mockPyth
   let fastPriceFeed
   let fastPriceEvents
   let shortsTracker
@@ -117,18 +124,26 @@ describe("PositionRouter", function () {
     await vault.setGov(timelock.address)
 
     fastPriceEvents = await deployContract("FastPriceEvents", [])
+    mockPyth = await deployContract("MockPyth", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [
+      mockPyth.address, // _pyth
       5 * 60, // _priceDuration
       120 * 60, // _maxPriceUpdateDelay
       2, // _minBlockInterval
       250, // _maxDeviationBasisPoints
+      vaultPriceFeed.address, // _vaultPriceFeed
       fastPriceEvents.address, // _fastPriceEvents
       tokenManager.address // _tokenManager
     ])
-    await fastPriceFeed.initialize(2, [signer0.address, signer1.address], [updater0.address, updater1.address])
-    await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
+    await fastPriceFeed.initialize(
+      2,
+      [signer0.address, signer1.address],
+      [updater0.address, updater1.address],
+      [bnb.address, btc.address, eth.address],
+      [bnbFeedId, btcFeedId, ethFeedId]
+    )
 
-    await fastPriceFeed.setVaultPriceFeed(vaultPriceFeed.address)
+    await fastPriceEvents.setIsPriceFeed(fastPriceFeed.address, true)
     await vaultPriceFeed.setSecondaryPriceFeed(fastPriceFeed.address)
   })
 
@@ -2339,29 +2354,36 @@ describe("PositionRouter", function () {
     expect(queueLengths[2]).eq(7) // decreasePositionRequestKeysStart
     expect(queueLengths[3]).eq(12) // decreasePositionRequestKeys.length
 
-    await fastPriceFeed.setMaxTimeDeviation(1000)
     await positionRouter.setPositionKeeper(fastPriceFeed.address, true)
 
     const blockTime = await getBlockTime(provider)
 
-    await expect(fastPriceFeed.connect(user0).setPricesWithBitsAndExecute(
+    bnbPriceFeed.setLatestAnswer(expandDecimals(801, 30))
+    btcPriceFeed.setLatestAnswer(expandDecimals(80_000, 30))
+    ethPriceFeed.setLatestAnswer(expandDecimals(5000, 30))
+
+    await mockPyth.setPrice(bnbFeedId, 801, 0, blockTime)
+    await mockPyth.setPrice(btcFeedId, 80_000, 0, blockTime)
+    await mockPyth.setPrice(ethFeedId, 5000, 0, blockTime)
+
+    await expect(fastPriceFeed.connect(user0).setPricesWithDataAndExecute(
       positionRouter.address,
-      0, // _priceBits
-      blockTime, // _timestamp
+      ["0x"], // priceUpdateData
       9, // _endIndexForIncreasePositions
       10, // _endIndexForDecreasePositions
       1, // _maxIncreasePositions
-      2 // _maxDecreasePositions
+      2, // _maxDecreasePositions
+      { value: updateFee }
     )).to.be.revertedWith("FastPriceFeed: forbidden")
 
-    await fastPriceFeed.connect(updater0).setPricesWithBitsAndExecute(
+    await fastPriceFeed.connect(updater0).setPricesWithDataAndExecute(
       positionRouter.address,
-      0, // _priceBits
-      blockTime, // _timestamp
+      ["0x"], // priceUpdateData
       9, // _endIndexForIncreasePositions
       10, // _endIndexForDecreasePositions
       1, // _maxIncreasePositions
-      2 // _maxDecreasePositions
+      2, // _maxDecreasePositions
+      { value: updateFee }
     )
 
     queueLengths = await positionRouter.getRequestQueueLengths()

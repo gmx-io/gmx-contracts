@@ -79,8 +79,8 @@ describe("FastPriceFeed", function () {
       120 * 60, // _maxPriceUpdateDelay
       2, // _minBlockInterval
       250, // _maxDeviationBasisPoints
-      fastPriceEvents.address, // _fastPriceEvents
       vaultPriceFeed.address, // _vaultPriceFeed
+      fastPriceEvents.address, // _fastPriceEvents
       tokenManager.address // _tokenManager
     ])
     await fastPriceFeed.initialize(
