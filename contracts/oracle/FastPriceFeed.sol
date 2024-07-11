@@ -26,10 +26,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         uint32 cumulativeFastDelta; // cumulative fast price delta
     }
 
-    struct PriceUpdate {
-        bytes[] data;
-    }
-
     uint256 public constant PRICE_PRECISION = 10 ** 30;
 
     uint256 public constant CUMULATIVE_DELTA_PRECISION = 10 * 1000 * 1000;
@@ -218,19 +214,19 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         minAuthorizations = _minAuthorizations;
     }
 
-    function setPricesWithData(PriceUpdate[] memory _priceUpdates) external onlyUpdater {
-        _setPricesWithData(_priceUpdates);
+    function setPricesWithData(bytes[] calldata priceUpdateData) external payable onlyUpdater {
+        _setPricesWithData(priceUpdateData);
     }
 
     function setPricesWithDataAndExecute(
         address _positionRouter,
-        PriceUpdate[] memory _priceUpdates,
+        bytes[] calldata priceUpdateData,
         uint256 _endIndexForIncreasePositions,
         uint256 _endIndexForDecreasePositions,
         uint256 _maxIncreasePositions,
         uint256 _maxDecreasePositions
-    ) external onlyUpdater {
-        _setPricesWithData(_priceUpdates);
+    ) external payable onlyUpdater {
+        _setPricesWithData(priceUpdateData);
 
         IPositionRouter positionRouter = IPositionRouter(_positionRouter);
         uint256 maxEndIndexForIncrease = positionRouter.increasePositionRequestKeysStart().add(_maxIncreasePositions);
@@ -340,14 +336,11 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         return (uint256(data.refPrice), uint256(data.refTime), uint256(data.cumulativeRefDelta), uint256(data.cumulativeFastDelta));
     }
 
-    function _setPricesWithData(PriceUpdate[] memory _priceUpdates) private {
+    function _setPricesWithData(bytes[] calldata priceUpdateData) private {
         _setLastUpdatedValues();
 
-        for (uint256 i; i < _priceUpdates.length; i++) {
-            PriceUpdate memory priceUpdate = _priceUpdates[i];
-            uint256 fee = pyth.getUpdateFee(priceUpdate.data);
-            pyth.updatePriceFeeds{ value: fee }(priceUpdate.data);
-        }
+        uint256 fee = pyth.getUpdateFee(priceUpdateData);
+        pyth.updatePriceFeeds{ value: fee }(priceUpdateData);
 
         uint256 tokenCount = tokens.length;
         uint256 _priceDuration = priceDuration;
