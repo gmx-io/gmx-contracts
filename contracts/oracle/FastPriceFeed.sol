@@ -350,12 +350,15 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         }
 
         uint256 tokenCount = tokens.length;
+        uint256 _priceDuration = priceDuration;
 
         for (uint256 i; i < tokenCount; i++) {
             address token = tokens[i];
             bytes32 priceFeedId = priceFeedIds[token];
             PythStructs.Price memory pythPrice = pyth.getPrice(priceFeedId);
             require(pythPrice.price > 0, "pyth price <= 0");
+            // require that pythPrice publishTime is recent
+            require(pythPrice.publishTime > block.timestamp - _priceDuration, "stale pyth price");
 
             uint256 price = uint256(pythPrice.price);
 
