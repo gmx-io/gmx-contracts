@@ -29,8 +29,6 @@ describe("Timelock", function () {
   let distributor0
   let yieldTracker0
   let timelock
-  let fastPriceEvents
-  let fastPriceFeed
   let feeGlpTracker
   let stakedGlpTracker
   let rewardRouter
@@ -121,18 +119,6 @@ describe("Timelock", function () {
     await vault.setGov(timelock.address)
     await vaultPriceFeed.setGov(timelock.address)
     await router.setGov(timelock.address)
-
-    fastPriceEvents = await deployContract("FastPriceEvents", [])
-    fastPriceFeed = await deployContract("FastPriceFeed", [
-      5 * 60, // _priceDuration
-      60 * 60, // _maxPriceUpdateDelay
-      2, // _minBlockInterval
-      250, // _allowedDeviationBasisPoints
-      fastPriceEvents.address, // _fastPriceEvents
-      tokenManager.address // _tokenManager
-    ])
-
-    await fastPriceFeed.setGov(timelock.address)
   })
 
   it("inits", async () => {
