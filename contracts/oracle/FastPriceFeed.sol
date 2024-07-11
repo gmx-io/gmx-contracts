@@ -107,8 +107,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
       uint256 _maxPriceUpdateDelay,
       uint256 _minBlockInterval,
       uint256 _maxDeviationBasisPoints,
-      address _vaultPriceFeed,
       address _fastPriceEvents,
+      address _vaultPriceFeed,
       address _tokenManager
     ) public {
         require(_priceDuration <= MAX_PRICE_DURATION, "FastPriceFeed: invalid _priceDuration");
@@ -117,8 +117,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
         maxPriceUpdateDelay = _maxPriceUpdateDelay;
         minBlockInterval = _minBlockInterval;
         maxDeviationBasisPoints = _maxDeviationBasisPoints;
-        vaultPriceFeed = _vaultPriceFeed;
         fastPriceEvents = _fastPriceEvents;
+        vaultPriceFeed = _vaultPriceFeed;
         tokenManager = _tokenManager;
     }
 
@@ -355,6 +355,7 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
 
             uint256 price = uint256(pythPrice.price);
 
+            // adjust price to have 30 decimals of precision
             if (pythPrice.expo < 0) {
                 uint256 divisor = 10 ** uint256(-pythPrice.expo);
                 // if divisor < PRICE_PRECISION there would be some rounding of price

@@ -8,6 +8,7 @@ import "../oracle/interfaces/IPyth.sol";
 contract MockPyth {
     mapping (bytes32 => int64) public prices;
     mapping (bytes32 => int32) public exponents;
+    mapping (bytes32 => uint256) public publishTimes;
 
     function getPrice(
         bytes32 id
@@ -16,13 +17,14 @@ contract MockPyth {
             price: prices[id],
             conf: 0,
             expo: exponents[id],
-            publishTime: block.timestamp
+            publishTime: publishTimes[id]
         });
     }
 
-    function setPrice(bytes32 id, int64 price, int32 expo) external {
+    function setPrice(bytes32 id, int64 price, int32 expo, uint256 publishTime) external {
         prices[id] = price;
         exponents[id] = expo;
+        publishTimes[id] = publishTime;
     }
 
     function updatePriceFeeds(bytes[] calldata /* updateData */) external payable {}
