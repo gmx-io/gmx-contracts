@@ -99,8 +99,8 @@ const readersV2 = {
 }
 
 const feeHandlers = {
-  arbitrum: new ethers.Contract("0xbF56A2F030C3F920F0E2aD9Cf456B9954c49383a", FeeHandler.abi, handlers.arbitrum),
-  avax: new ethers.Contract("0xc7D8E3561f1247EBDa491bA5f042699C2807C33C", FeeHandler.abi, handlers.avax),
+  arbitrum: new ethers.Contract("0x55E9A5E1Aed46500F746F7683e87F3D9f3C1E14E", FeeHandler.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0xcf2fFD3FC8d2cf78D087681f9acD35c799E0d88d", FeeHandler.abi, handlers.avax),
 }
 
 async function printFeeHandlerBalances() {
