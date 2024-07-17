@@ -297,7 +297,7 @@ async function fundAccounts() {
 }
 
 async function updateRewards() {
-  // send ~99% to reduce the risk that swap fees, balancing tax, changes in prices
+  // send ~98% to reduce the risk that swap fees, balancing tax, changes in prices
   // would result in the script failing
   // if significant fees are accumulated these should be included to be distributed
   // in the next distribution
@@ -306,14 +306,14 @@ async function updateRewards() {
   // distribution
   const rewardAmounts = {
     arbitrum: {
-      gmx: bigNumberify(feeReference.gmxFees.arbitrum).mul(9900).div(10_000),
-      glp: bigNumberify(feeReference.glpFees.arbitrum).mul(9900).div(10_000),
+      gmx: bigNumberify(feeReference.gmxFees.arbitrum).mul(9800).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.arbitrum).mul(9800).div(10_000),
       treasury: bigNumberify(feeReference.treasuryFees.arbitrum),
       chainlink: bigNumberify(feeReference.chainlinkFees.arbitrum)
     },
     avax: {
-      gmx: bigNumberify(feeReference.gmxFees.avax).mul(9900).div(10_000),
-      glp: bigNumberify(feeReference.glpFees.avax).mul(9900).div(10_000),
+      gmx: bigNumberify(feeReference.gmxFees.avax).mul(9800).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.avax).mul(9800).div(10_000),
       treasury: bigNumberify(feeReference.treasuryFees.avax),
       chainlink: bigNumberify(feeReference.chainlinkFees.avax)
     }
@@ -357,13 +357,6 @@ async function updateRewards() {
 
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
-    // send ~99% to reduce the risk that swap fees, balancing tax, changes in prices
-    // would result in the script failing
-    // if significant fees are accumulated these should be included to be distributed
-    // in the next distribution
-    // the fees kept in the fee distributor can also help to fund keepers in case
-    // of spikes in gas prices that may lead to low keeper balances before the next
-    // distribution
     const rewardAmount = rewardAmounts[network]
     const gmxRewardAmount = rewardAmount.gmx
     const glpRewardAmount = rewardAmount.glp
