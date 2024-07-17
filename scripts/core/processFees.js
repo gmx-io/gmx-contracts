@@ -297,23 +297,25 @@ async function fundAccounts() {
 }
 
 async function updateRewards() {
-  // send ~98% to reduce the risk that swap fees, balancing tax, changes in prices
+  // send ~97% to reduce the risk that swap fees, balancing tax, changes in prices
   // would result in the script failing
   // if significant fees are accumulated these should be included to be distributed
   // in the next distribution
   // the fees kept in the fee distributor can also help to fund keepers in case
   // of spikes in gas prices that may lead to low keeper balances before the next
   // distribution
+  const distributionBasisPoints = 9700
+
   const rewardAmounts = {
     arbitrum: {
-      gmx: bigNumberify(feeReference.gmxFees.arbitrum).mul(9800).div(10_000),
-      glp: bigNumberify(feeReference.glpFees.arbitrum).mul(9800).div(10_000),
+      gmx: bigNumberify(feeReference.gmxFees.arbitrum).mul(distributionBasisPoints).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.arbitrum).mul(distributionBasisPoints).div(10_000),
       treasury: bigNumberify(feeReference.treasuryFees.arbitrum),
       chainlink: bigNumberify(feeReference.chainlinkFees.arbitrum)
     },
     avax: {
-      gmx: bigNumberify(feeReference.gmxFees.avax).mul(9800).div(10_000),
-      glp: bigNumberify(feeReference.glpFees.avax).mul(9800).div(10_000),
+      gmx: bigNumberify(feeReference.gmxFees.avax).mul(distributionBasisPoints).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.avax).mul(distributionBasisPoints).div(10_000),
       treasury: bigNumberify(feeReference.treasuryFees.avax),
       chainlink: bigNumberify(feeReference.chainlinkFees.avax)
     }
