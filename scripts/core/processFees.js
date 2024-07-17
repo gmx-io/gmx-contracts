@@ -297,7 +297,7 @@ async function fundAccounts() {
 }
 
 async function updateRewards() {
-  // send ~97% to reduce the risk that swap fees, balancing tax, changes in prices
+  // send ~97% to reduce the risk that swap fees, balancing tax, swap price impact, changes in prices
   // would result in the script failing
   // if significant fees are accumulated these should be included to be distributed
   // in the next distribution
