@@ -34,7 +34,7 @@ async function main() {
   const { accountListFile, vesterCap } = await getValues()
   const accountList = await readCsv(accountListFile)
 
-  const batchSize = 50
+  const batchSize = 150
 
   let startIndex = process.env.START_INDEX
   if (startIndex === undefined) {
@@ -48,7 +48,20 @@ async function main() {
     const to = i + batchSize
     const accounts = accountList.slice(from, to).map(i => i.HolderAddress)
     console.log(`processing accounts ${from} to ${to}`)
-    await sendTxn(vesterCap.updateBnGmxForAccounts(accounts), `updateBnGmxForAccounts ${from} to ${to}`)
+
+    for (let j = 0; j < 5; j++) {
+      try {
+        await sendTxn(vesterCap.updateBnGmxForAccounts(accounts), `updateBnGmxForAccounts ${from} to ${to}`)
+        break
+      } catch (e) {
+        console.log(e)
+        console.log("retrying")
+      }
+
+      if (j == 4) {
+        throw new Error("could not send txn")
+      }
+    }
   }
 }
 
