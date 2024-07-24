@@ -1,5 +1,5 @@
 const path = require('path')
-const { contractAt, sendTxn, readCsv } = require("../shared/helpers")
+const { contractAt, sendTxn, readCsv, sleep } = require("../shared/helpers")
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 
@@ -56,6 +56,7 @@ async function main() {
       } catch (e) {
         console.log(e)
         console.log("retrying")
+        sleep(2)
       }
 
       if (j == 4) {
