@@ -34,10 +34,6 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     uint256 public constant MAX_CUMULATIVE_REF_DELTA = type(uint32).max;
     uint256 public constant MAX_CUMULATIVE_FAST_DELTA = type(uint32).max;
 
-    // uint256(~0) is 256 bits of 1s
-    // shift the 1s by (256 - 32) to get (256 - 32) 0s followed by 32 1s
-    uint256 constant public BITMASK_32 = uint256(~0) >> (256 - 32);
-
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
     uint256 public constant MAX_PRICE_DURATION = 30 minutes;
@@ -200,6 +196,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
     }
 
     function setMaxCumulativeDeltaDiffs(address[] memory _tokens,  uint256[] memory _maxCumulativeDeltaDiffs) external override onlyTokenManager {
+        require (_tokens.length == _maxCumulativeDeltaDiffs.length, "FastPriceFeed: mismatched lengths");
+
         for (uint256 i; i < _tokens.length; i++) {
             address token = _tokens[i];
             maxCumulativeDeltaDiffs[token] = _maxCumulativeDeltaDiffs[i];
@@ -354,6 +352,8 @@ contract FastPriceFeed is ISecondaryPriceFeed, IFastPriceFeed, Governable {
             // require that pythPrice publishTime is recent
             require(pythPrice.publishTime > block.timestamp - _priceDuration, "stale pyth price");
 
+            // the confidence interval is not considered here
+            // the manually configured spread is assumed to be sufficient
             uint256 price = uint256(pythPrice.price);
 
             // adjust price to have 30 decimals of precision
