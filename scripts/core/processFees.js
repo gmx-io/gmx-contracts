@@ -99,8 +99,8 @@ const readersV2 = {
 }
 
 const feeHandlers = {
-  arbitrum: new ethers.Contract("0xbF56A2F030C3F920F0E2aD9Cf456B9954c49383a", FeeHandler.abi, handlers.arbitrum),
-  avax: new ethers.Contract("0xc7D8E3561f1247EBDa491bA5f042699C2807C33C", FeeHandler.abi, handlers.avax),
+  arbitrum: new ethers.Contract("0x55E9A5E1Aed46500F746F7683e87F3D9f3C1E14E", FeeHandler.abi, handlers.arbitrum),
+  avax: new ethers.Contract("0xcf2fFD3FC8d2cf78D087681f9acD35c799E0d88d", FeeHandler.abi, handlers.avax),
 }
 
 async function printFeeHandlerBalances() {
@@ -297,23 +297,25 @@ async function fundAccounts() {
 }
 
 async function updateRewards() {
-  // send ~99% to reduce the risk that swap fees, balancing tax, changes in prices
+  // send ~97% to reduce the risk that swap fees, balancing tax, swap price impact, changes in prices
   // would result in the script failing
   // if significant fees are accumulated these should be included to be distributed
   // in the next distribution
   // the fees kept in the fee distributor can also help to fund keepers in case
   // of spikes in gas prices that may lead to low keeper balances before the next
   // distribution
+  const distributionBasisPoints = 9700
+
   const rewardAmounts = {
     arbitrum: {
-      gmx: bigNumberify(feeReference.gmxFees.arbitrum).mul(9900).div(10_000),
-      glp: bigNumberify(feeReference.glpFees.arbitrum).mul(9900).div(10_000),
+      gmx: bigNumberify(feeReference.gmxFees.arbitrum).mul(distributionBasisPoints).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.arbitrum).mul(distributionBasisPoints).div(10_000),
       treasury: bigNumberify(feeReference.treasuryFees.arbitrum),
       chainlink: bigNumberify(feeReference.chainlinkFees.arbitrum)
     },
     avax: {
-      gmx: bigNumberify(feeReference.gmxFees.avax).mul(9900).div(10_000),
-      glp: bigNumberify(feeReference.glpFees.avax).mul(9900).div(10_000),
+      gmx: bigNumberify(feeReference.gmxFees.avax).mul(distributionBasisPoints).div(10_000),
+      glp: bigNumberify(feeReference.glpFees.avax).mul(distributionBasisPoints).div(10_000),
       treasury: bigNumberify(feeReference.treasuryFees.avax),
       chainlink: bigNumberify(feeReference.chainlinkFees.avax)
     }
@@ -357,13 +359,6 @@ async function updateRewards() {
 
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
-    // send ~99% to reduce the risk that swap fees, balancing tax, changes in prices
-    // would result in the script failing
-    // if significant fees are accumulated these should be included to be distributed
-    // in the next distribution
-    // the fees kept in the fee distributor can also help to fund keepers in case
-    // of spikes in gas prices that may lead to low keeper balances before the next
-    // distribution
     const rewardAmount = rewardAmounts[network]
     const gmxRewardAmount = rewardAmount.gmx
     const glpRewardAmount = rewardAmount.glp
@@ -422,6 +417,7 @@ async function sendReferralRewards() {
       signer: handlers[network],
       referralSender: deployers[network],
       shouldSendTxn: false,
+      skipSendNativeToken: false,
       nativeToken: nativeTokens[network],
       nativeTokenPrice: feeReference.nativeTokenPrice[network],
       gmxPrice: feeReference.gmxPrice,
@@ -437,6 +433,7 @@ async function sendReferralRewards() {
       signer: handlers[network],
       referralSender: deployers[network],
       shouldSendTxn: true,
+      skipSendNativeToken: false,
       nativeToken: nativeTokens[network],
       nativeTokenPrice: feeReference.nativeTokenPrice[network],
       gmxPrice: feeReference.gmxPrice,

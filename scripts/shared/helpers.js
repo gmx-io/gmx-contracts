@@ -75,7 +75,11 @@ async function sendTxn(txnPromise, label) {
   console.info(`Processsing ${label}:`)
   const txn = await txnPromise
   console.info(`Sending ${label}...`)
-  await txn.wait(2)
+  if (network === "arbitrum") {
+    await txn.wait(1)
+  } else {
+    await txn.wait(2)
+  }
   console.info(`... Sent! ${txn.hash}`)
   return txn
 }

@@ -31,6 +31,7 @@ describe("PriceFeedTimelock", function () {
   let timelock
   let vaultTimelock
   let fastPriceEvents
+  let mockPyth
   let fastPriceFeed
 
   beforeEach(async () => {
@@ -92,11 +93,14 @@ describe("PriceFeedTimelock", function () {
     await router.setGov(timelock.address)
 
     fastPriceEvents = await deployContract("FastPriceEvents", [])
+    mockPyth = await deployContract("MockPyth", [])
     fastPriceFeed = await deployContract("FastPriceFeed", [
+      mockPyth.address, // _pyth
       5 * 60, // _priceDuration
       60 * 60, // _maxPriceUpdateDelay
       2, // _minBlockInterval
       250, // _allowedDeviationBasisPoints
+      vaultPriceFeed.address, // _vaultPriceFeed
       fastPriceEvents.address, // _fastPriceEvents
       tokenManager.address // _tokenManager
     ])
@@ -202,15 +206,6 @@ describe("PriceFeedTimelock", function () {
     expect(await vaultPriceFeed.priceSampleSpace()).eq(3)
     await timelock.connect(wallet).setPriceSampleSpace(vaultPriceFeed.address, 1)
     expect(await vaultPriceFeed.priceSampleSpace()).eq(1)
-  })
-
-  it("setVaultPriceFeed", async () => {
-    await expect(timelock.connect(user0).setVaultPriceFeed(fastPriceFeed.address, vaultPriceFeed.address))
-      .to.be.revertedWith("Timelock: forbidden")
-
-    expect(await fastPriceFeed.vaultPriceFeed()).eq(AddressZero)
-    await timelock.connect(wallet).setVaultPriceFeed(fastPriceFeed.address, vaultPriceFeed.address)
-    expect(await fastPriceFeed.vaultPriceFeed()).eq(vaultPriceFeed.address)
   })
 
   it("setPriceDuration", async () => {
