@@ -339,6 +339,8 @@ async function updateRewards() {
     avax: await getAvaxRewardValues(handlers.avax)
   }
 
+  const networks = [AVAX]
+
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
     const handler = handlers[network]
