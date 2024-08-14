@@ -419,6 +419,7 @@ async function sendReferralRewards() {
     arbitrum: await getArbReferralValues(deployers.arbitrum),
     avax: await getAvaxReferralValues(deployers.avax)
   }
+  const networks = [AVAX]
 
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
