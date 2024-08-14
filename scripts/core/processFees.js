@@ -334,6 +334,16 @@ async function updateRewards() {
       .add(feeReference.referralRewards.avax),
   }
 
+  console.log("rewardAmounts.arbitrum.gmx", rewardAmounts.arbitrum.gmx.toString())
+  console.log("rewardAmounts.arbitrum.glp", rewardAmounts.arbitrum.glp.toString())
+  console.log("rewardAmounts.arbitrum.treasury", rewardAmounts.arbitrum.treasury.toString())
+  console.log("feeReference.referralRewards.arbitrum", feeReference.referralRewards.arbitrum.toString())
+
+  console.log("rewardAmounts.avax.gmx", rewardAmounts.avax.gmx.toString())
+  console.log("rewardAmounts.avax.glp", rewardAmounts.avax.glp.toString())
+  console.log("rewardAmounts.avax.treasury", rewardAmounts.avax.treasury.toString())
+  console.log("feeReference.referralRewards.avax", feeReference.referralRewards.avax.toString())
+
   const stakingValues = {
     arbitrum: await getArbRewardValues(handlers.arbitrum),
     avax: await getAvaxRewardValues(handlers.avax)
@@ -346,7 +356,7 @@ async function updateRewards() {
     const handler = handlers[network]
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     const balance = await nativeToken.balanceOf(handler.address)
-    console.log(`${network}: ${formatAmount(balance, 18, 2, true)}, ${formatAmount(expectedMinBalance[network], 18, 2, true)}`)
+    console.log(`${network} balance check: ${formatAmount(balance, 18, 2, true)}, ${formatAmount(expectedMinBalance[network], 18, 2, true)}`)
   }
 
   for (let i = 0; i < networks.length; i++) {
