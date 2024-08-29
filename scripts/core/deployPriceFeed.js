@@ -72,10 +72,10 @@ async function getAvaxValues() {
 
   const fastPriceTokens = [avax, btc, btcb, eth]
   const fastPriceFeedIds = [
+    "0x93da3352f9f1d105fdfe4971cfa80e9dd777bfc5d0f683ebb6e1294b92137bb7", // avax
     "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43", // btc
+    "0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43", // btcb
     "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace", // eth
-    "0x8ac0c70fff57e9aefdf5edf44b51d62c2d433653cbb2cf5cc06bb115af04d221", // link
-    "0x78d185a741d07edb3412b09008b7c5cfb9bbbd7d568bf00ba737b456ba171501", // uni
   ]
 
   const priceFeedTimelock = { address: "0xCa8b5F2fF7B8d452bE8972B44Dc026Be96b97228" }
