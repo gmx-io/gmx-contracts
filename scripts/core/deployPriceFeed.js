@@ -6,6 +6,8 @@ const { toUsd } = require("../../test/shared/units")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
+const PositionRouter = require("../../artifacts/contracts/core/PositionRouter.sol/PositionRouter.json")
+
 const {
   ARBITRUM_URL,
   ARBITRUM_CAP_KEEPER_KEY,
@@ -31,15 +33,15 @@ async function getArbValues() {
 
   const priceFeedTimelock = { address: "0x7b1FFdDEEc3C4797079C7ed91057e399e9D43a8B" }
 
-  const updater1 = { address: "0xadb277E967C360Da4D23e29116253cd76D12E186" }
-  const updater2 = { address: "0x8cF560ECC641248DcEc1D7A60403b7dD8aD37D07" }
-  const keeper1 = { address: "0xDd763ED8Ce604E9a61F1e1aed433c1362e05700d" }
-  const keeper2 = { address: "0x2BcD0d9Dde4bD69C516Af4eBd3fB7173e1FA12d0" }
+  const updater1 = { address: "0xd85A5c465824537eA2005590Da909447bca12525" }
+  const updater2 = { address: "0x3FC8e4ED7695F44358B387d67940DF580d80bD5B" }
+  const keeper1 = { address: "0xB5125Ddd773bf34671B60BB6FB31ae8AD43d0F86" }
+  const keeper2 = { address: "0x70Fc9aE264E1e48BF77868a7A0A30Bf91f4E0d72" }
   const updaters = [updater1.address, updater2.address, keeper1.address, keeper2.address]
 
   const tokenManager = { address: "0x2c247a44928d66041D9F7B11A69d7a84d25207ba" }
 
-  const positionRouter = await contractAt("PositionRouter", "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868", capKeeperWallet)
+  const positionRouter = new ethers.Contract("0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868", PositionRouter.abi, capKeeperWallet);
 
   // const fastPriceEvents = await deployContract("FastPriceEvents", [])
   const fastPriceEvents = await contractAt("FastPriceEvents", "0x4530b7DE1958270A2376be192a24175D795e1b07")
@@ -78,15 +80,15 @@ async function getAvaxValues() {
 
   const priceFeedTimelock = { address: "0xCa8b5F2fF7B8d452bE8972B44Dc026Be96b97228" }
 
-  const updater1 = { address: "0x48F5f003559A239ff37cbFDCc6a6d936365bd4c4" }
-  const updater2 = { address: "0xDc32caC19d77aD8f6b64094dd39b2E441D997e03" }
-  const keeper1 = { address: "0x74F6024CA6a03898F31e0d8E324f1a45f049eF03" }
-  const keeper2 = { address: "0x65910425E325910B1a67A320408E0d57b4E0Ca11" }
+  const updater1 = { address: "0xd85A5c465824537eA2005590Da909447bca12525" }
+  const updater2 = { address: "0x3FC8e4ED7695F44358B387d67940DF580d80bD5B" }
+  const keeper1 = { address: "0xB5125Ddd773bf34671B60BB6FB31ae8AD43d0F86" }
+  const keeper2 = { address: "0x70Fc9aE264E1e48BF77868a7A0A30Bf91f4E0d72" }
   const updaters = [updater1.address, updater2.address, keeper1.address, keeper2.address]
 
   const tokenManager = { address: "0x9bf98C09590CeE2Ec5F6256449754f1ba77d5aE5" }
 
-  const positionRouter = await contractAt("PositionRouter", "0xffF6D276Bc37c61A23f06410Dce4A400f66420f8", capKeeperWallet)
+  const positionRouter = new ethers.Contract("0xffF6D276Bc37c61A23f06410Dce4A400f66420f8", PositionRouter.abi, capKeeperWallet);
 
   // const fastPriceEvents = await deployContract("FastPriceEvents", [])
   const fastPriceEvents = await contractAt("FastPriceEvents", "0x02b7023D43bc52bFf8a0C54A9F2ecec053523Bf6")
@@ -153,7 +155,6 @@ async function main() {
 
   await sendTxn(vaultPriceFeed.setMaxStrictPriceDeviation(expandDecimals(1, 28)), "vaultPriceFeed.setMaxStrictPriceDeviation") // 0.01 USD
   await sendTxn(vaultPriceFeed.setPriceSampleSpace(1), "vaultPriceFeed.setPriceSampleSpace")
-  await sendTxn(vaultPriceFeed.setSecondaryPriceFeed(secondaryPriceFeed.address), "vaultPriceFeed.setSecondaryPriceFeed")
   await sendTxn(vaultPriceFeed.setIsAmmEnabled(false), "vaultPriceFeed.setIsAmmEnabled")
 
   if (chainlinkFlags) {
@@ -203,6 +204,8 @@ async function main() {
 
   await sendTxn(positionRouter.setPositionKeeper(secondaryPriceFeed.address, true), "positionRouter.setPositionKeeper(secondaryPriceFeed)")
 
+  await sendTxn(vaultPriceFeed.setSecondaryPriceFeed(secondaryPriceFeed.address), "vaultPriceFeed.setSecondaryPriceFeed")
+
   await sendTxn(vaultPriceFeed.setGov(priceFeedTimelock.address), "vaultPriceFeed.setGov")
   await sendTxn(secondaryPriceFeed.setGov(priceFeedTimelock.address), "secondaryPriceFeed.setGov")
   await sendTxn(secondaryPriceFeed.setTokenManager(tokenManager.address), "secondaryPriceFeed.setTokenManager")
@@ -210,9 +213,7 @@ async function main() {
   await signExternally(await fastPriceEvents.populateTransaction.setIsPriceFeed(secondaryPriceFeed.address, true));
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })
+main().catch((ex) => {
+  console.error(ex);
+  process.exit(1);
+});
