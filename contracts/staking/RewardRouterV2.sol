@@ -394,6 +394,16 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         _syncVotingPower(receiver);
     }
 
+    function restakeForAccount(address _account) external nonReentrant onlyGov {
+        _restakeForAccount(address _account);
+    }
+
+    function batchRestakeForAccounts(address[] memory _accounts) external nonReentrant onlyGov {
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            _restakeForAccount(_accounts[i]);
+        }
+    }
+
     function _validateReceiver(address _receiver) private view {
         require(IRewardTracker(stakedGmxTracker).averageStakedAmounts(_receiver) == 0, "stakedGmxTracker.averageStakedAmounts > 0");
         require(IRewardTracker(stakedGmxTracker).cumulativeRewards(_receiver) == 0, "stakedGmxTracker.cumulativeRewards > 0");
@@ -424,9 +434,19 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     }
 
     function _compound(address _account) private {
+        _compoundGmxRewards(_account);
         _compoundGmx(_account);
         _compoundGlp(_account);
         _syncVotingPower(_account);
+    }
+
+    function _compoundGmxRewards(address _account) private {
+        uint256 gmxAmount = IRewardTracker(extendedGmxTracker).claimForAccount(_account, _account);
+        if (gmxAmount > 0) {
+            _stakeGmx(_account, _account, gmx, gmxAmount);
+        }
+
+        _stakeBnGmx(_account);
     }
 
     function _compoundGmx(address _account) private {
@@ -557,5 +577,14 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         uint256 amountToMint = _amount.sub(currentVotingPower);
         IMintable(govToken).mint(_account, amountToMint);
+    }
+
+    function _restakeForAccount(address _account) private {
+        sbGmxBalance = IRewardTracker(feeGmxTracker).depositBalances(_account, bonusGmxTracker);
+        if (sbGmxBalance > 0) {
+            IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bonusGmxTracker, sbGmxBalance, _account);
+            IRewardTracker(extendedGmxTracker).stakeForAccount(_account, _account, bonusGmxTracker, sbGmxBalance);
+            IRewardTracker(feeGmxTracker).stakeForAccount(_account, _account, extendedGmxTracker, sbGmxBalance);
+        }
     }
 }
