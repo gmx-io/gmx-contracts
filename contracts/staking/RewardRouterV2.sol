@@ -114,6 +114,10 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         govToken = _govToken;
     }
 
+    function setGovToken(address _govToken) external onlyGov {
+        govToken = _govToken;
+    }
+
     function setInStrictTransferMode(bool _inStrictTransferMode) external onlyGov {
         inStrictTransferMode = _inStrictTransferMode;
     }
@@ -269,7 +273,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         if (_shouldClaimGmx) {
             uint256 gmxAmount0 = IVester(gmxVester).claimForAccount(account, account);
             uint256 gmxAmount1 = IVester(glpVester).claimForAccount(account, account);
-            gmxAmount = gmxAmount0.add(gmxAmount1);
+            uint256 gmxAmount2 = IRewardTracker(extendedGmxTracker).claimForAccount(account, account);
+            gmxAmount = gmxAmount0.add(gmxAmount1.add(gmxAmount2));
         }
 
         if (_shouldStakeGmx && gmxAmount > 0) {
@@ -582,9 +587,19 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     function _restakeForAccount(address _account) private {
         sbGmxBalance = IRewardTracker(feeGmxTracker).depositBalances(_account, bonusGmxTracker);
         if (sbGmxBalance > 0) {
-            IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bonusGmxTracker, sbGmxBalance, _account);
-            IRewardTracker(extendedGmxTracker).stakeForAccount(_account, _account, bonusGmxTracker, sbGmxBalance);
-            IRewardTracker(feeGmxTracker).stakeForAccount(_account, _account, extendedGmxTracker, sbGmxBalance);
+            uint256 reservedForVesting = IVester(gmxVester).pairAmounts(_account);
+            if (reservedForVesting > 0) {
+                IERC20(feeGmxTracker).safeTransferFrom(gmxVester, _account, reservedForVesting);
+                IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bonusGmxTracker, sbGmxBalance, _account);
+                IRewardTracker(extendedGmxTracker).stakeForAccount(_account, _account, bonusGmxTracker, sbGmxBalance);
+                IRewardTracker(feeGmxTracker).stakeForAccount(_account, _account, extendedGmxTracker, sbGmxBalance);
+                IERC20(feeGmxTracker).safeTransferFrom(_account, gmxVester, reservedForVesting);
+            }
+            else {
+                IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bonusGmxTracker, sbGmxBalance, _account);
+                IRewardTracker(extendedGmxTracker).stakeForAccount(_account, _account, bonusGmxTracker, sbGmxBalance);
+                IRewardTracker(feeGmxTracker).stakeForAccount(_account, _account, extendedGmxTracker, sbGmxBalance);
+            }
         }
     }
 }
