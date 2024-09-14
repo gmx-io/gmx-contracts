@@ -45,13 +45,11 @@ contract BuybackMigrator is IGovRequester {
         address _bnGmx,
         address _oldRewardRouter,
         address _newRewardRouter
-    ) public (
-        
-    ) {
+    ) public {
         admin = _admin;
         stakedGmxTracker = _stakedGmxTracker;
-        bonusGmxTracker _bonusGmxTracker;
-        extendedGmxTracker _extendedGmxTracker;
+        bonusGmxTracker = _bonusGmxTracker;
+        extendedGmxTracker = _extendedGmxTracker;
         feeGmxTracker = _feeGmxTracker;
         feeGlpTracker = _feeGlpTracker;
         stakedGlpTracker = _stakedGlpTracker;
@@ -62,7 +60,7 @@ contract BuybackMigrator is IGovRequester {
         oldRewardRouter = _oldRewardRouter;
         newRewardRouter = _newRewardRouter;
     }
-
+    
     function enableNewRewardRouter() external onlyAdmin {
         address gov = Governable(stakedGmxTracker).gov();
         expectedGovGrantedCaller = gov;
@@ -80,14 +78,32 @@ contract BuybackMigrator is IGovRequester {
         targets[9] = bnGmx;
 
         ITimelock(gov).requestGov(targets);
+
+        _toggleRewardRouter(newRewardRouter, true);
+    }
+
+    function disableOldRewardRouter() external onlyAdmin {
+        address gov = Governable(stakedGmxTracker).gov();
+        expectedGovGrantedCaller = gov;
+
+        address[] memory targets = new address[](9);
+        targets[0] = stakedGmxTracker;
+        targets[1] = bonusGmxTracker;
+        targets[2] = feeGmxTracker;
+        targets[3] = feeGlpTracker;
+        targets[4] = stakedGlpTracker;
+        targets[5] = gmxVester;
+        targets[6] = glpVester;
+        targets[7] = esGmx;
+        targets[8] = bnGmx;
+
+        ITimelock(gov).requestGov(targets);
+
+        _toggleRewardRouter(oldRewardRouter, false);
     }
 
     function afterGovGranted() external override {
         require(msg.sender == expectedGovGrantedCaller, "forbidden");
-
-        _toggleRewardRouter(oldRewardRouter, false);
-
-        _toggleRewardRouter(newRewardRouter, true);
 
         address mainGov = msg.sender;
 
