@@ -148,16 +148,6 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         _stakeGmx(msg.sender, _account, gmx, _amount);
     }
 
-    function batchRestakeForAccounts(address[] memory _accounts) external nonReentrant onlyGov {
-        for (uint256 i = 0; i < _accounts.length; i++) {
-            _restakeForAccount(_accounts[i]);
-        }
-    }
-
-    function restakeForAccount(address _account) external nonReentrant onlyGov {
-        _restakeForAccount(_account);
-    }
-
     function batchCompoundForAccounts(address[] memory _accounts) external nonReentrant onlyGov {
         for (uint256 i = 0; i < _accounts.length; i++) {
             _compound(_accounts[i]);
@@ -168,12 +158,18 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         _compound(_account);
     }
 
+    function batchRestakeForAccounts(address[] memory _accounts) external nonReentrant onlyGov {
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            _restakeForAccount(_accounts[i]);
+        }
+    }
+
     function multicall(
         address _exchangeRouter,
-        bytes memory _multicallData1,
-        bytes memory _multicallData2
+        bytes memory _data1,
+        bytes memory _data2
     ) external nonReentrant {
-        RewardRouterUtils.multicall(_exchangeRouter, _multicallData1, _multicallData2);
+        RewardRouterUtils.multicall(_exchangeRouter, _data1, _data2);
     }
 
     function stakeGmx(uint256 _amount) external nonReentrant {
@@ -254,8 +250,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
     function claim() external nonReentrant {
         _claimEsGmx();
-        _claimGmxFees();
-        _claimFees();
+        _claimGmxFees(msg.sender);
+        _claimFees(msg.sender);
     }
 
     function claimEsGmx() external nonReentrant {
@@ -263,7 +259,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     }
 
     function claimFees() external nonReentrant {
-        _claimFees();
+        _claimGmxFees(msg.sender);
+        _claimFees(msg.sender);
     }
 
     function compound() external nonReentrant {
@@ -285,7 +282,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         if (_shouldClaimGmx) {
             uint256 gmxAmount0 = IVester(gmxVester).claimForAccount(account, account);
             uint256 gmxAmount1 = IVester(glpVester).claimForAccount(account, account);
-            uint256 gmxAmount2 = _claimGmxFees();
+            uint256 gmxAmount2 = _claimGmxFees(account);
             gmxAmount = gmxAmount0.add(gmxAmount1.add(gmxAmount2));
         }
 
@@ -308,12 +305,12 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         if (_shouldClaimWeth) {
             if (_shouldConvertWethToEth) {
-                uint256 wethAmount = _claimFees();
+                uint256 wethAmount = _claimFees(address(this));
                 IWETH(weth).withdraw(wethAmount);
 
                 payable(account).sendValue(wethAmount);
             } else {
-                _claimFees();
+                _claimFees(account);
             }
         }
 
@@ -336,7 +333,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         if (_shouldClaimGmx) {
             uint256 gmxAmount0 = IVester(gmxVester).claimForAccount(account, _gmxReceiver);
             uint256 gmxAmount1 = IVester(glpVester).claimForAccount(account, _gmxReceiver);
-            uint256 gmxAmount2 = _claimGmxFees();
+            uint256 gmxAmount2 = _claimGmxFees(_gmxReceiver);
             gmxAmount = gmxAmount0.add(gmxAmount1.add(gmxAmount2));
         }
 
@@ -360,12 +357,12 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         if (_shouldClaimWeth) {
             if (_shouldConvertWethToEth) {
-                uint256 wethAmount = _claimFees();
+                uint256 wethAmount = _claimFees(address(this));
                 IWETH(weth).withdraw(wethAmount);
 
                 payable(account).sendValue(wethAmount);
             } else {
-                _claimFees();
+                _claimFees(account);
             }
         }
 
@@ -458,18 +455,18 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         return(esGmxAmount);
     }
 
-    function _claimGmxFees() private returns (uint256) {
+    function _claimGmxFees(address _receiver) private returns (uint256) {
         address account = msg.sender;
 
-        uint256 gmxAmount = IRewardTracker(extendedGmxTracker).claimForAccount(account, account);
+        uint256 gmxAmount = IRewardTracker(extendedGmxTracker).claimForAccount(account, _receiver);
         return(gmxAmount);
     }
 
-    function _claimFees() private returns (uint256) {
+    function _claimFees(address _receiver) private returns (uint256) {
         address account = msg.sender;
 
-        uint256 eth0 = IRewardTracker(feeGmxTracker).claimForAccount(account, address(this));
-        uint256 eth1 = IRewardTracker(feeGlpTracker).claimForAccount(account, address(this));
+        uint256 eth0 = IRewardTracker(feeGmxTracker).claimForAccount(account, _receiver);
+        uint256 eth1 = IRewardTracker(feeGlpTracker).claimForAccount(account, _receiver);
 
         uint256 ethAmount = eth0.add(eth1);
         return (ethAmount);
