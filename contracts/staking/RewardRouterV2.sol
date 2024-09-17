@@ -329,7 +329,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         bool _shouldStakeMultiplierPoints,
         bool _shouldClaimWeth,
         bool _shouldConvertWethToEth
-    ) public nonReentrant {
+    ) external nonReentrant {
         address account = msg.sender;
 
         uint256 gmxAmount = 0;
