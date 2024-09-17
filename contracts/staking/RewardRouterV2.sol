@@ -236,7 +236,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     }
 
     function unstakeAndRedeemGlpETH(uint256 _glpAmount, uint256 _minOut, address payable _receiver) external nonReentrant returns (uint256) {
-        require(_glpAmount > 0, "_glpAmount = 0");
+        require(_glpAmount > 0, "invalid _glpAmount");
 
         address account = msg.sender;
         IRewardTracker(stakedGlpTracker).unstakeForAccount(account, feeGlpTracker, _glpAmount, account);
@@ -341,7 +341,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         if (_shouldStakeGmx && gmxAmount > 0) {
-            require(_gmxReceiver == account, "_gmxReceiver must = account to stake GMX");
+            require(_gmxReceiver == account, "_gmxReceiver != account");
             _stakeGmx(account, account, gmx, gmxAmount);
         }
 
