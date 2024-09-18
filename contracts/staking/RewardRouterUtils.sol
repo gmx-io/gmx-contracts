@@ -6,24 +6,54 @@ pragma experimental ABIEncoderV2;
 import "../libraries/token/IERC20.sol"; 
 
 import "./interfaces/IExternalHandler.sol";
-import "./interfaces/IExchangeRouter.sol";
 import "./interfaces/IRewardTracker.sol";
 import "./interfaces/IVester.sol";
 
 library RewardRouterUtils {
-    function multicall(
-        address _exchangeRouter,
-        bytes memory _data1,
-        bytes memory _data2
+    function makeExternalCalls(
+        address _externalHandler,
+        address _target0,
+        address _target1,
+        bytes calldata _data0,
+        bytes calldata _data1,
+        address _refundToken0,
+        address _refundToken1,
+        address _refundReceiver0,
+        address _refundReceiver1
     ) public {
-        bytes[] memory data;
-        data[0] = _data1;
-        data[1] = _data2;
-        
-        IExchangeRouter(_exchangeRouter).multicall(data);
+        uint256 arrayLength = (_target1 == address(0)) ? 1 : 2;
+
+        address[] memory targets = new address[](arrayLength);
+        bytes[] memory data = new bytes[](arrayLength);
+        address[] memory refundTokens = new address[](arrayLength);
+        address[] memory refundReceivers = new address[](arrayLength);
+
+        targets[0] = _target0;
+        data[0] = _data0;
+        refundTokens[0] = _refundToken0;
+        refundReceivers[0] = _refundReceiver0;
+
+        if (arrayLength == 2) {
+            targets[1] = _target1;
+            data[1] = _data1;
+            refundTokens[1] = _refundToken1;
+            refundReceivers[1] = _refundReceiver1;
+        }
+
+        IExternalHandler(_externalHandler).makeExternalCalls(targets, data, refundTokens, refundReceivers);
     }
     
-    function validateReceiver(address _receiver, address _stakedGmxTracker, address _bonusGmxTracker, address _extendedGmxTracker, address _feeGmxTracker, address _gmxVester, address _stakedGlpTracker, address _feeGlpTracker, address _glpVester) public view {
+    function validateReceiver(
+        address _receiver,
+        address _stakedGmxTracker,
+        address _bonusGmxTracker,
+        address _extendedGmxTracker,
+        address _feeGmxTracker,
+        address _gmxVester,
+        address _stakedGlpTracker,
+        address _feeGlpTracker,
+        address _glpVester
+    ) public view {
         require(IRewardTracker(_stakedGmxTracker).averageStakedAmounts(_receiver) == 0, "stakedGmxTracker.averageStakedAmounts > 0");
         require(IRewardTracker(_stakedGmxTracker).cumulativeRewards(_receiver) == 0, "stakedGmxTracker.cumulativeRewards > 0");
 
