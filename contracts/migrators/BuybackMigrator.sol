@@ -26,6 +26,9 @@ contract BuybackMigrator is IGovRequester {
 
     address public expectedGovGrantedCaller;
 
+    address public rewardRouterTarget;
+    bool public isEnabled;
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "forbidden");
         _;
@@ -62,8 +65,13 @@ contract BuybackMigrator is IGovRequester {
     }
     
     function enableNewRewardRouter() external onlyAdmin {
+        require(rewardRouterTarget == address(0), "invalid rewardRouterTarget");
+        
         address gov = Governable(stakedGmxTracker).gov();
         expectedGovGrantedCaller = gov;
+
+        rewardRouterTarget = newRewardRouter;
+        isEnabled = true;
 
         address[] memory targets = new address[](10);
         targets[0] = stakedGmxTracker;
@@ -78,13 +86,16 @@ contract BuybackMigrator is IGovRequester {
         targets[9] = bnGmx;
 
         ITimelock(gov).requestGov(targets);
-
-        _toggleRewardRouter(newRewardRouter, true);
     }
 
     function disableOldRewardRouter() external onlyAdmin {
+        require(rewardRouterTarget == address(0), "invalid rewardRouterTarget");
+        
         address gov = Governable(stakedGmxTracker).gov();
         expectedGovGrantedCaller = gov;
+
+        rewardRouterTarget = oldRewardRouter;
+        isEnabled = false;
 
         address[] memory targets = new address[](9);
         targets[0] = stakedGmxTracker;
@@ -98,12 +109,13 @@ contract BuybackMigrator is IGovRequester {
         targets[8] = bnGmx;
 
         ITimelock(gov).requestGov(targets);
-
-        _toggleRewardRouter(oldRewardRouter, false);
     }
 
     function afterGovGranted() external override {
         require(msg.sender == expectedGovGrantedCaller, "forbidden");
+        require(rewardRouterTarget != address(0), "invalid rewardRouterTarget");
+
+        _toggleRewardRouter();
 
         address mainGov = msg.sender;
 
@@ -119,18 +131,27 @@ contract BuybackMigrator is IGovRequester {
         Governable(bnGmx).setGov(mainGov);
 
         expectedGovGrantedCaller = address(0);
+        
+        rewardRouterTarget = address(0);
+        isEnabled = false;
     }
 
-    function _toggleRewardRouter(address rewardRouter, bool isEnabled) internal {
-        IHandlerTarget(stakedGmxTracker).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(bonusGmxTracker).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(extendedGmxTracker).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(feeGmxTracker).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(feeGlpTracker).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(stakedGlpTracker).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(gmxVester).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(glpVester).setHandler(rewardRouter, isEnabled);
-        IHandlerTarget(esGmx).setHandler(rewardRouter, isEnabled);
-        IMintable(bnGmx).setMinter(rewardRouter, isEnabled);
+    function _toggleRewardRouter() internal {
+        IHandlerTarget(stakedGmxTracker).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(bonusGmxTracker).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(extendedGmxTracker).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(feeGmxTracker).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(feeGlpTracker).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(stakedGlpTracker).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(gmxVester).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(glpVester).setHandler(rewardRouterTarget, isEnabled);
+        IHandlerTarget(esGmx).setHandler(rewardRouterTarget, isEnabled);
+        IMintable(bnGmx).setMinter(rewardRouterTarget, isEnabled);
+
+        IHandlerTarget(feeGmxTracker).setDepositToken(bonusGmxTracker, isEnabled);
+        IHandlerTarget(feeGmxTracker).setDepositToken(bnGmx, isEnabled);
+        IHandlerTarget(feeGmxTracker).setDepositToken(extendedGmxTracker, true);
+        IHandlerTarget(extendedGmxTracker).setDepositToken(bonusGmxTracker, true);
+        IHandlerTarget(extendedGmxTracker).setDepositToken(bnGmx, true);
     }
 }
