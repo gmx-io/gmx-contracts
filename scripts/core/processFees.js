@@ -304,7 +304,7 @@ async function updateRewards() {
   // the fees kept in the fee distributor can also help to fund keepers in case
   // of spikes in gas prices that may lead to low keeper balances before the next
   // distribution
-  const distributionBasisPoints = 9700
+  const distributionBasisPoints = process.env.DISTRIBUTION_BASIS_POINTS ? process.env.DISTRIBUTION_BASIS_POINTS : 9700
 
   const rewardAmounts = {
     arbitrum: {
