@@ -31,6 +31,7 @@ describe("Timelock", function () {
   let timelock
   let feeGlpTracker
   let stakedGlpTracker
+  let rewardRouterUtils
   let rewardRouter
 
   beforeEach(async () => {
@@ -68,7 +69,13 @@ describe("Timelock", function () {
     feeGlpTracker = await deployContract("RewardTracker", ["Fee GLP", "fGLP"])
     stakedGlpTracker = await deployContract("RewardTracker", ["Fee + Staked GLP", "fsGLP"])
 
-    rewardRouter = await deployContract("RewardRouterV2", [])
+    rewardRouterUtils = await deployContract("RewardRouterUtils", [])
+
+    rewardRouter = await deployContract("RewardRouterV2", [], {
+      libraries: {
+        RewardRouterUtils: rewardRouterUtils.address,
+      },
+    });
     await rewardRouter.initialize(
       bnb.address,
       AddressZero,
@@ -78,8 +85,10 @@ describe("Timelock", function () {
       AddressZero,
       AddressZero,
       AddressZero,
+      AddressZero,
       feeGlpTracker.address,
       stakedGlpTracker.address,
+      AddressZero,
       AddressZero,
       AddressZero,
       AddressZero,
