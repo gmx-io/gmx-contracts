@@ -58,8 +58,6 @@ describe("RewardRouterV2", function () {
 
   let govToken
 
-  let rewardRouterUtils
-
   let rewardRouter
 
   beforeEach(async () => {
@@ -196,16 +194,10 @@ describe("RewardRouterV2", function () {
 
     govToken = await deployContract("MintableBaseToken", ["GOV", "GOV", 0])
 
-    rewardRouterUtils = await deployContract("RewardRouterUtils", [])
-
-    rewardRouter = await deployContract("RewardRouterV2", [], {
-      libraries: {
-        RewardRouterUtils: rewardRouterUtils.address,
-      },
-    });
+    rewardRouter = await deployContract("RewardRouterV2", []);
 
     await rewardRouter.initialize(
-      bnb.address,
+      [bnb.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -220,7 +212,7 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address
+      govToken.address]
     )
 
     // allow bonusGmxTracker to stake stakedGmxTracker
@@ -323,7 +315,7 @@ describe("RewardRouterV2", function () {
     expect(await rewardRouter.externalHandler()).eq(mockExternalHandler.address)
 
     await expect(rewardRouter.initialize(
-      bnb.address,
+      [bnb.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -338,7 +330,7 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address
+      govToken.address]
     )).to.be.revertedWith("already initialized")
   })
 
@@ -369,7 +361,7 @@ describe("RewardRouterV2", function () {
     expect(await rewardRouter.votingPowerType()).eq(2)
   })
 
-  it("stakeGmxForAccount, stakeGmx, stakeEsGmx, unstakeGmx, unstakeEsGmx, claimEsGmx, claimFees, compound, batchCompoundForAccounts", async () => {
+  it("batchStakeGmxForAccounts, stakeGmx, stakeEsGmx, unstakeGmx, unstakeEsGmx, claimEsGmx, claimFees, compound, batchCompoundForAccounts", async () => {
     await eth.mint(feeGmxDistributor.address, expandDecimals(100, 18))
     await feeGmxDistributor.setTokensPerInterval("41335970000000") // 0.00004133597 ETH per second
 
@@ -383,11 +375,11 @@ describe("RewardRouterV2", function () {
     expect(await gmx.balanceOf(user0.address)).eq(expandDecimals(1500, 18))
 
     await gmx.connect(user0).approve(stakedGmxTracker.address, expandDecimals(1000, 18))
-    await expect(rewardRouter.connect(user0).stakeGmxForAccount(user1.address, expandDecimals(1000, 18)))
+    await expect(rewardRouter.connect(user0).batchStakeGmxForAccounts([user1.address], [expandDecimals(1000, 18)]))
       .to.be.revertedWith("Governable: forbidden")
 
     await rewardRouter.setGov(user0.address)
-    await rewardRouter.connect(user0).stakeGmxForAccount(user1.address, expandDecimals(800, 18))
+    await rewardRouter.connect(user0).batchStakeGmxForAccounts([user1.address], [expandDecimals(800, 18)])
     expect(await gmx.balanceOf(user0.address)).eq(expandDecimals(700, 18))
 
     await gmx.mint(user1.address, expandDecimals(200, 18))
@@ -1353,13 +1345,9 @@ describe("RewardRouterV2", function () {
     const timelockV2 = wallet
 
     // use new rewardRouter, use eth for weth
-    const rewardRouterV2 = await deployContract("RewardRouterV2", [], {
-      libraries: {
-        RewardRouterUtils: rewardRouterUtils.address,
-      },
-    });
+    const rewardRouterV2 = await deployContract("RewardRouterV2", []);
     await rewardRouterV2.initialize(
-      eth.address,
+      [eth.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -1374,7 +1362,7 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address
+      govToken.address]
     )
 
     await rewardRouterV2.setMaxBoostBasisPoints(20_000)
@@ -2065,13 +2053,9 @@ describe("RewardRouterV2", function () {
   })
 
   it("allows migration", async () => {
-    const rewardRouterV2 = await deployContract("RewardRouterV2", [], {
-      libraries: {
-        RewardRouterUtils: rewardRouterUtils.address,
-      },
-    });
+    const rewardRouterV2 = await deployContract("RewardRouterV2", []);
     await rewardRouterV2.initialize(
-      eth.address,
+      [eth.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -2086,7 +2070,7 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address
+      govToken.address]
     )
 
     const timelockCaller = await deployContract("BeefyTimelockCaller", [])
