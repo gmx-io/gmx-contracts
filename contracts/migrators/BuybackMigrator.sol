@@ -132,8 +132,8 @@ contract BuybackMigrator is IGovRequester {
 
         expectedGovGrantedCaller = address(0);
         
-        rewardRouterTarget = address(0);
-        isEnabled = false;
+        delete rewardRouterTarget;
+        delete isEnabled;
     }
 
     function _toggleRewardRouter() internal {

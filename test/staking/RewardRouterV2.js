@@ -138,7 +138,7 @@ describe("RewardRouterV2", function () {
 
     feeGmxTracker = await deployContract("RewardTracker", ["Staked + Bonus + Fee GMX", "sbfGMX"])
     feeGmxDistributor = await deployContract("RewardDistributor", [eth.address, feeGmxTracker.address])
-    await feeGmxTracker.initialize([bonusGmxTracker.address, bnGmx.address, extendedGmxTracker.address], feeGmxDistributor.address)
+    await feeGmxTracker.initialize([extendedGmxTracker.address], feeGmxDistributor.address)
     await feeGmxDistributor.updateLastDistributionTime()
 
     // GLP
@@ -2131,5 +2131,9 @@ describe("RewardRouterV2", function () {
 
     await expect(mockGovRequester.migrate(timelock.address, [stakedGmxTracker.address]))
       .to.be.revertedWith("gov != this")
+  })
+
+  it("BuybackMigrator.enableNewRewardRouter, BuybackMigrator.disableOldRewardRouter and batchRestakeForAccounts", async () => {
+    
   })
 })
