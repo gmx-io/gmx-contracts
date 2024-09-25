@@ -678,7 +678,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     }
 
     function _validateNotVesting(address _sender) private view {
-        require(IERC20(gmxVester).balanceOf(_sender) == 0 || IERC20(glpVester).balanceOf(_sender) == 0, "sender has vested tokens");
+        require(IERC20(gmxVester).balanceOf(_sender) == 0 && IERC20(glpVester).balanceOf(_sender) == 0, "sender has vested tokens");
     }
 
     function _validateAmount(uint256 _amount) private pure {

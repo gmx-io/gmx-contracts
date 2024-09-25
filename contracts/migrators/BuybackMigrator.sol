@@ -97,16 +97,17 @@ contract BuybackMigrator is IGovRequester {
         rewardRouterTarget = oldRewardRouter;
         isEnabled = false;
 
-        address[] memory targets = new address[](9);
+        address[] memory targets = new address[](10);
         targets[0] = stakedGmxTracker;
         targets[1] = bonusGmxTracker;
-        targets[2] = feeGmxTracker;
-        targets[3] = feeGlpTracker;
-        targets[4] = stakedGlpTracker;
-        targets[5] = gmxVester;
-        targets[6] = glpVester;
-        targets[7] = esGmx;
-        targets[8] = bnGmx;
+        targets[2] = extendedGmxTracker;
+        targets[3] = feeGmxTracker;
+        targets[4] = feeGlpTracker;
+        targets[5] = stakedGlpTracker;
+        targets[6] = gmxVester;
+        targets[7] = glpVester;
+        targets[8] = esGmx;
+        targets[9] = bnGmx;
 
         ITimelock(gov).requestGov(targets);
     }
@@ -147,11 +148,22 @@ contract BuybackMigrator is IGovRequester {
         IHandlerTarget(glpVester).setHandler(rewardRouterTarget, isEnabled);
         IHandlerTarget(esGmx).setHandler(rewardRouterTarget, isEnabled);
         IMintable(bnGmx).setMinter(rewardRouterTarget, isEnabled);
-
-        IHandlerTarget(feeGmxTracker).setDepositToken(bonusGmxTracker, isEnabled);
-        IHandlerTarget(feeGmxTracker).setDepositToken(bnGmx, isEnabled);
-        IHandlerTarget(feeGmxTracker).setDepositToken(extendedGmxTracker, true);
-        IHandlerTarget(extendedGmxTracker).setDepositToken(bonusGmxTracker, true);
-        IHandlerTarget(extendedGmxTracker).setDepositToken(bnGmx, true);
+        
+        if (isEnabled) {
+            IHandlerTarget(bonusGmxTracker).setHandler(extendedGmxTracker, true);
+            IHandlerTarget(bnGmx).setHandler(extendedGmxTracker, true);
+            IHandlerTarget(extendedGmxTracker).setHandler(feeGmxTracker, true);
+            
+            IHandlerTarget(feeGmxTracker).setDepositToken(extendedGmxTracker, true);
+            IHandlerTarget(extendedGmxTracker).setDepositToken(bonusGmxTracker, true);
+            IHandlerTarget(extendedGmxTracker).setDepositToken(bnGmx, true);
+        }
+        else {
+            IHandlerTarget(bonusGmxTracker).setHandler(feeGmxTracker, false);
+            IHandlerTarget(bnGmx).setHandler(feeGmxTracker, false);
+            
+            IHandlerTarget(feeGmxTracker).setDepositToken(bonusGmxTracker, false);
+            IHandlerTarget(feeGmxTracker).setDepositToken(bnGmx, false);
+        }
     }
 }
