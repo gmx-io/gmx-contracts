@@ -185,8 +185,8 @@ async function saveFeeReference({ feeValues, referralValues, refTimestamp }) {
       avax: values.avax.nativeTokenPrice.toString(),
     },
     referralRewards: {
-      arbitrum: (referralValues.arbitrum.allDiscountUsd.add(referralValues.avax.allDiscountUsd)).mul(expandDecimals(1, 18)).div(values.arbitrum.nativeTokenPrice).toString(),
-      avax: (referralValues.avax.allDiscountUsd.add(referralValues.avax.allDiscountUsd)).mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice).toString()
+      arbitrum: (referralValues.arbitrum.allDiscountUsd.add(referralValues.arbitrum.allAffiliateUsd)).mul(expandDecimals(1, 18)).div(values.arbitrum.nativeTokenPrice).toString(),
+      avax: (referralValues.avax.allDiscountUsd.add(referralValues.avax.allAffiliateUsd)).mul(expandDecimals(1, 18)).div(values.avax.nativeTokenPrice).toString()
     },
     gmxPrice: values.gmxPrice.toString(),
     traderRebates: referralValues.arbitrum.allDiscountUsd.add(referralValues.avax.allDiscountUsd).toString(),
