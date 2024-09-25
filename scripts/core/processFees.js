@@ -337,11 +337,13 @@ async function updateRewards() {
   console.log("rewardAmounts.arbitrum.gmx", rewardAmounts.arbitrum.gmx.toString())
   console.log("rewardAmounts.arbitrum.glp", rewardAmounts.arbitrum.glp.toString())
   console.log("rewardAmounts.arbitrum.treasury", rewardAmounts.arbitrum.treasury.toString())
+  console.log("rewardAmounts.arbitrum.chainlink", rewardAmounts.arbitrum.chainlink.toString())
   console.log("feeReference.referralRewards.arbitrum", feeReference.referralRewards.arbitrum.toString())
 
   console.log("rewardAmounts.avax.gmx", rewardAmounts.avax.gmx.toString())
   console.log("rewardAmounts.avax.glp", rewardAmounts.avax.glp.toString())
   console.log("rewardAmounts.avax.treasury", rewardAmounts.avax.treasury.toString())
+  console.log("rewardAmounts.avax.chainlink", rewardAmounts.avax.chainlink.toString())
   console.log("feeReference.referralRewards.avax", feeReference.referralRewards.avax.toString())
 
   const stakingValues = {
