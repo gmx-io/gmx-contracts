@@ -137,7 +137,7 @@ contract BuybackMigrator is IGovRequester {
         delete isEnabled;
     }
 
-    function _toggleRewardRouter() internal {
+    function _toggleRewardRouter() private {
         IHandlerTarget(stakedGmxTracker).setHandler(rewardRouterTarget, isEnabled);
         IHandlerTarget(bonusGmxTracker).setHandler(rewardRouterTarget, isEnabled);
         IHandlerTarget(extendedGmxTracker).setHandler(rewardRouterTarget, isEnabled);
@@ -153,15 +153,11 @@ contract BuybackMigrator is IGovRequester {
             IHandlerTarget(bonusGmxTracker).setHandler(extendedGmxTracker, true);
             IHandlerTarget(bnGmx).setHandler(extendedGmxTracker, true);
             IHandlerTarget(extendedGmxTracker).setHandler(feeGmxTracker, true);
-            
             IHandlerTarget(feeGmxTracker).setDepositToken(extendedGmxTracker, true);
-            IHandlerTarget(extendedGmxTracker).setDepositToken(bonusGmxTracker, true);
-            IHandlerTarget(extendedGmxTracker).setDepositToken(bnGmx, true);
         }
         else {
             IHandlerTarget(bonusGmxTracker).setHandler(feeGmxTracker, false);
             IHandlerTarget(bnGmx).setHandler(feeGmxTracker, false);
-            
             IHandlerTarget(feeGmxTracker).setDepositToken(bonusGmxTracker, false);
             IHandlerTarget(feeGmxTracker).setDepositToken(bnGmx, false);
         }

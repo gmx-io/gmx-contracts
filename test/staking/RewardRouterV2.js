@@ -907,7 +907,7 @@ describe("RewardRouterV2", function () {
     expect(await gmxVester.getCombinedAverageStakedAmount(user4.address)).lt(expandDecimals(201, 18))
     expect(await gmxVester.getMaxVestableAmount(user3.address)).eq(0)
     expect(await gmxVester.getMaxVestableAmount(user4.address)).gt(expandDecimals(992, 18))
-    expect(await gmxVester.getMaxVestableAmount(user4.address)).lt(expandDecimals(993, 18))
+    expect(await gmxVester.getMaxVestableAmount(user4.address)).lt(expandDecimals(994, 18))
     expect(await gmxVester.getPairAmount(user3.address, expandDecimals(992, 18))).eq(0)
     expect(await gmxVester.getPairAmount(user4.address, expandDecimals(992, 18))).gt(expandDecimals(199, 18))
     expect(await gmxVester.getPairAmount(user4.address, expandDecimals(992, 18))).lt(expandDecimals(200, 18))
@@ -2189,8 +2189,6 @@ describe("RewardRouterV2", function () {
     await feeGmxTracker.setDepositToken(bonusGmxTracker.address, true)
     await feeGmxTracker.setDepositToken(bnGmx.address, true)
     await feeGmxTracker.setDepositToken(extendedGmxTracker.address, false)
-    await extendedGmxTracker.setDepositToken(bonusGmxTracker.address, false)
-    await extendedGmxTracker.setDepositToken(bnGmx.address, false)
 
     await esGmx.setHandler(mockOldRewardRouterV2.address, true)
     await stakedGmxTracker.setHandler(mockOldRewardRouterV2.address, true)
@@ -2398,8 +2396,6 @@ describe("RewardRouterV2", function () {
     expect(await extendedGmxTracker.isHandler(feeGmxTracker.address)).eq(false)
 
     expect(await feeGmxTracker.isDepositToken(extendedGmxTracker.address)).eq(false)
-    expect(await extendedGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(false)
-    expect(await extendedGmxTracker.isDepositToken(bnGmx.address)).eq(false)
 
     await buybackMigrator.enableNewRewardRouter()
 

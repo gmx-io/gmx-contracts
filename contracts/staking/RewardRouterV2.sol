@@ -410,12 +410,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         uint256 stakedBnGmx = IRewardTracker(extendedGmxTracker).depositBalances(_sender, bnGmx);
-        if (stakedBnGmx > 0) {
-            IRewardTracker(feeGmxTracker).unstakeForAccount(_sender, extendedGmxTracker, stakedBnGmx, _sender);
-            IRewardTracker(extendedGmxTracker).unstakeForAccount(_sender, bnGmx, stakedBnGmx, _sender);
-            IRewardTracker(extendedGmxTracker).stakeForAccount(_sender, receiver, bnGmx, stakedBnGmx);
-            IRewardTracker(feeGmxTracker).stakeForAccount(receiver, receiver, extendedGmxTracker, stakedBnGmx);
-        }
+        _acceptTransferRestake(feeGmxTracker, extendedGmxTracker, _sender, receiver, bnGmx, stakedBnGmx);
 
         uint256 esGmxBalance = IERC20(esGmx).balanceOf(_sender);
         if (esGmxBalance > 0) {
@@ -429,13 +424,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         uint256 glpAmount = IRewardTracker(feeGlpTracker).depositBalances(_sender, glp);
-        if (glpAmount > 0) {
-            IRewardTracker(stakedGlpTracker).unstakeForAccount(_sender, feeGlpTracker, glpAmount, _sender);
-            IRewardTracker(feeGlpTracker).unstakeForAccount(_sender, glp, glpAmount, _sender);
-
-            IRewardTracker(feeGlpTracker).stakeForAccount(_sender, receiver, glp, glpAmount);
-            IRewardTracker(stakedGlpTracker).stakeForAccount(receiver, receiver, feeGlpTracker, glpAmount);
-        }
+        _acceptTransferRestake(stakedGlpTracker, feeGlpTracker, _sender, receiver, glp, glpAmount);
 
         IVester(gmxVester).transferStakeValues(_sender, receiver);
         IVester(glpVester).transferStakeValues(_sender, receiver);
@@ -646,8 +635,17 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         uint256 stakedBnGmx = IRewardTracker(feeGmxTracker).depositBalances(_account, bnGmx);
         if (stakedBnGmx > 0) {
             IRewardTracker(feeGmxTracker).unstakeForAccount(_account, bnGmx, stakedBnGmx, _account);
-            IRewardTracker(extendedGmxTracker).stakeForAccount(_account, _account, bnGmx, stakedBnGmx);
-            IRewardTracker(feeGmxTracker).stakeForAccount(_account, _account, extendedGmxTracker, stakedBnGmx);
+            _stakeBnGmx(_account);
+            _syncVotingPower(_account);
+        }
+    }
+
+    function _acceptTransferRestake(address _rewardTracker0, address _rewardTracker1, address _sender, address _receiver, address _token, uint256 _amount) private {
+        if (_amount > 0) {
+            IRewardTracker(_rewardTracker0).unstakeForAccount(_sender, _rewardTracker1, _amount, _sender);
+            IRewardTracker(_rewardTracker1).unstakeForAccount(_sender, _token, _amount, _sender);
+            IRewardTracker(_rewardTracker1).stakeForAccount(_sender, _receiver, _token, _amount);
+            IRewardTracker(_rewardTracker0).stakeForAccount(_receiver, _receiver, _rewardTracker1, _amount);
         }
     }
 
@@ -657,6 +655,9 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         require(IRewardTracker(bonusGmxTracker).averageStakedAmounts(_receiver) == 0, "bonusGmxTracker.averageStakedAmounts > 0");
         require(IRewardTracker(bonusGmxTracker).cumulativeRewards(_receiver) == 0, "bonusGmxTracker.cumulativeRewards > 0");
+
+        require(IRewardTracker(extendedGmxTracker).averageStakedAmounts(_receiver) == 0, "extendedGmxTracker.averageStakedAmounts > 0");
+        require(IRewardTracker(extendedGmxTracker).cumulativeRewards(_receiver) == 0, "extendedGmxTracker.cumulativeRewards > 0");
 
         require(IRewardTracker(feeGmxTracker).averageStakedAmounts(_receiver) == 0, "feeGmxTracker.averageStakedAmounts > 0");
         require(IRewardTracker(feeGmxTracker).cumulativeRewards(_receiver) == 0, "feeGmxTracker.cumulativeRewards > 0");
