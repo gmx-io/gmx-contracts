@@ -2614,4 +2614,176 @@ describe("RewardRouterV2", function () {
         true // _shouldConvertWethToEth
     )).to.be.revertedWith("Vester: forbidden")
   })
+
+  it("handleRewardsV2", async () => {
+    await eth.mint(feeGlpDistributor.address, expandDecimals(100, 18))
+    await feeGlpDistributor.setTokensPerInterval("41335970000000") // 0.00004133597 ETH per second
+    
+    await gmx.setMinter(wallet.address, true)
+    await gmx.mint(extendedGmxDistributor.address, expandDecimals(200, 18))
+    await extendedGmxDistributor.setTokensPerInterval("82671940000000") // 0.00008267194 GMX per second
+    expect(await gmx.balanceOf(extendedGmxDistributor.address)).eq(expandDecimals(200, 18))
+    
+    await gmx.mint(user1.address, expandDecimals(1000, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(1000, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, maxUint256)
+    await rewardRouter.connect(user1).stakeGmx(expandDecimals(1000, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    await bnb.mint(user1.address, expandDecimals(1, 18))
+    await bnb.connect(user1).approve(glpManager.address, expandDecimals(1, 18))
+    await rewardRouter.connect(user1).mintAndStakeGlp(
+      bnb.address,
+      expandDecimals(1, 18),
+      expandDecimals(299, 18),
+      expandDecimals(299, 18)
+    )
+
+    expect(await stakedGmxTracker.stakedAmounts(user0.address)).eq(0)
+    expect(await stakedGmxTracker.depositBalances(user0.address, gmx.address)).eq(0)
+    expect(await stakedGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(1000, 18))
+    expect(await stakedGmxTracker.depositBalances(user1.address, gmx.address)).eq(expandDecimals(1000, 18))
+
+    expect(await bonusGmxTracker.stakedAmounts(user0.address)).eq(0)
+    expect(await bonusGmxTracker.depositBalances(user0.address, stakedGmxTracker.address)).eq(0)
+    expect(await bonusGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(1000, 18))
+    expect(await bonusGmxTracker.depositBalances(user1.address, stakedGmxTracker.address)).eq(expandDecimals(1000, 18))
+
+    expect(await extendedGmxTracker.stakedAmounts(user0.address)).eq(0)
+    expect(await extendedGmxTracker.depositBalances(user0.address, bonusGmxTracker.address)).eq(0)
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(1000, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).eq(expandDecimals(1000, 18))
+
+    expect(await feeGmxTracker.stakedAmounts(user0.address)).eq(0)
+    expect(await feeGmxTracker.depositBalances(user0.address, extendedGmxTracker.address)).eq(0)
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).eq(expandDecimals(1000, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).eq(expandDecimals(1000, 18))
+
+    await increaseTime(provider, 24 * 60 * 60)
+    await mineBlock(provider)
+
+    expect(await stakedGmxTracker.claimable(user0.address)).eq(0)
+    expect(await stakedGmxTracker.claimable(user1.address)).gt(expandDecimals(1785, 18)) // 50000 / 28 => ~1785
+    expect(await stakedGmxTracker.claimable(user1.address)).lt(expandDecimals(1786, 18))
+
+    expect(await stakedGmxTracker.claimable(user0.address)).eq(0)
+    expect(await stakedGlpTracker.claimable(user1.address)).gt(expandDecimals(1785, 18)) // 50000 / 28 => ~1785
+    expect(await stakedGlpTracker.claimable(user1.address)).lt(expandDecimals(1786, 18))
+
+    expect(await bonusGmxTracker.claimable(user0.address)).eq(0)
+    expect(await bonusGmxTracker.claimable(user1.address)).gt("2730000000000000000") // 2.73, 1000 / 365 => ~2.74
+    expect(await bonusGmxTracker.claimable(user1.address)).lt("2750000000000000000") // 2.75
+
+    expect(await extendedGmxTracker.claimable(user0.address)).eq(0)
+    expect(await extendedGmxTracker.claimable(user1.address)).gt("7130000000000000000") // 7.13, 200 / 28 => ~7.14
+    expect(await extendedGmxTracker.claimable(user1.address)).lt("7150000000000000000") // 7.15
+
+    expect(await feeGlpTracker.claimable(user0.address)).eq(0)
+    expect(await feeGlpTracker.claimable(user1.address)).gt("3560000000000000000") // 3.56, 100 / 28 => ~3.57
+    expect(await feeGlpTracker.claimable(user1.address)).lt("3580000000000000000") // 3.58
+
+    await expect(rewardRouter.connect(user1).handleRewardsV2(
+      user2.address, // _gmxReceiver
+      true, // _shouldClaimGmx
+      true, // _shouldStakeGmx
+      true, // _shouldClaimEsGmx
+      true, // _shouldStakeEsGmx
+      true, // _shouldStakeMultiplierPoints
+      true, // _shouldClaimWeth
+      false // _shouldConvertWethToEth
+    )).to.be.revertedWith("cannot stake GMX if _gmxReceiver != account")
+
+    await rewardRouter.connect(user1).handleRewardsV2(
+      user1.address, // _gmxReceiver
+      true, // _shouldClaimGmx
+      true, // _shouldStakeGmx
+      true, // _shouldClaimEsGmx
+      true, // _shouldStakeEsGmx
+      true, // _shouldStakeMultiplierPoints
+      true, // _shouldClaimWeth
+      false // _shouldConvertWethToEth
+    )
+
+    expect(await stakedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(4577, 18)) // 1007 + 1785 + 1785
+    expect(await stakedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(4579, 18)) // 1007 + 1786 + 1786
+    expect(await stakedGmxTracker.depositBalances(user1.address, gmx.address)).gt("1007130000000000000000") // 1007.13
+    expect(await stakedGmxTracker.depositBalances(user1.address, gmx.address)).lt("1007150000000000000000") // 1007.15
+    expect(await stakedGmxTracker.depositBalances(user1.address, esGmx.address)).gt(expandDecimals(3570, 18)) // 50000 / 28 * 2 => ~3571
+    expect(await stakedGmxTracker.depositBalances(user1.address, esGmx.address)).lt(expandDecimals(3572, 18))
+
+    expect(await bonusGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(4577, 18))
+    expect(await bonusGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(4579, 18))
+
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(4580, 18))
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(4582, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).gt(expandDecimals(4577, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).lt(expandDecimals(4579, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).gt("2730000000000000000") // 2.73, 1000 / 365 => ~2.74
+    expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).lt("2750000000000000000") // 2.75
+
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(4580, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(4582, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).gt(expandDecimals(4580, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).lt(expandDecimals(4582, 18))
+
+    await increaseTime(provider, 24 * 60 * 60)
+    await mineBlock(provider)
+
+    expect(await stakedGmxTracker.claimable(user0.address)).eq(0)
+    expect(await stakedGmxTracker.claimable(user1.address)).gt(expandDecimals(1785, 18)) // 50000 / 28 => ~1785
+    expect(await stakedGmxTracker.claimable(user1.address)).lt(expandDecimals(1786, 18))
+
+    expect(await stakedGmxTracker.claimable(user0.address)).eq(0)
+    expect(await stakedGlpTracker.claimable(user1.address)).gt(expandDecimals(1785, 18)) // 50000 / 28 => ~1785
+    expect(await stakedGlpTracker.claimable(user1.address)).lt(expandDecimals(1786, 18))
+
+    expect(await bonusGmxTracker.claimable(user0.address)).eq(0)
+    expect(await bonusGmxTracker.claimable(user1.address)).gt("12530000000000000000") // 12.53, 4578 / 365 => ~12.54
+    expect(await bonusGmxTracker.claimable(user1.address)).lt("12550000000000000000") // 12.55
+
+    expect(await extendedGmxTracker.claimable(user0.address)).eq(0)
+    expect(await extendedGmxTracker.claimable(user1.address)).gt("7130000000000000000") // 7.13, 200 / 28 => ~7.14
+    expect(await extendedGmxTracker.claimable(user1.address)).lt("7150000000000000000") // 7.15
+
+    expect(await feeGlpTracker.claimable(user0.address)).eq(0)
+    expect(await feeGlpTracker.claimable(user1.address)).gt("3560000000000000000") // 3.56, 100 / 28 => ~3.57
+    expect(await feeGlpTracker.claimable(user1.address)).lt("3580000000000000000") // 3.58
+
+    await rewardRouter.connect(user1).handleRewardsV2(
+      user2.address, // _gmxReceiver
+      true, // _shouldClaimGmx
+      false, // _shouldStakeGmx
+      true, // _shouldClaimEsGmx
+      true, // _shouldStakeEsGmx
+      true, // _shouldStakeMultiplierPoints
+      true, // _shouldClaimWeth
+      false // _shouldConvertWethToEth
+    )
+
+    expect(await stakedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(8149, 18)) // 1007 + 3571 + 3571
+    expect(await stakedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(8151, 18)) // 1007 + 3572 + 3572
+    expect(await stakedGmxTracker.depositBalances(user1.address, gmx.address)).gt("1007130000000000000000") // 1007.13
+    expect(await stakedGmxTracker.depositBalances(user1.address, gmx.address)).lt("1007150000000000000000") // 1007.15
+    expect(await stakedGmxTracker.depositBalances(user1.address, esGmx.address)).gt(expandDecimals(7142, 18)) // 50000 / 28 * 4 => ~7143
+    expect(await stakedGmxTracker.depositBalances(user1.address, esGmx.address)).lt(expandDecimals(7144, 18))
+
+    expect(await bonusGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(8149, 18))
+    expect(await bonusGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(8151, 18))
+
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(8164, 18))
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(8166, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).gt(expandDecimals(8149, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).lt(expandDecimals(8151, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).gt("15270000000000000000") // 15.27, (1000 / 365) + (4578 / 365) => ~15.28
+    expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).lt("15290000000000000000") // 15.20
+
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(8164, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(8166, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).gt(expandDecimals(8164, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).lt(expandDecimals(8166, 18))
+
+    expect(await gmx.balanceOf(user1.address)).eq(0)
+    expect(await gmx.balanceOf(user2.address)).gt("7130000000000000000") // 7.13, 200 / 28 => ~7.14
+    expect(await gmx.balanceOf(user2.address)).lt("7150000000000000000") // 7.15
+  })
 })

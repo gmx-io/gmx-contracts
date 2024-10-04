@@ -163,7 +163,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
     }
 
-    function multicall(bytes[] memory data) external payable returns (bytes[] memory results) {
+    function multicall(bytes[] memory data) external returns (bytes[] memory results) {
         results = new bytes[](data.length);
 
         for (uint256 i; i < data.length; i++) {
