@@ -155,11 +155,5 @@ contract BuybackMigrator is IGovRequester {
             IHandlerTarget(extendedGmxTracker).setHandler(feeGmxTracker, true);
             IHandlerTarget(feeGmxTracker).setDepositToken(extendedGmxTracker, true);
         }
-        else {
-            IHandlerTarget(bonusGmxTracker).setHandler(feeGmxTracker, false);
-            IHandlerTarget(bnGmx).setHandler(feeGmxTracker, false);
-            IHandlerTarget(feeGmxTracker).setDepositToken(bonusGmxTracker, false);
-            IHandlerTarget(feeGmxTracker).setDepositToken(bnGmx, false);
-        }
     }
 }

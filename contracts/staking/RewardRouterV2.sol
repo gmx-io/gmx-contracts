@@ -81,6 +81,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     address public govToken;
     VotingPowerType public votingPowerType;
 
+    bool public inRestakingMode;
+
     mapping (address => address) public pendingReceivers;
 
     event StakeGmx(address account, address token, uint256 amount);
@@ -139,6 +141,10 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         votingPowerType = _votingPowerType;
     }
 
+    function setInRestakingMode(bool _inRestakingMode) external onlyGov {
+        inRestakingMode = _inRestakingMode;
+    }
+
     // to help users who accidentally send their tokens to this contract
     function withdrawToken(address _token, address _account, uint256 _amount) external onlyGov {
         IERC20(_token).safeTransfer(_account, _amount);
@@ -182,7 +188,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         bytes[] memory externalCallDataList,
         address[] memory refundTokens,
         address[] memory refundReceivers
-    ) external {
+    ) external nonReentrant {
         IExternalHandler(externalHandler).makeExternalCalls(
             externalCallTargets,
             externalCallDataList,
@@ -200,10 +206,14 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     }
 
     function unstakeGmx(uint256 _amount) external nonReentrant {
+        _restakeForAccount(msg.sender);
+        
         _unstakeGmx(msg.sender, gmx, _amount, true);
     }
 
     function unstakeEsGmx(uint256 _amount) external nonReentrant {
+        _restakeForAccount(msg.sender);
+        
         _unstakeGmx(msg.sender, esGmx, _amount, true);
     }
 
@@ -301,6 +311,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         if (_shouldStakeMultiplierPoints) {
+            _restakeForAccount(account);
+            
             _stakeBnGmx(account);
         }
 
@@ -350,6 +362,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         }
 
         if (_shouldStakeMultiplierPoints) {
+            _restakeForAccount(account);
+            
             _stakeBnGmx(account);
         }
 
@@ -419,8 +433,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         uint256 bnGmxBalance = IERC20(bnGmx).balanceOf(_sender);
         if (bnGmxBalance > 0) {
-            IMintable(bnGmx).burn(_sender, bnGmxBalance);
-            IMintable(bnGmx).mint(receiver, bnGmxBalance);
+            _burnToken(bnGmx, _sender, bnGmxBalance);
+            _mintToken(bnGmx, receiver, bnGmxBalance);
         }
 
         uint256 glpAmount = IRewardTracker(feeGlpTracker).depositBalances(_sender, glp);
@@ -467,6 +481,8 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         if (esGmxAmount > 0) {
             _stakeGmx(_account, _account, esGmx, esGmxAmount);
         }
+
+        _restakeForAccount(_account);
 
         _stakeBnGmx(_account);
 
@@ -540,14 +556,14 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
                 uint256 reductionAmount = stakedBnGmx.mul(_amount).div(balance);
                 IRewardTracker(feeGmxTracker).unstakeForAccount(_account, extendedGmxTracker, reductionAmount, _account);
                 IRewardTracker(extendedGmxTracker).unstakeForAccount(_account, bnGmx, reductionAmount, _account);
-                IMintable(bnGmx).burn(_account, reductionAmount);
+                _burnToken(bnGmx, _account, reductionAmount);
             }
 
             // burn bnGmx tokens from user's balance
             uint256 bnGmxBalance = IERC20(bnGmx).balanceOf(_account);
             if (bnGmxBalance > 0) {
                 uint256 amountToBurn = bnGmxBalance.mul(_amount).div(balance);
-                IMintable(bnGmx).burn(_account, amountToBurn);
+                _burnToken(bnGmx, _account, amountToBurn);
             }
         }
 
@@ -582,12 +598,12 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         if (currentVotingPower > _amount) {
             uint256 amountToBurn = currentVotingPower.sub(_amount);
-            IMintable(govToken).burn(_account, amountToBurn);
+            _burnToken(govToken, _account, amountToBurn);
             return;
         }
 
         uint256 amountToMint = _amount.sub(currentVotingPower);
-        IMintable(govToken).mint(_account, amountToMint);
+        _mintToken(govToken, _account, amountToMint);
     }
 
     function _mintAndStakeGlp(address _address, address _token, uint256 _amount, uint256 _minUsdg, uint256 _minGlp) private returns (uint256) {
@@ -647,6 +663,14 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
             IRewardTracker(_rewardTracker1).stakeForAccount(_sender, _receiver, _token, _amount);
             IRewardTracker(_rewardTracker0).stakeForAccount(_receiver, _receiver, _rewardTracker1, _amount);
         }
+    }
+
+    function _mintToken(address _token, address _account, uint256 _amountToMint) private {
+        IMintable(_token).mint(_account, _amountToMint);
+    }
+
+    function _burnToken(address _token, address _account, uint256 _amountToBurn) private {
+        IMintable(_token).burn(_account, _amountToBurn);
     }
 
     function _validateReceiver(address _receiver) private view {

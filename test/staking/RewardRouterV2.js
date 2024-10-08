@@ -2354,6 +2354,8 @@ describe("RewardRouterV2", function () {
 
     await newRewardRouterV2.setMaxBoostBasisPoints(20_000)
 
+    await newRewardRouterV2.setInRestakingMode(true);
+
     // deploy BuybackMigrator contract to test migration
     const buybackMigrator = await deployContract("BuybackMigrator", [
       wallet.address,
@@ -2418,41 +2420,41 @@ describe("RewardRouterV2", function () {
     expect(await extendedGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
     expect(await extendedGmxTracker.isDepositToken(bnGmx.address)).eq(true)
 
-    await newRewardRouterV2.batchRestakeForAccounts([user1.address])
+    await newRewardRouterV2.connect(user1).unstakeGmx(expandDecimals(1, 18))
 
-    expect(await extendedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(795, 18))
-    expect(await extendedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(796, 18))
-    expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(795, 18))
-    expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(797, 18))
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(794, 18))
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(795, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(794, 18))
+    expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(795, 18))
     
-    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).gt(expandDecimals(795, 18))
-    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).lt(expandDecimals(796, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).gt(expandDecimals(794, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).lt(expandDecimals(795, 18))
     expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).gt("540000000000000000")
     expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).lt("560000000000000000")
     expect(await feeGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).eq(0)
     expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).eq(0)
-    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).gt(expandDecimals(795, 18))
-    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).lt(expandDecimals(797, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).gt(expandDecimals(794, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).lt(expandDecimals(796, 18))
 
     await gmx.mint(user1.address, expandDecimals(200, 18))
-    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(200, 18))
-    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(200, 18))
-    await mockOldRewardRouterV2.connect(user1).stakeGmx(expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(201, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(201, 18))
+    await mockOldRewardRouterV2.connect(user1).stakeGmx(expandDecimals(201, 18))
     expect(await gmx.balanceOf(user1.address)).eq(0)
 
-    expect(await extendedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(795, 18))
-    expect(await extendedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(796, 18))
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(794, 18))
+    expect(await extendedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(795, 18))
     expect(await feeGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(995, 18))
     expect(await feeGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(997, 18))
 
-    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).gt(expandDecimals(795, 18))
-    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).lt(expandDecimals(796, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).gt(expandDecimals(794, 18))
+    expect(await extendedGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).lt(expandDecimals(795, 18))
     expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).gt("540000000000000000")
     expect(await extendedGmxTracker.depositBalances(user1.address, bnGmx.address)).lt("560000000000000000")
     expect(await feeGmxTracker.depositBalances(user1.address, bnGmx.address)).eq(0)
-    expect(await feeGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).eq(expandDecimals(200, 18))
-    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).gt(expandDecimals(795, 18))
-    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).lt(expandDecimals(797, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, bonusGmxTracker.address)).eq(expandDecimals(201, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).gt(expandDecimals(794, 18))
+    expect(await feeGmxTracker.depositBalances(user1.address, extendedGmxTracker.address)).lt(expandDecimals(796, 18))
 
     await gmx.mint(user2.address, expandDecimals(200, 18))
     expect(await gmx.balanceOf(user2.address)).eq(expandDecimals(200, 18))
@@ -2469,7 +2471,14 @@ describe("RewardRouterV2", function () {
     expect(await feeGmxTracker.depositBalances(user2.address, bonusGmxTracker.address)).eq(expandDecimals(200, 18))
     expect(await feeGmxTracker.depositBalances(user2.address, bnGmx.address)).eq(0)
 
-    await newRewardRouterV2.connect(user3).claimEsGmx()
+    await newRewardRouterV2.connect(user3).claim()
+
+    expect(await gmx.balanceOf(user3.address)).eq(0)
+
+    const user3EthBalance = await eth.balanceOf(user3.address)
+
+    expect(user3EthBalance).gt("1190000000000000000")
+    expect(user3EthBalance).lt("1200000000000000000")
 
     const user3EsGmxBalance = await esGmx.balanceOf(user3.address)
 
