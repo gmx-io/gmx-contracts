@@ -2571,12 +2571,6 @@ describe("RewardRouterV2", function () {
     
     expect(await bnGmx.isMinter(mockOldRewardRouterV2.address)).eq(false)
 
-    expect(await bonusGmxTracker.isHandler(feeGmxTracker.address)).eq(false)
-    expect(await bnGmx.isHandler(feeGmxTracker.address)).eq(false)
-
-    expect(await feeGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(false)
-    expect(await feeGmxTracker.isDepositToken(bnGmx.address)).eq(false)
-
     expect(await stakedGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
     expect(await bonusGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
     expect(await extendedGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
@@ -2589,13 +2583,17 @@ describe("RewardRouterV2", function () {
     
     expect(await bnGmx.isMinter(newRewardRouterV2.address)).eq(true)
 
+    expect(await bonusGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
     expect(await bonusGmxTracker.isHandler(extendedGmxTracker.address)).eq(true)
-    expect(await bnGmx.isHandler(extendedGmxTracker.address)).eq(true)
     expect(await extendedGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
+    expect(await bnGmx.isHandler(feeGmxTracker.address)).eq(true)
+    expect(await bnGmx.isHandler(extendedGmxTracker.address)).eq(true)
 
     expect(await extendedGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
     expect(await extendedGmxTracker.isDepositToken(bnGmx.address)).eq(true)
     expect(await feeGmxTracker.isDepositToken(extendedGmxTracker.address)).eq(true)
+    expect(await feeGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
+    expect(await feeGmxTracker.isDepositToken(bnGmx.address)).eq(true)
 
     await gmx.mint(user1.address, expandDecimals(200, 18))
     expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(200, 18))
