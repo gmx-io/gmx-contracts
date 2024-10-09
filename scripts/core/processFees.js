@@ -445,7 +445,7 @@ async function sendReferralRewards() {
       signer: handlers[network],
       referralSender: deployers[network],
       shouldSendTxn: true,
-      skipSendNativeToken: false,
+      skipSendNativeToken: i == 0,
       nativeToken: nativeTokens[network],
       nativeTokenPrice: feeReference.nativeTokenPrice[network],
       gmxPrice: feeReference.gmxPrice,
