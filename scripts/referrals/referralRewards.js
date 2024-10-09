@@ -137,6 +137,11 @@ async function sendReferralRewards({ skipSendNativeToken, signer, referralSender
     }
   }
 
+  const esGmxBalance = await esGmx.balanceOf(referralSender.address)
+  if (esGmxBalance.lt(totalEsGmxAmount)) {
+    throw new Error(`Insufficient esGmx balance, required: ${totalEsGmxAmount.toString()}, available: ${esGmxBalance.toString()}`)
+  }
+
   const printBatch = (currentBatch) => {
     for (let i = 0; i < currentBatch.length; i++) {
       const item = currentBatch[i]
