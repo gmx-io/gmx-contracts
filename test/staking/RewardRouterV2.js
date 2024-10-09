@@ -2133,7 +2133,7 @@ describe("RewardRouterV2", function () {
       .to.be.revertedWith("gov != this")
   })
 
-  it("BuybackMigrator.enableNewRewardRouter, BuybackMigrator.disableOldRewardRouter, batchRestakeForAccounts", async () => {
+  it("BuybackMigrator.enableNewRewardRouter, BuybackMigrator.disableOldRewardRouter, BuybackMigrator.setHandlerAndDepositToken, batchRestakeForAccounts", async () => {
     const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
     
     // deploy for testing MockOldRewardRouterV2
@@ -2550,15 +2550,6 @@ describe("RewardRouterV2", function () {
 
     await buybackMigrator.disableOldRewardRouter()
 
-    await timelock.signalSetGovRequester(buybackMigrator.address, false)
-
-    await increaseTime(provider, 20)
-    await mineBlock(provider)
-
-    await timelock.setGovRequester(buybackMigrator.address, false)
-
-    expect(await timelock.govRequesters(buybackMigrator.address)).eq(false)
-
     expect(await stakedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
     expect(await bonusGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
     expect(await extendedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
@@ -2620,6 +2611,23 @@ describe("RewardRouterV2", function () {
         true, // _shouldClaimWeth
         true // _shouldConvertWethToEth
     )).to.be.revertedWith("Vester: forbidden")
+    
+    await buybackMigrator.setHandlerAndDepositToken()
+
+    await timelock.signalSetGovRequester(buybackMigrator.address, false)
+
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+
+    await timelock.setGovRequester(buybackMigrator.address, false)
+
+    expect(await timelock.govRequesters(buybackMigrator.address)).eq(false)
+
+    expect(await bonusGmxTracker.isHandler(feeGmxTracker.address)).eq(false)
+    expect(await bnGmx.isHandler(feeGmxTracker.address)).eq(false)
+
+    expect(await feeGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(false)
+    expect(await feeGmxTracker.isDepositToken(bnGmx.address)).eq(false)
   })
 
   it("handleRewardsV2", async () => {

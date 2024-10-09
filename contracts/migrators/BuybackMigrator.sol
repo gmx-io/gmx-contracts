@@ -27,7 +27,9 @@ contract BuybackMigrator is IGovRequester {
     address public expectedGovGrantedCaller;
 
     address public rewardRouterTarget;
+    
     bool public isEnabled;
+    bool public isRestakingCompleted;
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "forbidden");
@@ -112,29 +114,60 @@ contract BuybackMigrator is IGovRequester {
         ITimelock(gov).requestGov(targets);
     }
 
+    function setHandlerAndDepositToken() external onlyAdmin {
+        require(rewardRouterTarget == address(0), "invalid rewardRouterTarget");
+        
+        address gov = Governable(stakedGmxTracker).gov();
+        expectedGovGrantedCaller = gov;
+
+        isRestakingCompleted = true;
+
+        address[] memory targets = new address[](3);
+        
+        targets[0] = bonusGmxTracker;
+        targets[1] = bnGmx;
+        targets[2] = feeGmxTracker;
+
+        ITimelock(gov).requestGov(targets);
+    }
+
     function afterGovGranted() external override {
-        require(msg.sender == expectedGovGrantedCaller, "forbidden");
-        require(rewardRouterTarget != address(0), "invalid rewardRouterTarget");
-
-        _toggleRewardRouter();
-
         address mainGov = msg.sender;
+        require(mainGov == expectedGovGrantedCaller, "forbidden");
 
-        Governable(stakedGmxTracker).setGov(mainGov);
-        Governable(bonusGmxTracker).setGov(mainGov);
-        Governable(extendedGmxTracker).setGov(mainGov);
-        Governable(feeGmxTracker).setGov(mainGov);
-        Governable(feeGlpTracker).setGov(mainGov);
-        Governable(stakedGlpTracker).setGov(mainGov);
-        Governable(gmxVester).setGov(mainGov);
-        Governable(glpVester).setGov(mainGov);
-        Governable(esGmx).setGov(mainGov);
-        Governable(bnGmx).setGov(mainGov);
+        if (isRestakingCompleted) {
+            IHandlerTarget(bonusGmxTracker).setHandler(feeGmxTracker, false);
+            IHandlerTarget(bnGmx).setHandler(feeGmxTracker, false);
+            IHandlerTarget(feeGmxTracker).setDepositToken(bonusGmxTracker, false);
+            IHandlerTarget(feeGmxTracker).setDepositToken(bnGmx, false);
+            
+            Governable(bonusGmxTracker).setGov(mainGov);
+            Governable(bnGmx).setGov(mainGov);
+            Governable(feeGmxTracker).setGov(mainGov);
+
+            delete isRestakingCompleted;
+        }
+
+        else {
+            require(rewardRouterTarget != address(0), "invalid rewardRouterTarget");
+            _toggleRewardRouter();
+
+            Governable(stakedGmxTracker).setGov(mainGov);
+            Governable(bonusGmxTracker).setGov(mainGov);
+            Governable(extendedGmxTracker).setGov(mainGov);
+            Governable(feeGmxTracker).setGov(mainGov);
+            Governable(feeGlpTracker).setGov(mainGov);
+            Governable(stakedGlpTracker).setGov(mainGov);
+            Governable(gmxVester).setGov(mainGov);
+            Governable(glpVester).setGov(mainGov);
+            Governable(esGmx).setGov(mainGov);
+            Governable(bnGmx).setGov(mainGov);
+
+            delete rewardRouterTarget;
+            delete isEnabled;
+        }
 
         expectedGovGrantedCaller = address(0);
-        
-        delete rewardRouterTarget;
-        delete isEnabled;
     }
 
     function _toggleRewardRouter() private {
