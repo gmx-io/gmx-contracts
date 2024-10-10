@@ -2133,7 +2133,7 @@ describe("RewardRouterV2", function () {
       .to.be.revertedWith("gov != this")
   })
 
-  it("BuybackMigrator.enableNewRewardRouter, BuybackMigrator.disableOldRewardRouter, BuybackMigrator.setHandlerAndDepositToken, batchRestakeForAccounts", async () => {
+  it("BuybackMigrator.sol, batchRestakeForAccounts", async () => {
     const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
     
     // deploy for testing MockOldRewardRouterV2
@@ -2356,6 +2356,8 @@ describe("RewardRouterV2", function () {
 
     await newRewardRouterV2.setInRestakingMode(true);
 
+    expect(await newRewardRouterV2.inRestakingMode()).eq(true)
+
     // deploy BuybackMigrator contract to test migration
     const buybackMigrator = await deployContract("BuybackMigrator", [
       wallet.address,
@@ -2441,6 +2443,88 @@ describe("RewardRouterV2", function () {
     await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(201, 18))
     await mockOldRewardRouterV2.connect(user1).stakeGmx(expandDecimals(201, 18))
     expect(await gmx.balanceOf(user1.address)).eq(0)
+
+    expect(await stakedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    expect(await bonusGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    expect(await extendedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await feeGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    expect(await feeGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    expect(await stakedGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    expect(await gmxVester.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    expect(await glpVester.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    expect(await esGmx.isHandler(mockOldRewardRouterV2.address)).eq(true)
+    
+    expect(await bnGmx.isMinter(mockOldRewardRouterV2.address)).eq(true)
+
+    expect(await bonusGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
+    expect(await bnGmx.isHandler(feeGmxTracker.address)).eq(true)
+
+    expect(await feeGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
+    expect(await feeGmxTracker.isDepositToken(bnGmx.address)).eq(true)
+
+    await buybackMigrator.disableOldRewardRouter()
+
+    expect(await stakedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await bonusGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await extendedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await feeGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await feeGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await stakedGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await gmxVester.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await glpVester.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    expect(await esGmx.isHandler(mockOldRewardRouterV2.address)).eq(false)
+    
+    expect(await bnGmx.isMinter(mockOldRewardRouterV2.address)).eq(false)
+
+    expect(await stakedGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await bonusGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await extendedGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await feeGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await feeGlpTracker.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await stakedGlpTracker.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await gmxVester.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await glpVester.isHandler(newRewardRouterV2.address)).eq(true)
+    expect(await esGmx.isHandler(newRewardRouterV2.address)).eq(true)
+    
+    expect(await bnGmx.isMinter(newRewardRouterV2.address)).eq(true)
+
+    expect(await bonusGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
+    expect(await bonusGmxTracker.isHandler(extendedGmxTracker.address)).eq(true)
+    expect(await extendedGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
+    expect(await bnGmx.isHandler(feeGmxTracker.address)).eq(true)
+    expect(await bnGmx.isHandler(extendedGmxTracker.address)).eq(true)
+
+    expect(await extendedGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
+    expect(await extendedGmxTracker.isDepositToken(bnGmx.address)).eq(true)
+    expect(await feeGmxTracker.isDepositToken(extendedGmxTracker.address)).eq(true)
+    expect(await feeGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
+    expect(await feeGmxTracker.isDepositToken(bnGmx.address)).eq(true)
+
+    await gmx.mint(user1.address, expandDecimals(200, 18))
+    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(200, 18))
+    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(200, 18))
+    
+    await expect(mockOldRewardRouterV2.connect(user1).stakeGmx(expandDecimals(200, 18)))
+      .to.be.revertedWith("RewardTracker: forbidden")
+
+    await expect(mockOldRewardRouterV2.connect(user1).unstakeGmx(expandDecimals(200, 18)))
+      .to.be.revertedWith("RewardTracker: forbidden")
+
+    await expect(mockOldRewardRouterV2.connect(user1).claim())
+      .to.be.revertedWith("RewardTracker: forbidden")
+
+    await expect(mockOldRewardRouterV2.connect(user1).compound())
+      .to.be.revertedWith("RewardTracker: forbidden")
+    
+    await expect(mockOldRewardRouterV2.connect(user1).handleRewards(
+        true, // _shouldClaimGmx
+        true, // _shouldStakeGmx
+        true, // _shouldClaimEsGmx
+        true, // _shouldStakeEsGmx
+        true, // _shouldStakeMultiplierPoints
+        true, // _shouldClaimWeth
+        true // _shouldConvertWethToEth
+    )).to.be.revertedWith("Vester: forbidden")
 
     expect(await extendedGmxTracker.stakedAmounts(user1.address)).gt(expandDecimals(794, 18))
     expect(await extendedGmxTracker.stakedAmounts(user1.address)).lt(expandDecimals(795, 18))
@@ -2530,89 +2614,11 @@ describe("RewardRouterV2", function () {
     expect(await extendedGmxTracker.depositBalances(user3.address, bonusGmxTracker.address)).eq(expandDecimals(200, 18))
     expect(await feeGmxTracker.balanceOf(user3.address)).eq(0)
 
-    expect(await stakedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    expect(await bonusGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    expect(await extendedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await feeGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    expect(await feeGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    expect(await stakedGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    expect(await gmxVester.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    expect(await glpVester.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    expect(await esGmx.isHandler(mockOldRewardRouterV2.address)).eq(true)
-    
-    expect(await bnGmx.isMinter(mockOldRewardRouterV2.address)).eq(true)
-
-    expect(await bonusGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
-    expect(await bnGmx.isHandler(feeGmxTracker.address)).eq(true)
-
-    expect(await feeGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
-    expect(await feeGmxTracker.isDepositToken(bnGmx.address)).eq(true)
-
-    await buybackMigrator.disableOldRewardRouter()
-
-    expect(await stakedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await bonusGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await extendedGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await feeGmxTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await feeGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await stakedGlpTracker.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await gmxVester.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await glpVester.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    expect(await esGmx.isHandler(mockOldRewardRouterV2.address)).eq(false)
-    
-    expect(await bnGmx.isMinter(mockOldRewardRouterV2.address)).eq(false)
-
-    expect(await stakedGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await bonusGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await extendedGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await feeGmxTracker.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await feeGlpTracker.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await stakedGlpTracker.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await gmxVester.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await glpVester.isHandler(newRewardRouterV2.address)).eq(true)
-    expect(await esGmx.isHandler(newRewardRouterV2.address)).eq(true)
-    
-    expect(await bnGmx.isMinter(newRewardRouterV2.address)).eq(true)
-
-    expect(await bonusGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
-    expect(await bonusGmxTracker.isHandler(extendedGmxTracker.address)).eq(true)
-    expect(await extendedGmxTracker.isHandler(feeGmxTracker.address)).eq(true)
-    expect(await bnGmx.isHandler(feeGmxTracker.address)).eq(true)
-    expect(await bnGmx.isHandler(extendedGmxTracker.address)).eq(true)
-
-    expect(await extendedGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
-    expect(await extendedGmxTracker.isDepositToken(bnGmx.address)).eq(true)
-    expect(await feeGmxTracker.isDepositToken(extendedGmxTracker.address)).eq(true)
-    expect(await feeGmxTracker.isDepositToken(bonusGmxTracker.address)).eq(true)
-    expect(await feeGmxTracker.isDepositToken(bnGmx.address)).eq(true)
-
-    await gmx.mint(user1.address, expandDecimals(200, 18))
-    expect(await gmx.balanceOf(user1.address)).eq(expandDecimals(200, 18))
-    await gmx.connect(user1).approve(stakedGmxTracker.address, expandDecimals(200, 18))
-    
-    await expect(mockOldRewardRouterV2.connect(user1).stakeGmx(expandDecimals(200, 18)))
-      .to.be.revertedWith("RewardTracker: forbidden")
-
-    await expect(mockOldRewardRouterV2.connect(user1).unstakeGmx(expandDecimals(200, 18)))
-      .to.be.revertedWith("RewardTracker: forbidden")
-
-    await expect(mockOldRewardRouterV2.connect(user1).claim())
-      .to.be.revertedWith("RewardTracker: forbidden")
-
-    await expect(mockOldRewardRouterV2.connect(user1).compound())
-      .to.be.revertedWith("RewardTracker: forbidden")
-    
-    await expect(mockOldRewardRouterV2.connect(user1).handleRewards(
-        true, // _shouldClaimGmx
-        true, // _shouldStakeGmx
-        true, // _shouldClaimEsGmx
-        true, // _shouldStakeEsGmx
-        true, // _shouldStakeMultiplierPoints
-        true, // _shouldClaimWeth
-        true // _shouldConvertWethToEth
-    )).to.be.revertedWith("Vester: forbidden")
-    
     await buybackMigrator.setHandlerAndDepositToken()
+
+    await newRewardRouterV2.setInRestakingMode(false);
+
+    expect(await newRewardRouterV2.inRestakingMode()).eq(false)
 
     await timelock.signalSetGovRequester(buybackMigrator.address, false)
 
