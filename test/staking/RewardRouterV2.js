@@ -196,8 +196,8 @@ describe("RewardRouterV2", function () {
 
     rewardRouter = await deployContract("RewardRouterV2", []);
 
-    await rewardRouter.initialize(
-      [bnb.address,
+    await rewardRouter.initialize([
+      bnb.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -212,8 +212,8 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address]
-    )
+      govToken.address
+    ])
 
     // allow bonusGmxTracker to stake stakedGmxTracker
     await stakedGmxTracker.setHandler(bonusGmxTracker.address, true)
@@ -314,8 +314,8 @@ describe("RewardRouterV2", function () {
 
     expect(await rewardRouter.externalHandler()).eq(mockExternalHandler.address)
 
-    await expect(rewardRouter.initialize(
-      [bnb.address,
+    await expect(rewardRouter.initialize([
+      bnb.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -330,8 +330,8 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address]
-    )).to.be.revertedWith("already initialized")
+      govToken.address
+    ])).to.be.revertedWith("already initialized")
   })
 
   it("setMaxBoostBasisPoints", async () => {
@@ -1346,8 +1346,8 @@ describe("RewardRouterV2", function () {
 
     // use new rewardRouter, use eth for weth
     const rewardRouterV2 = await deployContract("RewardRouterV2", []);
-    await rewardRouterV2.initialize(
-      [eth.address,
+    await rewardRouterV2.initialize([
+      eth.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -1362,8 +1362,8 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address]
-    )
+      govToken.address
+    ])
 
     await rewardRouterV2.setMaxBoostBasisPoints(20_000)
 
@@ -2054,8 +2054,8 @@ describe("RewardRouterV2", function () {
 
   it("allows migration", async () => {
     const rewardRouterV2 = await deployContract("RewardRouterV2", []);
-    await rewardRouterV2.initialize(
-      [eth.address,
+    await rewardRouterV2.initialize([
+      eth.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -2070,8 +2070,8 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address]
-    )
+      govToken.address
+    ])
 
     const timelockCaller = await deployContract("BeefyTimelockCaller", [])
     const migrator = await deployContract("BeefyMigrator", [
@@ -2333,8 +2333,8 @@ describe("RewardRouterV2", function () {
 
     // deply new RewardRouterV2 for migration testing
     const newRewardRouterV2 = await deployContract("RewardRouterV2", []);
-    await newRewardRouterV2.initialize(
-      [bnb.address,
+    await newRewardRouterV2.initialize([
+      bnb.address,
       gmx.address,
       esGmx.address,
       bnGmx.address,
@@ -2349,8 +2349,8 @@ describe("RewardRouterV2", function () {
       gmxVester.address,
       glpVester.address,
       mockExternalHandler.address,
-      govToken.address]
-    )
+      govToken.address
+    ])
 
     await newRewardRouterV2.setMaxBoostBasisPoints(20_000)
 
