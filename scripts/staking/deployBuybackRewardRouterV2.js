@@ -3,7 +3,7 @@ const { REWARD_ROUTER_KEEPER_KEY } = require("../../env.json");
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('../core/tokens')[network];
-const keeper = new ethers.Wallet(REWARD_ROUTER_KEEPER_KEY) // For setting RewardRouterV2.setGov() but not sure if this is correct or necessary i.e. perhaps the deployment is handled by the keeper
+const keeper = new ethers.Wallet(REWARD_ROUTER_KEEPER_KEY)
 
 async function deployForArb() {
   const { nativeToken } = tokens
@@ -19,7 +19,7 @@ async function deployForArb() {
 
   const stakedGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4");
   const bonusGmxTracker = await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13");
-  const extendedGmxTracker = await contractAt("RewardTracker", "To be added once deployed"); // To be added once deployed
+  const extendedGmxTracker = await contractAt("RewardTracker", "0x0755D33e45eD2B874c9ebF5B279023c8Bd1e5E93");
   const feeGmxTracker = await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F");
 
   const feeGlpTracker = await contractAt("RewardTracker", "0x4e971a87900b931fF39d1Aad67697F49835400b6");
@@ -53,16 +53,16 @@ async function deployForArb() {
   ]), "rewardRouter.initialize");
 
   await sendTxn(rewardRouter.setInStrictTransferMode(true), "rewardRouter.setInStrictTransferMode");
-  await sendTxn(rewardRouter.setMaxBoostBasisPoints(0), "rewardRouter.setMaxBoostBasisPoints"); // Given the default value is 0, technically shouldn't be necessary and could remove if preferred
+  await sendTxn(rewardRouter.setMaxBoostBasisPoints(0), "rewardRouter.setMaxBoostBasisPoints");
   await sendTxn(rewardRouter.setVotingPowerType(1), "rewardRouter.setVotingPowerType");
   await sendTxn(rewardRouter.setInRestakingMode(true), "rewardRouter.setInRestakingMode");
   await sendTxn(rewardRouter.setGov(keeper.address), "rewardRouter.setGov");
 
-  const buybackMigratorAdminAddress = "To be determined" // Not sure what address to use for BuybackMigrator admin in the constructor
+  const buybackMigratorAdminAddress = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
   const oldRewardRouter = await contractAt("RewardRouterV2", "0x159854e14A862Df9E39E1D128b8e5F70B4A3cE9B");
 
   const BuybackMigrator = await deployContract("BuybackMigrator", [
-    buybackMigratorAdminAddress, 
+    buybackMigratorAdminAddress,
     stakedGmxTracker.address,
     bonusGmxTracker.address,
     extendedGmxTracker.address,
@@ -92,7 +92,7 @@ async function deployForAvax() {
 
   const stakedGmxTracker = await contractAt("RewardTracker", "0x2bD10f8E93B3669b6d42E74eEedC65dd1B0a1342");
   const bonusGmxTracker = await contractAt("RewardTracker", "0x908C4D94D34924765f1eDc22A1DD098397c59dD4");
-  const extendedGmxTracker = await contractAt("RewardTracker", "To be added once deployed"); // To be added once deployed
+  const extendedGmxTracker = await contractAt("RewardTracker", "0xB0D12Bf95CC1341d6C845C978daaf36F70b5910d");
   const feeGmxTracker = await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13");
 
   const feeGlpTracker = await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F");
@@ -126,16 +126,16 @@ async function deployForAvax() {
   ]), "rewardRouter.initialize");
 
   await sendTxn(rewardRouter.setInStrictTransferMode(true), "rewardRouter.setInStrictTransferMode");
-  await sendTxn(rewardRouter.setMaxBoostBasisPoints(0), "rewardRouter.setMaxBoostBasisPoints"); // Given the default value is 0, technically shouldn't be necessary and could remove if preferred
+  await sendTxn(rewardRouter.setMaxBoostBasisPoints(0), "rewardRouter.setMaxBoostBasisPoints");
   await sendTxn(rewardRouter.setVotingPowerType(1), "rewardRouter.setVotingPowerType");
   await sendTxn(rewardRouter.setInRestakingMode(true), "rewardRouter.setInRestakingMode");
   await sendTxn(rewardRouter.setGov(keeper.address), "rewardRouter.setGov");
-  
-  const buybackMigratorAdminAddress = "To be determined" // Not sure what address to use for BuybackMigrator admin in the constructor
+
+  const buybackMigratorAdminAddress = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
   const oldRewardRouter = await contractAt("RewardRouterV2", "0xa192D0681E2b9484d1fA48083D36B8A2D0Da1809");
-  
+
   const BuybackMigrator = await deployContract("BuybackMigrator", [
-    buybackMigratorAdminAddress, 
+    buybackMigratorAdminAddress,
     stakedGmxTracker.address,
     bonusGmxTracker.address,
     extendedGmxTracker.address,

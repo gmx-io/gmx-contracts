@@ -10,7 +10,7 @@ async function deployForArb() {
 
   const extendedGmxTracker = await deployContract("RewardTracker", ["Staked + Bonus + Extended GMX", "sbeGMX"])
   const extendedGmxDistributor = await deployContract("RewardDistributor", [gmx.address, extendedGmxTracker.address])
-  
+
   await sendTxn(extendedGmxTracker.initialize([bnGmx.address, bonusGmxTracker.address], extendedGmxDistributor.address), "extendedGmxTracker.initialize")
   await sendTxn(extendedGmxDistributor.updateLastDistributionTime(), "extendedGmxDistributor.updateLastDistributionTime")
 
@@ -18,7 +18,7 @@ async function deployForArb() {
   await sendTxn(extendedGmxTracker.setInPrivateStakingMode(true), "extendedGmxTracker.setInPrivateStakingMode")
 
   await sendTxn(extendedGmxTracker.setGov(timelock.address), "extendedGmxTracker.setGov")
-  await sendTxn(extendedGmxDistributor.setGov(timelock.address), "extendedGmxDistributor.setGov") // Not sure if this is correct, I see that stakedGmxDistributor has the old V1 timelock set as gov
+  await sendTxn(extendedGmxDistributor.setGov(timelock.address), "extendedGmxDistributor.setGov")
 }
 
 async function deployForAvax() {
@@ -29,7 +29,7 @@ async function deployForAvax() {
 
   const extendedGmxTracker = await deployContract("RewardTracker", ["Staked + Bonus + Extended GMX", "sbeGMX"])
   const extendedGmxDistributor = await deployContract("RewardDistributor", [gmx.address, extendedGmxTracker.address])
-  
+
   await sendTxn(extendedGmxTracker.initialize([bnGmx.address, bonusGmxTracker.address], extendedGmxDistributor.address), "extendedGmxTracker.initialize")
   await sendTxn(extendedGmxDistributor.updateLastDistributionTime(), "extendedGmxDistributor.updateLastDistributionTime")
 
@@ -38,7 +38,7 @@ async function deployForAvax() {
 
   await sendTxn(extendedGmxTracker.setGov(timelock.address), "extendedGmxTracker.setGov")
   await sendTxn(extendedGmxDistributor.setGov(timelock.address), "extendedGmxDistributor.setGov") // Not sure if this is correct, I see that stakedGmxDistributor has the old V1 timelock set as gov
-  
+
 }
 
 async function main() {
