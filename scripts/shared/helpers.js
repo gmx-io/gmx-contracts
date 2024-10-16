@@ -174,12 +174,8 @@ async function processBatch(batchLists, batchSize, handler) {
 }
 
 async function updateTokensPerInterval(distributor, tokensPerInterval, label) {
-  const prevTokensPerInterval = await distributor.tokensPerInterval()
-  if (prevTokensPerInterval.eq(0)) {
-    // if the tokens per interval was zero, the distributor.lastDistributionTime may not have been updated for a while
-    // so the lastDistributionTime should be manually updated here
-    await sendTxn(distributor.updateLastDistributionTime({ gasLimit: 1_000_000 }), `${label}.updateLastDistributionTime`)
-  }
+  // call distributor.lastDistributionTime to update the lastDistributionTime
+  await sendTxn(distributor.updateLastDistributionTime({ gasLimit: 1_000_000 }), `${label}.updateLastDistributionTime`)
   await sendTxn(distributor.setTokensPerInterval(tokensPerInterval, { gasLimit: 1_000_000 }), `${label}.setTokensPerInterval`)
 }
 
