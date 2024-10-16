@@ -68,9 +68,10 @@ describe("Timelock", function () {
     feeGlpTracker = await deployContract("RewardTracker", ["Fee GLP", "fGLP"])
     stakedGlpTracker = await deployContract("RewardTracker", ["Fee + Staked GLP", "fsGLP"])
 
-    rewardRouter = await deployContract("RewardRouterV2", [])
+    rewardRouter = await deployContract("RewardRouterV2", []);
     await rewardRouter.initialize(
-      bnb.address,
+      [bnb.address,
+      AddressZero,
       AddressZero,
       AddressZero,
       AddressZero,
@@ -83,7 +84,8 @@ describe("Timelock", function () {
       AddressZero,
       AddressZero,
       AddressZero,
-      AddressZero
+      AddressZero,
+      AddressZero]
     )
 
     timelock = await deployContract("Timelock", [
