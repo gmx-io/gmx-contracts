@@ -130,10 +130,10 @@ contract Vester is IVester, IERC20, ReentrancyGuard, Governable {
         transferredAverageStakedAmounts[_sender] = 0;
 
         uint256 transferredCumulativeReward = transferredCumulativeRewards[_sender];
-        uint256 cumulativeReward = hasRewardTracker() ? IRewardTracker(rewardTracker).cumulativeRewards(_sender) : 0;
+        uint256 cumulativeReward = hasRewardTracker() ? IRewardTracker(rewardTracker).cumulativeRewards(_sender).sub(cumulativeRewardDeductions[_sender]) : 0;
 
         transferredCumulativeRewards[_receiver] = transferredCumulativeReward.add(cumulativeReward);
-        cumulativeRewardDeductions[_sender] = cumulativeReward;
+        cumulativeRewardDeductions[_sender] = cumulativeRewardDeductions[_sender].add(cumulativeReward);
         transferredCumulativeRewards[_sender] = 0;
 
         bonusRewards[_receiver] = bonusRewards[_sender];

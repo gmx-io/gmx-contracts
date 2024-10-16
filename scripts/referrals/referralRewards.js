@@ -43,7 +43,7 @@ async function getAvaxValues(referralSender) {
   return { vester, timelock, batchSender, esGmx, data }
 }
 
-async function sendReferralRewards({ signer, referralSender, shouldSendTxn, nativeToken, nativeTokenPrice, gmxPrice, values, network }) {
+async function sendReferralRewards({ skipSendNativeToken, signer, referralSender, shouldSendTxn, nativeToken, nativeTokenPrice, gmxPrice, values, network }) {
   const wallet = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
   const { vester, timelock, batchSender, esGmx, data } = values
   const nativeTokenContract = await contractAt("Token", nativeToken.address, referralSender)
@@ -131,41 +131,51 @@ async function sendReferralRewards({ signer, referralSender, shouldSendTxn, nati
 
   const nativeTokenForSigner = await contractAt("Token", nativeToken.address, signer)
   const balance = await nativeTokenForSigner.balanceOf(signer.address)
-  if (balance.lt(totalNativeAmount)) {
-    throw new Error(`Insufficient balance, required: ${totalNativeAmount.toString()}, available: ${balance.toString()}`)
+  if (!skipSendNativeToken) {
+    if (balance.lt(totalNativeAmount)) {
+      throw new Error(`Insufficient balance, required: ${totalNativeAmount.toString()}, available: ${balance.toString()}`)
+    }
+  }
+
+  const esGmxBalance = await esGmx.balanceOf(referralSender.address)
+  if (esGmxBalance.lt(totalEsGmxAmount)) {
+    throw new Error(`Insufficient esGmx balance, required: ${totalEsGmxAmount.toString()}, available: ${esGmxBalance.toString()}`)
+  }
+
+  const printBatch = (currentBatch) => {
+    for (let i = 0; i < currentBatch.length; i++) {
+      const item = currentBatch[i]
+      const account = item[0]
+      const amount = item[1]
+      console.log(account, ethers.utils.formatUnits(amount, 18))
+    }
   }
 
   if (shouldSendTxn) {
-    await sendTxn(nativeTokenForSigner.transfer(wallet.address, totalNativeAmount), "nativeTokenForSigner.transfer")
+    if (!skipSendNativeToken) {
+      await sendTxn(nativeTokenForSigner.transfer(wallet.address, totalNativeAmount), "nativeTokenForSigner.transfer")
 
-    const printBatch = (currentBatch) => {
-      for (let i = 0; i < currentBatch.length; i++) {
-        const item = currentBatch[i]
-        const account = item[0]
-        const amount = item[1]
-        console.log(account, ethers.utils.formatUnits(amount, 18))
-      }
+
+      await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
+
+      await processBatch([affiliateAccounts, affiliateAmounts], batchSize, async (currentBatch) => {
+        printBatch(currentBatch)
+
+        const accounts = currentBatch.map((item) => item[0])
+        const amounts = currentBatch.map((item) => item[1])
+
+        await sendTxn(batchSender.sendAndEmit(nativeToken.address, accounts, amounts, affiliateRewardsTypeId), "batchSender.sendAndEmit(nativeToken, affiliate rewards)")
+      })
+
+      await processBatch([discountAccounts, discountAmounts], batchSize, async (currentBatch) => {
+        printBatch(currentBatch)
+
+        const accounts = currentBatch.map((item) => item[0])
+        const amounts = currentBatch.map((item) => item[1])
+
+        await sendTxn(batchSender.sendAndEmit(nativeToken.address, accounts, amounts, traderDiscountsTypeId), "batchSender.sendAndEmit(nativeToken, trader rebates)")
+      })
     }
-
-    await sendTxn(nativeTokenContract.approve(batchSender.address, totalNativeAmount), "nativeToken.approve")
-
-    await processBatch([affiliateAccounts, affiliateAmounts], batchSize, async (currentBatch) => {
-      printBatch(currentBatch)
-
-      const accounts = currentBatch.map((item) => item[0])
-      const amounts = currentBatch.map((item) => item[1])
-
-      await sendTxn(batchSender.sendAndEmit(nativeToken.address, accounts, amounts, affiliateRewardsTypeId), "batchSender.sendAndEmit(nativeToken, affiliate rewards)")
-    })
-
-    await processBatch([discountAccounts, discountAmounts], batchSize, async (currentBatch) => {
-      printBatch(currentBatch)
-
-      const accounts = currentBatch.map((item) => item[0])
-      const amounts = currentBatch.map((item) => item[1])
-
-      await sendTxn(batchSender.sendAndEmit(nativeToken.address, accounts, amounts, traderDiscountsTypeId), "batchSender.sendAndEmit(nativeToken, trader rebates)")
-    })
 
     await sendTxn(esGmx.approve(batchSender.address, totalEsGmxAmount), "esGmx.approve")
 

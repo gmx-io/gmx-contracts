@@ -173,6 +173,9 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
     const longTokenFeeUsd = longTokenFeeAmount.mul(longTokenPrice)
     const shortTokenFeeUsd = shortTokenFeeAmount.mul(shortTokenPrice)
 
+    console.info(`v2 fee ${market.marketToken.toLowerCase()} ${market.longToken.toLowerCase()}: ${longTokenFeeAmount.toString()}, ${longTokenPrice.toString()}, ${longTokenFeeUsd.toString()}`)
+    console.info(`v2 fee ${market.marketToken.toLowerCase()} ${market.shortToken.toLowerCase()}: ${shortTokenFeeAmount.toString()}, ${shortTokenPrice.toString()}, ${shortTokenFeeUsd.toString()}`)
+
     feesUsd = feesUsd.add(longTokenFeeUsd)
     feesUsd = feesUsd.add(shortTokenFeeUsd)
   }

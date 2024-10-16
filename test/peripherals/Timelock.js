@@ -29,8 +29,6 @@ describe("Timelock", function () {
   let distributor0
   let yieldTracker0
   let timelock
-  let fastPriceEvents
-  let fastPriceFeed
   let feeGlpTracker
   let stakedGlpTracker
   let rewardRouter
@@ -70,9 +68,10 @@ describe("Timelock", function () {
     feeGlpTracker = await deployContract("RewardTracker", ["Fee GLP", "fGLP"])
     stakedGlpTracker = await deployContract("RewardTracker", ["Fee + Staked GLP", "fsGLP"])
 
-    rewardRouter = await deployContract("RewardRouterV2", [])
+    rewardRouter = await deployContract("RewardRouterV2", []);
     await rewardRouter.initialize(
-      bnb.address,
+      [bnb.address,
+      AddressZero,
       AddressZero,
       AddressZero,
       AddressZero,
@@ -85,7 +84,8 @@ describe("Timelock", function () {
       AddressZero,
       AddressZero,
       AddressZero,
-      AddressZero
+      AddressZero,
+      AddressZero]
     )
 
     timelock = await deployContract("Timelock", [
@@ -121,18 +121,6 @@ describe("Timelock", function () {
     await vault.setGov(timelock.address)
     await vaultPriceFeed.setGov(timelock.address)
     await router.setGov(timelock.address)
-
-    fastPriceEvents = await deployContract("FastPriceEvents", [])
-    fastPriceFeed = await deployContract("FastPriceFeed", [
-      5 * 60, // _priceDuration
-      60 * 60, // _maxPriceUpdateDelay
-      2, // _minBlockInterval
-      250, // _allowedDeviationBasisPoints
-      fastPriceEvents.address, // _fastPriceEvents
-      tokenManager.address // _tokenManager
-    ])
-
-    await fastPriceFeed.setGov(timelock.address)
   })
 
   it("inits", async () => {
