@@ -52,6 +52,7 @@ contract Timelock is ITimelock, BasicMulticall {
 
     mapping (address => bool) public isHandler;
     mapping (address => bool) public isKeeper;
+    mapping (address => bool) public isFeeHandler;
 
     mapping (address => bool) public govRequesters;
 
@@ -99,6 +100,11 @@ contract Timelock is ITimelock, BasicMulticall {
 
     modifier onlyGovRequester() {
         require(govRequesters[msg.sender], "forbidden");
+        _;
+    }
+
+    modifier onlyFeeHandler() {
+        require(isFeeHandler[msg.sender], "forbidden");
         _;
     }
 
@@ -157,6 +163,10 @@ contract Timelock is ITimelock, BasicMulticall {
 
     function setKeeper(address _keeper, bool _isActive) external onlyAdmin {
         isKeeper[_keeper] = _isActive;
+    }
+
+    function setFeeHandler(address _handler, bool _isActive) external onlyAdmin {
+        isFeeHandler[_handler] = _isActive;
     }
 
     function setBuffer(uint256 _buffer) external onlyAdmin {
@@ -382,7 +392,7 @@ contract Timelock is ITimelock, BasicMulticall {
         IVault(_vault).setMaxGasPrice(_maxGasPrice);
     }
 
-    function withdrawFees(address _vault, address _token, address _receiver) external onlyAdmin {
+    function withdrawFees(address _vault, address _token, address _receiver) external onlyFeeHandler {
         IVault(_vault).withdrawFees(_token, _receiver);
     }
 
