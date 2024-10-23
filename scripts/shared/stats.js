@@ -1,4 +1,3 @@
-const fetch = require("node-fetch");
 const { format, subWeeks, addWeeks } = require("date-fns");
 const { formatAmount } = require("../../test/shared/utilities");
 
@@ -17,6 +16,10 @@ async function main() {
   console.log("");
   await processPeriodV2(getPeriod("current"));
 }
+
+const fetch = async (...args) => {
+  return (await import("node-fetch")).default(...args);
+};
 
 async function processPeriodV1([start, end]) {
   const where = `id_gte: ${dateToSeconds(start)}, id_lt: ${dateToSeconds(
