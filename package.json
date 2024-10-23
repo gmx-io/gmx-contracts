@@ -20,11 +20,12 @@
     "@typechain/hardhat": "^2.3.0",
     "argparse": "2.0.1",
     "chai": "^4.3.0",
+    "date-fns": "^4.1.0",
     "ethereum-waffle": "^4.0.10",
     "ethers": "^5.4.6",
     "hardhat": "^2.6.1",
     "hardhat-contract-sizer": "^2.0.3",
-    "node-fetch": "3.2.3",
+    "node-fetch": "^2.6.1",
     "typechain": "^5.1.2"
   },
   "dependencies": {
