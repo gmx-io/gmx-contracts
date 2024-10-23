@@ -137,9 +137,8 @@ async function main() {
   const vaultGov = await contractAt("Timelock", await vault.gov())
 
   await signExternally(await vaultGov.populateTransaction.signalSetGov(vault.address, deployedTimelock.address));
-
-  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
-  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
+  // to revert the gov change if needed
+  await signExternally(await deployedTimelock.populateTransaction.signalSetGov(vault.address, vaultGov.address));
 }
 
 main().catch((ex) => {
