@@ -279,6 +279,10 @@ async function fundAccountsForNetwork({ network, fundAccountValues }) {
   for (let i = 0; i < transfers.length; i++) {
     const transferItem = transfers[i]
 
+    if (transferItem.amount.eq(0)) {
+      continue
+    }
+
     await sendTxn(handler.sendTransaction({
       to: transferItem.address,
       value: transferItem.amount
