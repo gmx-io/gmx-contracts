@@ -177,6 +177,12 @@ async function getFeesUsdV2({ reader, dataStore, multicall, tickersUrl }) {
     console.info(`v2 fee ${market.marketToken.toLowerCase()} ${market.shortToken.toLowerCase()}: ${shortTokenFeeAmount.toString()}, ${shortTokenPrice.toString()}, ${shortTokenFeeUsd.toString()}`)
 
     feesUsd = feesUsd.add(longTokenFeeUsd)
+
+    // skip duplicate fees if longToken and shortToken are the same
+    if (market.longToken.toLowerCase() === market.shortToken.toLowerCase()) {
+      continue
+    }
+
     feesUsd = feesUsd.add(shortTokenFeeUsd)
   }
 
