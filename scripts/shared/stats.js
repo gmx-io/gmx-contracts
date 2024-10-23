@@ -3,35 +3,6 @@ const { format, subWeeks, addWeeks } = require("date-fns");
 
 const dayFormat = "dd.MM.yyyy";
 
-const headersV1 = {
-  accept: "application/json, multipart/mixed",
-  "accept-language": "en,en-US;q=0.9,ru;q=0.8,de;q=0.7",
-  "cache-control": "no-cache",
-  "content-type": "application/json",
-  pragma: "no-cache",
-  priority: "u=1, i",
-  "sec-ch-ua":
-    '"Google Chrome";v="129", "Not=A?Brand";v="8", "Chromium";v="129"',
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"macOS"',
-  "sec-fetch-dest": "empty",
-  "sec-fetch-mode": "cors",
-  "sec-fetch-site": "same-origin",
-  Referer:
-    "https://subgraph.satsuma-prod.com/gmx/gmx-arbitrum-stats/playground",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  origin: "https://subgraph.satsuma-prod.com",
-  "user-agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
-};
-
-const headersV2 = {
-  ...headersV1,
-  Referer:
-    "https://subgraph.satsuma-prod.com/gmx/synthetics-arbitrum-stats/playground",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-};
-
 async function main() {
   console.log("v1");
   console.log("");
@@ -71,9 +42,8 @@ async function processPeriodV1([start, end]) {
     )} (${where})`
   );
   const response = await fetch(
-    "https://subgraph.satsuma-prod.com/gmx/gmx-arbitrum-stats/api",
+    "https://subgraph.satsuma-prod.com/3b2ced13c8d9/gmx/gmx-arbitrum-stats/api",
     {
-      headers: headersV1,
       body: JSON.stringify({ query: gql }),
       method: "POST",
     }
@@ -125,7 +95,6 @@ async function processPeriodV2([start, end]) {
   const response = await fetch(
     "https://subgraph.satsuma-prod.com/3b2ced13c8d9/gmx/synthetics-arbitrum-stats/api",
     {
-      headers: headersV2,
       body: JSON.stringify({ query: gql }),
       method: "POST",
     }
