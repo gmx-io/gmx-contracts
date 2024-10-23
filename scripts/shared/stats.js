@@ -1,5 +1,6 @@
 const fetch = require("node-fetch");
 const { format, subWeeks, addWeeks } = require("date-fns");
+const { formatAmount } = require("../../test/shared/utilities");
 
 const dayFormat = "dd.MM.yyyy";
 
@@ -25,9 +26,8 @@ async function processPeriodV1([start, end]) {
     {
         feeStats(where: { ${where} }) {
             id
-            margin
+            marginAndLiquidation
             swap
-            liquidation
             mint
             burn
             period
@@ -52,12 +52,11 @@ async function processPeriodV1([start, end]) {
   const json = await response.json();
   const stats = json.data.feeStats;
   const total = stats.reduce(
-    (acc, { margin, swap, liquidation, mint, burn }) => {
+    (acc, { marginAndLiquidation, swap, mint, burn }) => {
       return (
         acc +
-        BigInt(margin) +
+        BigInt(marginAndLiquidation) +
         BigInt(swap) +
-        BigInt(liquidation) +
         BigInt(mint) +
         BigInt(burn)
       );
@@ -154,23 +153,7 @@ function getRecentWednesdayStartOfDay() {
 }
 
 function formatUsd(amount, displayDecimals = 2) {
-  const decimals = 30;
-  const amountStr = amount.toString();
-
-  if (amountStr.length <= decimals) {
-    const leadingZeros = "0".repeat(decimals - amountStr.length);
-    return `0.${leadingZeros}${amountStr}`;
-  }
-
-  const integerPart = amountStr.slice(0, -decimals);
-  const fractionalPart = amountStr.slice(-decimals, -decimals + 14);
-
-  const formattedIntegerPart = integerPart.replace(
-    /\B(?=(\d{3})+(?!\d))/g,
-    ","
-  );
-
-  return `$${formattedIntegerPart}.${fractionalPart.slice(0, displayDecimals)}`;
+  return `$${formatAmount(amount, 30, displayDecimals, true)}`;
 }
 
 main();
