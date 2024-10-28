@@ -183,4 +183,9 @@ function formatUsd(amount) {
   return `$${formatAmount(amount, 30, 2, true)}`;
 }
 
-main();
+module.exports = {
+  processPeriodV1,
+  processPeriodV2,
+  getPeriod,
+  dateToSeconds,
+};
