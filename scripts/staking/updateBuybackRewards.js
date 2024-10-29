@@ -1,5 +1,5 @@
 const { getFrameSigner, contractAt, sendTxn, updateTokensPerInterval } = require("../shared/helpers")
-const { expandDecimals } = require("../../test/shared/utilities")
+const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 
 async function updateBuybackRewards({ rewardArr, intervalUpdater }) {
   for (let i = 0; i < rewardArr.length; i++) {
@@ -14,7 +14,7 @@ async function updateBuybackRewards({ rewardArr, intervalUpdater }) {
     }
 
     const rewardDistributor = await contractAt("RewardDistributor", rewardDistributorAddress, intervalUpdater)
-    const convertedTransferAmount = transferAmount
+    const convertedTransferAmount = bigNumberify(transferAmount)
     const rewardsPerInterval = convertedTransferAmount.div(7 * 24 * 60 * 60)
     console.log("rewardDistributorAddress", rewardDistributorAddress)
     console.log("transferAmount", transferAmount.toString())
