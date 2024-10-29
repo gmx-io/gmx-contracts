@@ -5,7 +5,7 @@ async function updateBuybackRewards({ rewardArr, intervalUpdater }) {
   for (let i = 0; i < rewardArr.length; i++) {
     const rewardItem = rewardArr[i]
     const { rewardTracker, rewardToken, transferAmount } = rewardItem
-    console.log("getting rewardDistributorAddress")
+    console.log(`getting rewardDistributorAddress for rewardTracker: ${rewardTracker.address}`)
     const rewardDistributorAddress = await rewardTracker.distributor()
     console.log("getting rewardToken")
     const expectedRewardToken = await rewardTracker.rewardToken()
