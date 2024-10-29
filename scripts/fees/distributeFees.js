@@ -415,7 +415,7 @@ async function distributeFees({ steps }) {
   const stepsToRun = steps.split(",");
   console.log("stepsToRun", stepsToRun);
 
-  if (feePlan.refTimestamp > Date.now()) {
+  if (SKIP_VALIDATIONS !== "true" && feePlan.refTimestamp > Date.now()) {
     throw new Error(
       `refTimestamp is later than current time ${feePlan.refTimestamp}`
     );
