@@ -383,8 +383,8 @@ async function sendPayments() {
       chainlink: bigNumberify(feePlan.chainlinkFees.arbitrum)
     },
     avax: {
-      treasury: bigNumberify(feePlan.treasuryFees.avax),
-      chainlink: bigNumberify(feePlan.chainlinkFees.avax)
+      treasury: bigNumberify(feePlan.treasuryFees.avalanche),
+      chainlink: bigNumberify(feePlan.chainlinkFees.avalanche)
     }
   }
 
@@ -397,8 +397,8 @@ async function sendPayments() {
     const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
 
     if (write) {
-      await sendTxn(nativeToken.transfer(treasuries[network], rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
-      await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+      await sendTxn(nativeToken.transfer(treasuries[network], rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts[network].treasury.toString()}`)
+      await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts[network].chainlink.toString()}`)
     }
   }
 }
