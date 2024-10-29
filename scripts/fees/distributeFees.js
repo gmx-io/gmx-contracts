@@ -106,11 +106,6 @@ const nativeTokens = {
   ),
 };
 
-const tokensRef = {
-  arbitrum: require("./tokens")["arbitrum"],
-  avax: require("./tokens")["avax"],
-};
-
 const gmx = {
   arbitrum: new ethers.Contract(
     "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
