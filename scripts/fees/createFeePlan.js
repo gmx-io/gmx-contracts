@@ -6,6 +6,7 @@ const { getArbValues: getArbServerValues, getAvaxValues: getAvaxServerValues, po
 const { getArbValues: getArbReferralRewardValues, getAvaxValues: getAvaxReferralRewardValues, getReferralRewardsInfo } = require("../referrals/getReferralRewards")
 const { formatAmount, expandDecimals } = require("../shared/utilities")
 const { saveDistributionData } = require("../referrals/distributionData")
+const keys = require("../shared/keys")
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000
 const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY
@@ -15,9 +16,6 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 const SHOULD_SEND_TXNS = true
 
 const MULTIPLIER = process.env.MULTIPLIER || 10000
-
-// Taken from processFees to retreive balances but maybe should export in processFees and import here to avoid duplication?
-const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B" 
 
 function roundToNearestWeek(timestamp, dayOffset) {
     return parseInt(timestamp / MILLISECONDS_PER_WEEK) * MILLISECONDS_PER_WEEK + dayOffset * MILLISECONDS_PER_DAY
@@ -71,7 +69,7 @@ function getRefTime() {
 async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const values = feeValues
 
-  const totalWethAvailable = // to add: ARB withdrawableBuybackTokenAmountKey + feeKeeper.balance
+  const totalWethAvailable = values.arbitrum.totalNativeTokenBalance
   const wethPrice = values.arbitrum.nativeTokenPrice
   const totalWethUsdValue = totalWethAvailable.mul(wethPrice)
 
@@ -101,7 +99,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
     throw new Error('GLP fees are less than 80% of expected on Arbitrum. Adjust the multiplier.')
   }
 
-  const totalWavaxAvailable = // to add: ARB withdrawableBuybackTokenAmountKey + feeKeeper.balance
+  const totalWavaxAvailable = values.avax.totalNativeTokenBalance
   const wavaxPrice = values.avax.nativeTokenPrice
   const totalWavaxUsdValue = totalWavaxAvailable.mul(wavaxPrice)
 
@@ -131,6 +129,23 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
     throw new Error('GLP fees are less than 80% of expected on Avalanche. Adjust the multiplier.')
   }
 
+  const totalArbGmxAvailable = values.arbitrum.totalGmxBalance
+  const gmxPrice = getGmxPrice(wethPrice)
+  const totalArbGmxUsdValue = totalArbGmxAvailable.mul(gmxPrice)
+
+  const totalAvaxGmxAvailable = values.avax.totalGmxBalance
+  const totalAvaxGmxUsdValue = totalAvaxGmxAvailable.mul(gmxPrice)
+
+  const arbStaked = values.arbitrum.stakedGmxSupply
+  const avaxStaked = values.avax.stakedGmxSupply
+  const totalStaked = arbStaked.add(avaxStaked)
+
+  const totalGmxAvailable = totalArbGmxAvailable.add(totalAvaxGmxAvailable)
+  const requiredAvaxGmxRewards = totalGmxAvailable.mul(avaxStaked).div(totalStaked)
+  const requiredArbGmxRewards = totalGmxAvailable.sub(requiredAvaxGmxRewards)
+  const deltaRewardsArb = totalArbGmxAvailable.sub(requiredArbGmxRewards)
+  const amountToBridge = deltaRewardsArb.abs()
+
   const data = {
     treasuryFees: {
       arbitrum: treasuryWethAmount.toString(),
@@ -158,9 +173,18 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
     },
     gmxPrice: values.gmxPrice.toString(),
     refTimestamp: refTimestamp,
+    deltaRewardArb: deltaRewardsArb,
   }
 
   console.info("data", data)
+
+  if (deltaRewardsArb.gt(0)) {
+    console.info(`Bridge ${formatAmount(amountToBridge, 18, 4, true)} GMX from Arbitrum to Avalanche to equalize APRs`)
+  } else if (deltaRewardsArb.lt(0)) {
+    console.info(`Bridge ${formatAmount(amountToBridge, 18, 4, true)} GMX from Avalanche to Arbitrum to equalize APRs`)
+  } else {
+    console.info('No bridging needed. APRs are already equal')
+  }
 
   console.info(`ETH price: $${formatAmount(data.nativeTokenPrice.arbitrum, 30, 2, true)}`)
   console.info(`AVAX price: $${formatAmount(data.nativeTokenPrice.avax, 30, 2, true)}`)

@@ -17,6 +17,9 @@ const providers = {
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
 }
 
+// Taken from processFees to retreive balances but maybe should export in processFees and import here to avoid duplication?
+const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B" 
+
 const ReaderV2 = require("../../artifacts-v2/contracts/reader/Reader.sol/Reader.json")
 const DataStore = require("../../artifacts-v2/contracts/data/DataStore.sol/DataStore.json")
 const Multicall3 = require("../../artifacts-v2/contracts/mock/Multicall3.sol/Multicall3.json")
@@ -228,6 +231,21 @@ async function getArbValues() {
   const tokenInfo = await getInfoTokens(vault, reader, tokens, tokenArr)
   const nativeTokenPrice = tokenInfo[tokens.nativeToken.address].maxPrice
 
+  const gmx = await contractAt("GMX", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", signer)
+  const nativeToken = await contractAt("Token", tokens.nativeToken.address, signer)
+
+  const withdrawableGmxAmountKey = keys.withdrawableBuybackTokenAmountKey(gmx.address)
+  const withdrawableGmx = await dataStore.getUint(withdrawableGmxAmountKey)
+
+  const withdrawableNativeTokenAmountKey = keys.withdrawableBuybackTokenAmountKey(tokens.nativeToken.address)
+  const withdrawableNativeToken = await dataStore.getUint(withdrawableNativeTokenAmountKey)
+
+  const feeKeeperGmxBalance = await gmx.balanceOf(FEE_KEEPER)
+  const feeKeeperNativeTokenBalance = await nativeToken.balanceOf(FEE_KEEPER)
+
+  const totalGmxBalance = withdrawableGmx.add(feeKeeperGmxBalance)
+  const totalNativeTokenBalance = withdrawableNativeToken.add(feeKeeperNativeTokenBalance)
+
   let feesUsd = await getFeesUsd(vault, reader, tokenInfo, tokenArr)
   const feesUsdV2 = await getFeesUsdV2({ reader: readerV2, dataStore, multicall, tickersUrl })
   const totalFeesUsdV2 = feesUsdV2.mul(100).div(37)
@@ -238,7 +256,7 @@ async function getArbValues() {
   const glpManager = await contractAt("GlpManager", "0x321F653eED006AD1C29D174e17d96351BDe22649", signer)
   const glpAum = await glpManager.getAum(true)
 
-  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, feesUsdV2, totalFeesUsdV2, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum }
+  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, feesUsdV2, totalFeesUsdV2, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum, totalGmxBalance, totalNativeTokenBalance }
 }
 
 async function getAvaxValues() {
@@ -256,6 +274,21 @@ async function getAvaxValues() {
   const tokenInfo = await getInfoTokens(vault, reader, tokens, tokenArr)
   const nativeTokenPrice = tokenInfo[tokens.nativeToken.address].maxPrice
 
+  const gmx = await contractAt("GMX", "0x62edc0692BD897D2295872a9FFCac5425011c661", signer)
+  const nativeToken = await contractAt("Token", tokens.nativeToken.address, signer)
+
+  const withdrawableGmxAmountKey = keys.withdrawableBuybackTokenAmountKey(gmx.address)
+  const withdrawableGmx = await dataStore.getUint(arbWithdrawableGmxAmountKey)
+
+  const withdrawableNativeTokenAmountKey = keys.withdrawableBuybackTokenAmountKey(tokens.nativeToken.address)
+  const withdrawableNativeToken = await dataStore.getUint(withdrawableNativeTokenAmountKey)
+
+  const feeKeeperGmxBalance = await gmx.balanceOf(FEE_KEEPER)
+  const feeKeeperNativeTokenBalance = await nativeToken.balanceOf(FEE_KEEPER)
+
+  const totalGmxBalance = withdrawableGmx.add(feeKeeperGmxBalance)
+  const totalNativeTokenBalance = withdrawableNativeToken.add(feeKeeperNativeTokenBalance)
+
   const feesUsd = await getFeesUsd(vault, reader, tokenInfo, tokenArr)
   const feesUsdV2 = await getFeesUsdV2({ reader: readerV2, dataStore, multicall, tickersUrl })
   const totalFeesUsdV2 = feesUsdV2.mul(100).div(37)
@@ -266,12 +299,12 @@ async function getAvaxValues() {
   const glpManager = await contractAt("GlpManager", "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F", signer)
   const glpAum = await glpManager.getAum(true)
 
-  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, feesUsdV2, totalFeesUsdV2, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum }
+  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, feesUsdV2, totalFeesUsdV2, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum, totalGmxBalance, totalNativeTokenBalance }
 }
 
 module.exports = {
   tokenArrRef,
   getArbValues,
   getAvaxValues,
-  getGmxPrice
+  getGmxPrice,
 }
