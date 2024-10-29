@@ -5,7 +5,9 @@ async function updateBuybackRewards({ rewardArr, intervalUpdater }) {
   for (let i = 0; i < rewardArr.length; i++) {
     const rewardItem = rewardArr[i]
     const { rewardTracker, rewardToken, transferAmount } = rewardItem
+    console.log("getting rewardDistributorAddress")
     const rewardDistributorAddress = await rewardTracker.distributor()
+    console.log("getting rewardToken")
     const expectedRewardToken = await rewardTracker.rewardToken()
     if (expectedRewardToken.toLowerCase() !== rewardToken.address.toLowerCase()) {
       throw new Error(`mismatched rewardToken: ${expectedRewardToken}, ${rewardToken.address}`)
