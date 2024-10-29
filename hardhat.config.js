@@ -54,6 +54,13 @@ task("processFees", "Processes fees")
     await processFees(taskArgs)
   })
 
+task("distributeFees", "Distribute fees")
+  .addParam("steps", "The steps to run")
+  .setAction(async (taskArgs) => {
+    const { distributeFees } = require("./scripts/fees/distributeFees")
+    await distributeFees(taskArgs)
+  })
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
