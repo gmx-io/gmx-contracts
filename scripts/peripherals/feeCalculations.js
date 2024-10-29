@@ -17,7 +17,7 @@ const providers = {
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
 }
 
-const FEE_KEEPER = process.env.FEE_KEEPER
+const FEE_KEEPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
 if (FEE_KEEPER === undefined) {
   throw new Error(`FEE_KEEPER is not defined`)

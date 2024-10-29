@@ -1,24 +1,27 @@
 const fs = require("fs");
+
 const {
   contractAt,
   sendTxn,
   getFrameSigner,
   sleep,
 } = require("../shared/helpers");
+
 const {
   getArbValues: getArbFundAccountValues,
   getAvaxValues: getAvaxFundAccountValues,
 } = require("../shared/fundAccountsUtils");
+
 const {
-  getArbValues: getArbRewardValues,
-  getAvaxValues: getAvaxRewardValues,
-  updateRewards: updateStakingRewards,
-} = require("../staking/rewards");
+  updateBuybackRewards,
+} = require("../staking/updateBuybackRewards");
+
 const {
   getArbValues: getArbReferralValues,
   getAvaxValues: getAvaxReferralValues,
   sendReferralRewards: _sendReferralRewards,
 } = require("../referrals/referralRewards");
+
 const { formatAmount, bigNumberify } = require("../../test/shared/utilities");
 const { tokenArrRef } = require("../peripherals/feeCalculations");
 
@@ -26,11 +29,13 @@ const ReaderV2 = require("../../artifacts-v2/contracts/reader/Reader.sol/Reader.
 const DataStore = require("../../artifacts-v2/contracts/data/DataStore.sol/DataStore.json");
 const Multicall3 = require("../../artifacts-v2/contracts/mock/Multicall3.sol/Multicall3.json");
 const FeeHandler = require("../../artifacts-v2/contracts/fee/FeeHandler.sol/FeeHandler.json");
+const MintableToken = require("../../artifacts-v2/contracts/mock/MintableToken.sol/MintableToken.json");
 
-const feePlan = require("fee-plan.json");
+const feePlan = require("../../fee-plan.json");
 
-const shouldSendTxn = process.env.WRITE === "true";
-const shouldSkipBalanceValidations =
+const write = process.env.WRITE === "true"
+
+const skipBalanceValidations =
   process.env.SKIP_BALANCE_VALIDATIONS === "true";
 
 const {
@@ -62,8 +67,6 @@ const FEE_KEEPER_KEY = getFeeKeeperKey();
 const FEE_ACCOUNT = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b";
 const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D";
 
-const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B";
-
 const treasuries = {
   arbitrum: "0x68863dDE14303BcED249cA8ec6AF85d4694dea6A",
   avax: "0x0339740d92fb8BAf73bAB0E9eb9494bc0Df1CaFD",
@@ -90,8 +93,17 @@ const deployers = {
 };
 
 const nativeTokens = {
-  arbitrum: require("./tokens")["arbitrum"].nativeToken,
-  avax: require("./tokens")["avax"].nativeToken,
+  arbitrum: new ethers.Contract(
+    require("./tokens")["arbitrum"].nativeToken.address,
+    MintableToken.abi,
+    feeKeepers.arbitrum
+  ),
+
+  avax: new ethers.Contract(
+    require("./tokens")["avax"].nativeToken.address,
+    MintableToken.abi,
+    feeKeepers.avax
+  ),
 };
 
 const tokensRef = {
@@ -100,8 +112,16 @@ const tokensRef = {
 };
 
 const gmx = {
-  arbitrum: await contractAt("GMX", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", providers.arbitrum),
-  avax: await contractAt("GMX", "0x62edc0692BD897D2295872a9FFCac5425011c661", providers.avax),
+  arbitrum: new ethers.Contract(
+    "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
+    MintableToken.abi,
+    feeKeepers.arbitrum
+  ),
+  arbitrum: new ethers.Contract(
+    "0x62edc0692BD897D2295872a9FFCac5425011c661",
+    MintableToken.abi,
+    feeKeepers.avax
+  ),
 }
 
 const dataStores = {
@@ -164,65 +184,21 @@ async function printFeeHandlerBalances() {
 async function withdrawFeesFromFeeHandler({ network }) {
   const feeHandler = feeHandlers[network];
 
-  await sendTxn(
-    feeHandler.withdrawFees(gmx.network.address),
-    "feeHandler.withdrawFees gmx"
-  );
-  await sendTxn(
-    feeHandler.withdrawFees(nativeTokens[network].address),
-    "feeHandler.withdrawFees nativeToken"
-  );
+  if (write) {
+    await sendTxn(
+      feeHandler.withdrawFees(gmx.network.address),
+      "feeHandler.withdrawFees gmx"
+    );
+    await sendTxn(
+      feeHandler.withdrawFees(nativeTokens[network].address),
+      "feeHandler.withdrawFees nativeToken"
+    );
+  }
 }
 
 async function withdrawFees() {
   await withdrawFeesFromFeeHandler({ network: "arbitrum" });
   await withdrawFeesFromFeeHandler({ network: "avax" });
-}
-
-async function fundHandlerForNetwork({ network }) {
-  const tokenArr = tokenArrRef[network];
-  const feeKeeper = feeKeepers[network];
-  const handler = feeKeepers[network];
-
-  for (let i = 0; i < tokenArr.length; i++) {
-    const token = await contractAt("Token", tokenArr[i].address, feeKeeper);
-    const balance = await token.balanceOf(FEE_ACCOUNT);
-    if (balance.eq(0)) {
-      continue;
-    }
-
-    const approvedAmount = await token.allowance(
-      FEE_ACCOUNT,
-      feeKeeper.address
-    );
-
-    if (approvedAmount.lt(balance)) {
-      const signer = await getFrameSigner({ network });
-      const tokenForSigner = await contractAt("Token", token.address, signer);
-      await sendTxn(
-        tokenForSigner.approve(handler.address, balance),
-        `approve: ${tokenArr[i].name}, ${balance.toString()}`
-      );
-    }
-  }
-
-  for (let i = 0; i < tokenArr.length; i++) {
-    const token = await contractAt("Token", tokenArr[i].address, feeKeeper);
-    const balance = await token.balanceOf(FEE_ACCOUNT);
-    if (balance.eq(0)) {
-      continue;
-    }
-
-    await sendTxn(
-      token.transferFrom(FEE_ACCOUNT, handler.address, balance),
-      `fund handler: ${tokenArr[i].name}, ${balance.toString()}`
-    );
-  }
-}
-
-async function fundHandler() {
-  await fundHandlerForNetwork({ network: ARBITRUM });
-  await fundHandlerForNetwork({ network: AVAX });
 }
 
 async function fundAccountsForNetwork({ network, fundAccountValues }) {
@@ -235,10 +211,13 @@ async function fundAccountsForNetwork({ network, fundAccountValues }) {
     nativeTokens[network].address,
     handler
   );
-  await sendTxn(
-    nativeToken.withdraw(totalTransferAmount),
-    `nativeToken.withdraw(${formatAmount(totalTransferAmount, 18, 2)})`
-  );
+
+  if (write) {
+    await sendTxn(
+      nativeToken.withdraw(totalTransferAmount),
+      `nativeToken.withdraw(${formatAmount(totalTransferAmount, 18, 2)})`
+    );
+  }
 
   for (let i = 0; i < transfers.length; i++) {
     const transferItem = transfers[i];
@@ -247,15 +226,17 @@ async function fundAccountsForNetwork({ network, fundAccountValues }) {
       continue;
     }
 
-    await sendTxn(
-      handler.sendTransaction({
-        to: transferItem.address,
-        value: transferItem.amount,
-      }),
-      `${formatAmount(transferItem.amount, 18, 2)} ${gasToken} to ${
-        transferItem.address
-      }`
-    );
+    if (write) {
+      await sendTxn(
+        handler.sendTransaction({
+          to: transferItem.address,
+          value: transferItem.amount,
+        }),
+        `${formatAmount(transferItem.amount, 18, 2)} ${gasToken} to ${
+          transferItem.address
+        }`
+      );
+    }
   }
 }
 
@@ -297,7 +278,7 @@ async function sendReferralRewards() {
     await _sendReferralRewards({
       signer: feeKeepers[network],
       referralSender: deployers[network],
-      shouldSendTxn: true,
+      shouldSendTxn: write,
       skipSendNativeToken: false,
       nativeToken: nativeTokens[network],
       nativeTokenPrice: feePlan.nativeTokenPrice[network],
@@ -305,6 +286,133 @@ async function sendReferralRewards() {
       values: referralValues[network],
       network,
     });
+  }
+}
+
+async function updateGmxRewards() {
+  const gmxTokenBalance = {
+    arbitrum: await gmx.arbitrum.balanceOf(feeKeepers.arbitrum.address),
+    avax: await gmx.avax.balanceOf(feeKeepers.avax.address),
+  }
+
+  if (!skipBalanceValidations && gmxTokenBalance.arbitrum.lt(feePlan.gmxRewards.arbitrum)) {
+    throw new Error(`Insufficient gmxTokenBalance.arbitrum: ${gmxTokenBalance.arbitrum.toString()}, ${feePlan.gmxRewards.arbitrum}`)
+  }
+
+  if (!skipBalanceValidations && gmxTokenBalance.avax.lt(feePlan.gmxRewards.avax)) {
+    throw new Error(`Insufficient gmxTokenBalance.avax: ${gmxTokenBalance.avax.toString()}, ${feePlan.gmxRewards.avax}`)
+  }
+
+  const rewardArrList = {
+    arbitrum: [
+      {
+        // ExtendedGmxTracker
+        rewardTracker: await contractAt("RewardTracker", "0x986b4e5a001ef77c99498E68dB070C5b047f43aA", feeKeepers.arbitrum),
+        rewardToken: gmx.arbitrum,
+        transferAmount: feePlan.gmxRewards.arbitrum
+      },
+      {
+        // FeeGmxTracker
+        rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.arbitrum),
+        rewardToken: nativeTokens.arbitrum,
+        transferAmount: "0"
+      },
+    ],
+    avax: [
+      {
+        // ExtendedGmxTracker
+        rewardTracker: await contractAt("RewardTracker", "0x8Db453a068613f956d6f87bEAE6AD3040a779064", feeKeepers.avax),
+        rewardToken: gmx.avax,
+        transferAmount: feePlan.gmxRewards.avax
+      },
+      {
+        // FeeGmxTracker
+        rewardTracker: await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", feeKeepers.avax),
+        rewardToken: nativeTokens.avax,
+        transferAmount: "0"
+      },
+    ]
+  }
+
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i];
+    const rewardArr = rewardArrList
+
+    await updateBuybackRewards({
+      rewardArr: rewardArrList[network],
+      intervalUpdater: deployers[network]
+    })
+  }
+}
+
+async function updateGlpRewards() {
+  const nativeTokenBalance = {
+    arbitrum: await gmx.arbitrum.balanceOf(feeKeepers.arbitrum.address),
+    avax: await gmx.avax.balanceOf(feeKeepers.avax.address),
+  }
+
+  if (!skipBalanceValidations && nativeTokenBalance.arbitrum.lt(feePlan.glpRewards.arbitrum)) {
+    throw new Error(`Insufficient nativeTokenBalance.arbitrum: ${nativeTokenBalance.arbitrum.toString()}, ${feePlan.glpRewards.arbitrum}`)
+  }
+
+  if (!skipBalanceValidations && nativeTokenBalance.avax.lt(feePlan.glpRewards.avax)) {
+    throw new Error(`Insufficient nativeTokenBalance.avax: ${nativeTokenBalance.avax.toString()}, ${feePlan.glpRewards.avax}`)
+  }
+
+  const rewardArrList = {
+    arbitrum: [
+      {
+        // FeeGlpTracker
+        rewardTracker: await contractAt("RewardTracker", "0x4e971a87900b931fF39d1Aad67697F49835400b6", feeKeepers.arbitrum),
+        rewardToken: nativeTokens.arbitrum,
+        transferAmount: feePlan.glpRewards.arbitrum
+      },
+    ],
+    avax: [
+      {
+        // FeeGlpTracker
+        rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.avax),
+        rewardToken: nativeTokens.avax,
+        transferAmount: feePlan.glpRewards.avax
+      },
+    ]
+  }
+
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i];
+    const rewardArr = rewardArrList
+
+    await updateBuybackRewards({
+      rewardArr: rewardArrList[network],
+      intervalUpdater: deployers[network]
+    })
+  }
+}
+
+async function sendPayments() {
+  const rewardAmounts = {
+    arbitrum: {
+      treasury: bigNumberify(feePlan.treasuryFees.arbitrum),
+      chainlink: bigNumberify(feePlan.chainlinkFees.arbitrum)
+    },
+    avax: {
+      treasury: bigNumberify(feePlan.treasuryFees.avax),
+      chainlink: bigNumberify(feePlan.chainlinkFees.avax)
+    }
+  }
+
+  for (let i = 0; i < networks.length; i++) {
+    const network = networks[i]
+
+    const handler = handlers[network]
+
+    const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
+    const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
+
+    if (write) {
+      await sendTxn(nativeToken.transfer(treasuries[network], rewardAmounts[network].treasury), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+      await sendTxn(nativeToken.transfer(chainlinkFeeReceiver, rewardAmounts[network].chainlink), `nativeToken.transfer ${i}: ${rewardAmounts.arbitrum.treasury.toString()}`)
+    }
   }
 }
 
@@ -344,25 +452,27 @@ async function distributeFees({ steps }) {
 
   // TODO: handle case where tokens need to be bridged from Arbitrum to Avalanche
 
-  if (steps.includes(4)) {
+  if (steps.includes(2)) {
     await fundAccounts();
     await printFeeHandlerBalances();
   }
 
   if (steps.includes(3)) {
-    // send tokens to extendedGmxDistributors and update tokensPerInterval
-    // update tokensPerInterval for FeeGmxDistributor to 0
+    await updateGmxRewards();
+    await printFeeHandlerBalances();
+  }
+
+  if (steps.includes(4)) {
+    await sendPayments()
+    await printFeeHandlerBalances();
   }
 
   if (steps.includes(5)) {
-    // send WETH/WAVAX to treasury and chainlink
+    await updateGlpRewards()
+    await printFeeHandlerBalances();
   }
 
   if (steps.includes(6)) {
-    // send WETH/AVAX to FeeGlpDistributors and update tokensPerInterval for distributor
-  }
-
-  if (steps.includes(7)) {
     await sendReferralRewards();
     await printFeeHandlerBalances();
   }

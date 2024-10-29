@@ -22,7 +22,7 @@ const providers = {
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
 }
 
-const FEE_KEEPER = process.env.FEE_KEEPER
+const FEE_KEEPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
 
 if (FEE_KEEPER === undefined) {
   throw new Error(`FEE_KEEPER is not defined`)
@@ -271,7 +271,9 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   console.log("expectedGlpWethAmount", expectedGlpWethAmount.toString())
   console.log("remainingWeth", remainingWeth.toString())
 
-  if (remainingWeth.mul(100).div(expectedGlpWethAmount).lt(80)) {
+  const remainingPercentageWeth = remainingWeth.mul(100).div(expectedGlpWethAmount)
+  console.log("remainingPercentageWeth", remainingPercentageWeth.toString())
+  if (remainingPercentageWeth.lt(80)) {
     throw new Error('GLP fees are less than 80% of expected on Arbitrum. Adjust the multiplier.')
   }
 
@@ -299,6 +301,9 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   remainingWavax = remainingWavax.sub(referralRewardsWavax)
 
   const expectedGlpWavaxAmount = totalWavaxAvailable.sub(treasuryChainlinkWavaxAmount)
+
+  const remainingPercentageWavax = remainingWavax.mul(100).div(expectedGlpWavaxAmount)
+  console.log("remainingPercentageWavax", remainingPercentageWavax.toString())
 
   if (remainingWavax.mul(100).div(expectedGlpWavaxAmount).lt(80)) {
     throw new Error('GLP fees are less than 80% of expected on Avalanche. Adjust the multiplier.')
