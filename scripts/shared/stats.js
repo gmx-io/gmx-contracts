@@ -1,5 +1,5 @@
 const { format, subWeeks, addWeeks } = require("date-fns");
-const { formatAmount } = require("../../test/shared/utilities");
+const { formatAmount, bigNumberify } = require("../../test/shared/utilities");
 const Table = require("easy-table");
 
 const dayFormat = "dd.MM.yyyy";
@@ -97,10 +97,7 @@ async function processPeriodV1(relativePeriodName, chainName) {
     0n
   );
 
-  return {
-    fees: total,
-    where,
-  };
+  return bigNumberify(total)
 }
 
 async function processPeriodV2(relativePeriodName, chainName) {
@@ -139,10 +136,7 @@ async function processPeriodV2(relativePeriodName, chainName) {
     );
   }, 0n);
 
-  return {
-    fees: positionFees + swapFees,
-    where,
-  };
+  return bigNumberify(positionFees + swapFees)
 }
 
 function dateToSeconds(date) {

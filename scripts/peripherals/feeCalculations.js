@@ -17,8 +17,11 @@ const providers = {
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
 }
 
-// Taken from processFees to retreive balances but maybe should export in processFees and import here to avoid duplication?
-const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B" 
+const FEE_KEEPER = process.env.FEE_KEEPER
+
+if (FEE_KEEPER === undefined) {
+  throw new Error(`FEE_KEEPER is not defined`)
+}
 
 const ReaderV2 = require("../../artifacts-v2/contracts/reader/Reader.sol/Reader.json")
 const DataStore = require("../../artifacts-v2/contracts/data/DataStore.sol/DataStore.json")

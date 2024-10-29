@@ -20,7 +20,6 @@ const {
   sendReferralRewards: _sendReferralRewards,
 } = require("../referrals/referralRewards");
 const { formatAmount, bigNumberify } = require("../../test/shared/utilities");
-const { bridgeTokens } = require("./bridge");
 const { tokenArrRef } = require("../peripherals/feeCalculations");
 
 const ReaderV2 = require("../../artifacts-v2/contracts/reader/Reader.sol/Reader.json");
@@ -47,11 +46,6 @@ const AVAX = "avax";
 const networks = [ARBITRUM, AVAX];
 
 const { DEPLOYER_KEY_FILE } = process.env;
-
-const gmx = {
-  arbitrum: await contractAt("GMX", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a"),
-  avax: await contractAt("GMX", "0x62edc0692BD897D2295872a9FFCac5425011c661"),
-}
 
 const getFeeKeeperKey = () => {
   const filepath = "./keys/fee-keeper.json";
@@ -105,6 +99,11 @@ const tokensRef = {
   avax: require("./tokens")["avax"],
 };
 
+const gmx = {
+  arbitrum: await contractAt("GMX", "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a", providers.arbitrum),
+  avax: await contractAt("GMX", "0x62edc0692BD897D2295872a9FFCac5425011c661", providers.avax),
+}
+
 const dataStores = {
   arbitrum: new ethers.Contract(
     "0xFD70de6b91282D8017aA4E741e9Ae325CAb992d8",
@@ -131,6 +130,19 @@ const readersV2 = {
   ),
 };
 
+const feeHandlers = {
+  arbitrum: new ethers.Contract(
+    "0x7EB417637a3E6d1C19E6d69158c47610b7a5d9B3",
+    FeeHandler.abi,
+    feeKeepers.arbitrum
+  ),
+  avax: new ethers.Contract(
+    "0x1A3A103F9F536a0456C9b205152A3ac2b3c54490",
+    FeeHandler.abi,
+    feeKeepers.avax
+  ),
+};
+
 async function printFeeHandlerBalances() {
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i];
@@ -140,13 +152,17 @@ async function printFeeHandlerBalances() {
       nativeTokens[network].address,
       handler
     );
-    const balance = await nativeToken.balanceOf(handler.address);
-    console.log(`nativeToken balance: ${formatAmount(balance, 18, 2)}`);
+    const nativeTokenBalance = await nativeToken.balanceOf(handler.address);
+    const gmxTokenBalance = await gmx[network].balanceOf(handler.address);
+
+    console.log(`network: ${network}`)
+    console.log(`nativeTokenBalance: ${formatAmount(nativeTokenBalance, 18, 2)}`);
+    console.log(`gmxTokenBalance: ${formatAmount(gmxTokenBalance, 18, 2)}`);
   }
 }
 
 async function withdrawFeesFromFeeHandler({ network }) {
-  const feeHandler = feefeeKeepers[network];
+  const feeHandler = feeHandlers[network];
 
   await sendTxn(
     feeHandler.withdrawFees(gmx.network.address),
@@ -207,42 +223,6 @@ async function fundHandlerForNetwork({ network }) {
 async function fundHandler() {
   await fundHandlerForNetwork({ network: ARBITRUM });
   await fundHandlerForNetwork({ network: AVAX });
-}
-
-async function bridgeTokensToAvax() {
-  const bridgeAmount = await gmx.arbitrum.balanceOf(feeKeepers.arbitrum.address);
-
-  if (bridgeAmount.eq(0)) {
-    console.info("no tokens to bridge");
-    return;
-  }
-
-  console.log(
-    `sending ${ethers.utils.formatUnits(bridgeAmount, 18)} to be bridged`
-  );
-  
-  await sendTxn(gmx.arbitrum.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 18)} to be bridged`)
-
-  // send tokens to avax
-  await bridgeTokens({ signer: feeKeepers.arbitrum, inputAmount: bridgeAmount })
-}
-
-async function bridgeTokensToArbitrum() {
-  const bridgeAmount = await gmx.avax.balanceOf(feeKeepers.avax.address);
-
-  if (bridgeAmount.eq(0)) {
-    console.info("no tokens to bridge");
-    return;
-  }
-
-  console.log(
-    `sending ${ethers.utils.formatUnits(bridgeAmount, 18)} to be bridged`
-  );
-
-  await sendTxn(gmx.avax.transfer(FEE_HELPER, bridgeAmount), `sending ${ethers.utils.formatUnits(bridgeAmount, 18)} to be bridged`)
-
-  // send tokens to arbitrum
-  await bridgeTokens({ signer: feeKeepers.avax, inputAmount: bridgeAmount })
 }
 
 async function fundAccountsForNetwork({ network, fundAccountValues }) {
@@ -356,30 +336,22 @@ async function distributeFees({ steps }) {
     ),
   };
 
-  // TODO: handle case where tokens need to be bridged from Arbitrum to Avalanche
 
   if (steps.includes(1)) {
     await withdrawFees();
     await printFeeHandlerBalances();
   }
 
-  if (steps.includes(2)) {
-    if (feePlan.deltaRewardArb > 0) {
-      await bridgeTokensToAvax();
-    } 
-    else {
-      await bridgeTokensToArbitrum();
-    }
+  // TODO: handle case where tokens need to be bridged from Arbitrum to Avalanche
+
+  if (steps.includes(4)) {
+    await fundAccounts();
+    await printFeeHandlerBalances();
   }
 
   if (steps.includes(3)) {
     // send tokens to extendedGmxDistributors and update tokensPerInterval
     // update tokensPerInterval for FeeGmxDistributor to 0
-  }
-
-  if (steps.includes(4)) {
-    await fundAccounts();
-    await printFeeHandlerBalances();
   }
 
   if (steps.includes(5)) {
