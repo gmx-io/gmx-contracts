@@ -114,7 +114,7 @@ const gmx = {
     MintableToken.abi,
     feeKeepers.arbitrum
   ),
-  arbitrum: new ethers.Contract(
+  avax: new ethers.Contract(
     "0x62edc0692BD897D2295872a9FFCac5425011c661",
     MintableToken.abi,
     feeKeepers.avax
