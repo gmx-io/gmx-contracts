@@ -94,13 +94,13 @@ const deployers = {
 
 const nativeTokens = {
   arbitrum: new ethers.Contract(
-    require("./tokens")["arbitrum"].nativeToken.address,
+    require("../core/tokens")["arbitrum"].nativeToken.address,
     MintableToken.abi,
     feeKeepers.arbitrum
   ),
 
   avax: new ethers.Contract(
-    require("./tokens")["avax"].nativeToken.address,
+    require("../core/tokens")["avax"].nativeToken.address,
     MintableToken.abi,
     feeKeepers.avax
   ),
