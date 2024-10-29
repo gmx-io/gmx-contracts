@@ -391,7 +391,7 @@ async function sendPayments() {
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i]
 
-    const handler = handlers[network]
+    const handler = feeKeepers[network]
 
     const nativeToken = await contractAt("WETH", nativeTokens[network].address, handler)
     const chainlinkFeeReceiver = chainlinkFeeReceivers[network]
