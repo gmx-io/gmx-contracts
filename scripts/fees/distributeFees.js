@@ -172,7 +172,7 @@ async function printFeeHandlerBalances() {
     const nativeTokenBalance = await nativeToken.balanceOf(handler.address);
     const gmxTokenBalance = await gmx[network].balanceOf(handler.address);
 
-    console.log(`network: ${network}`)
+    console.log(`network: ${network}, ${handler.address}`)
     console.log(`nativeTokenBalance: ${formatAmount(nativeTokenBalance, 18, 2)}`);
     console.log(`gmxTokenBalance: ${formatAmount(gmxTokenBalance, 18, 2)}`);
   }
