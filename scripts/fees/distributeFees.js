@@ -54,17 +54,7 @@ const { DEPLOYER_KEY_FILE } = process.env;
 
 const SKIP_VALIDATIONS = process.env.SKIP_VALIDATIONS
 
-const getFeeKeeperKey = () => {
-  const filepath = "./keys/fee-keeper.json";
-  const data = JSON.parse(fs.readFileSync(filepath));
-  if (!data || !data.mnemonic) {
-    throw new Error("Invalid key file");
-  }
-  const wallet = ethers.Wallet.fromMnemonic(data.mnemonic);
-  return wallet.privateKey;
-};
-
-const FEE_KEEPER_KEY = getFeeKeeperKey();
+const FEE_KEEPER_KEY = HANDLER_KEY;
 
 const FEE_ACCOUNT = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b";
 const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D";
