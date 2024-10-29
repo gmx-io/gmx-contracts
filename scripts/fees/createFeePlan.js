@@ -363,13 +363,13 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   const expectedNativeTokenBalance = {
     arbitrum: bigNumberify(data.treasuryFees.arbitrum)
-      .add(dataStore.chainlinkFees.arbitrum)
+      .add(data.chainlinkFees.arbitrum)
       .add(data.keeperCosts.arbitrum)
       .add(data.referralRewards.arbitrum)
       .add(data.glpRewards.arbitrum),
 
     avax: bigNumberify(data.treasuryFees.avax)
-      .add(dataStore.chainlinkFees.avax)
+      .add(data.chainlinkFees.avax)
       .add(data.keeperCosts.avax)
       .add(data.referralRewards.avax)
       .add(data.glpRewards.avax),
