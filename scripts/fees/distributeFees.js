@@ -52,6 +52,8 @@ const networks = [ARBITRUM, AVAX];
 
 const { DEPLOYER_KEY_FILE } = process.env;
 
+const SKIP_VALIDATIONS = process.env.SKIP_VALIDATIONS
+
 const getFeeKeeperKey = () => {
   const filepath = "./keys/fee-keeper.json";
   const data = JSON.parse(fs.readFileSync(filepath));
