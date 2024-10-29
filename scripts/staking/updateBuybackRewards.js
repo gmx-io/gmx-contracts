@@ -7,8 +7,8 @@ async function updateBuybackRewards({ rewardArr, intervalUpdater }) {
     const { rewardTracker, rewardToken, transferAmount } = rewardItem
     const rewardDistributorAddress = await rewardTracker.distributor()
     const expectedRewardToken = await rewardTracker.rewardToken()
-    if (expectedRewardToken.toLowerCase() != rewardToken.toLowerCase()) {
-      throw new Error("")
+    if (expectedRewardToken.toLowerCase() !== rewardToken.address.toLowerCase()) {
+      throw new Error(`mismatched rewardToken: ${expectedRewardToken}, ${rewardToken.address}`)
     }
 
     const rewardDistributor = await contractAt("RewardDistributor", rewardDistributorAddress, intervalUpdater)
