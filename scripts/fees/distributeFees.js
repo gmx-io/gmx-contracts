@@ -223,6 +223,11 @@ async function sendReferralRewards() {
     avax: await getAvaxReferralValues(deployers.avax),
   };
 
+  const nativeTokenNames = {
+    arbitrum: "WETH",
+    avax: "WAVAX"
+  }
+
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i];
 
@@ -231,7 +236,10 @@ async function sendReferralRewards() {
       referralSender: deployers[network],
       shouldSendTxn: false,
       skipSendNativeToken: false,
-      nativeToken: nativeTokens[network],
+      nativeToken: {
+        address: nativeTokens[network].address,
+        name: nativeTokenNames[network]
+      },
       nativeTokenPrice: feePlan.nativeTokenPrice[network],
       gmxPrice: feePlan.gmxPrice,
       values: referralValues[network],
