@@ -3,8 +3,7 @@ const fs = require('fs')
 const { Token: UniToken } = require("@uniswap/sdk-core")
 const { Pool } = require("@uniswap/v3-sdk")
 
-const { processPeriodV1, processPeriodV2, getPeriod, dateToSeconds } = require('../shared/stats');
-const { getArbValues: getArbServerValues, getAvaxValues: getAvaxServerValues, postFees } = require("../peripherals/serverFees")
+const { processPeriodV1, processPeriodV2, getPeriod } = require('../shared/stats');
 const { getArbValues: getArbReferralRewardValues, getAvaxValues: getAvaxReferralRewardValues, getReferralRewardsInfo } = require("../referrals/getReferralRewards")
 const { getArbValues: getArbKeeperValues, getAvaxValues: getAvaxKeeperValues } = require("../shared/fundAccountsUtils")
 const { expandDecimals, formatAmount, parseValue, bigNumberify } = require("../../test/shared/utilities")
@@ -22,7 +21,7 @@ const providers = {
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
 }
 
-const FEE_KEEPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D"
+const FEE_KEEPER = "0xA70C24C3a6Ac500D7e6B1280c6549F2428367d0B"
 
 if (FEE_KEEPER === undefined) {
   throw new Error(`FEE_KEEPER is not defined`)
@@ -34,8 +33,6 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000
 const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-
-const SHOULD_SEND_TXNS = true
 
 const MULTIPLIER = process.env.MULTIPLIER || 10000
 

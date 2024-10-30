@@ -23,9 +23,7 @@ const {
 } = require("../referrals/referralRewards");
 
 const { formatAmount, bigNumberify } = require("../../test/shared/utilities");
-const { tokenArrRef } = require("../peripherals/feeCalculations");
 
-const ReaderV2 = require("../../artifacts-v2/contracts/reader/Reader.sol/Reader.json");
 const DataStore = require("../../artifacts-v2/contracts/data/DataStore.sol/DataStore.json");
 const Multicall3 = require("../../artifacts-v2/contracts/mock/Multicall3.sol/Multicall3.json");
 const FeeHandler = require("../../artifacts-v2/contracts/fee/FeeHandler.sol/FeeHandler.json");
@@ -50,14 +48,9 @@ const ARBITRUM = "arbitrum";
 const AVAX = "avax";
 const networks = [ARBITRUM, AVAX];
 
-const { DEPLOYER_KEY_FILE } = process.env;
-
 const SKIP_VALIDATIONS = process.env.SKIP_VALIDATIONS
 
 const FEE_KEEPER_KEY = HANDLER_KEY;
-
-const FEE_ACCOUNT = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b";
-const FEE_HELPER = "0x43CE1d475e06c65DD879f4ec644B8e0E10ff2b6D";
 
 const treasuries = {
   arbitrum: "0x68863dDE14303BcED249cA8ec6AF85d4694dea6A",
@@ -120,19 +113,6 @@ const dataStores = {
   avax: new ethers.Contract(
     "0x2F0b22339414ADeD7D5F06f9D604c7fF5b2fe3f6",
     DataStore.abi,
-    feeKeepers.avax
-  ),
-};
-
-const readersV2 = {
-  arbitrum: new ethers.Contract(
-    "0x38d91ED96283d62182Fc6d990C24097A918a4d9b",
-    ReaderV2.abi,
-    feeKeepers.arbitrum
-  ),
-  avax: new ethers.Contract(
-    "0x1D5d64d691FBcD8C80A2FD6A9382dF0fe544cBd8",
-    ReaderV2.abi,
     feeKeepers.avax
   ),
 };
