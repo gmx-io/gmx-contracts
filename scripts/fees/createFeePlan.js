@@ -323,35 +323,35 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const data = {
     nativeTokenBalance: {
       arbitrum: totalWethAvailable.toString(),
-      avalanche: totalWavaxAvailable.toString(),
+      avax: totalWavaxAvailable.toString(),
     },
     gmxTokenBalance: {
       arbitrum: values.arbitrum.totalGmxBalance.toString(),
-      avalanche: values.avax.totalGmxBalance.toString(),
+      avax: values.avax.totalGmxBalance.toString(),
     },
     treasuryFees: {
       arbitrum: treasuryWethAmount.toString(),
-      avalanche: treasuryWavaxAmount.toString()
+      avax: treasuryWavaxAmount.toString()
     },
     chainlinkFees: {
       arbitrum: chainlinkWethAmount.toString(),
-      avalanche: chainlinkWavaxAmount.toString()
+      avax: chainlinkWavaxAmount.toString()
     },
     keeperCosts: {
       arbitrum: keeperCostsWeth.toString(),
-      avalanche: keeperCostsWavax.toString()
+      avax: keeperCostsWavax.toString()
     },
     referralRewards: {
       arbitrum: referralRewardsWeth.toString(),
-      avalanche: referralRewardsWavax.toString()
+      avax: referralRewardsWavax.toString()
     },
     glpRewards: {
       arbitrum: remainingWeth.toString(),
-      avalanche: remainingWavax.toString()
+      avax: remainingWavax.toString()
     },
     gmxRewards: {
       arbitrum: requiredArbGmxRewards.toString(),
-      avalanche: requiredAvaxGmxRewards.toString()
+      avax: requiredAvaxGmxRewards.toString()
     },
     nativeTokenPrice: {
       arbitrum: values.arbitrum.nativeTokenPrice.toString(),
@@ -370,25 +370,25 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
       .add(data.referralRewards.arbitrum)
       .add(data.glpRewards.arbitrum),
 
-    avalanche: bigNumberify(data.treasuryFees.avalanche)
-      .add(data.chainlinkFees.avalanche)
-      .add(data.keeperCosts.avalanche)
-      .add(data.referralRewards.avalanche)
-      .add(data.glpRewards.avalanche),
+    avax: bigNumberify(data.treasuryFees.avax)
+      .add(data.chainlinkFees.avax)
+      .add(data.keeperCosts.avax)
+      .add(data.referralRewards.avax)
+      .add(data.glpRewards.avax),
   }
 
-  const expectedGmxTokenBalance = bigNumberify(data.gmxRewards.arbitrum).add(data.gmxRewards.avalanche)
+  const expectedGmxTokenBalance = bigNumberify(data.gmxRewards.arbitrum).add(data.gmxRewards.avax)
 
   if (bigNumberify(data.nativeTokenBalance.arbitrum).lt(expectedNativeTokenBalance.arbitrum)) {
     throw new Error(`Insufficient nativeTokenBalance.arbitrum: ${data.nativeTokenBalance.arbitrum}, ${expectedNativeTokenBalance.arbitrum.toString()}`)
   }
 
-  if (bigNumberify(data.nativeTokenBalance.avalanche).lt(expectedNativeTokenBalance.avalanche)) {
-    throw new Error(`Insufficient nativeTokenBalance.avalanche: ${data.nativeTokenBalance.avalanche}, ${expectedNativeTokenBalance.avalanche.toString()}`)
+  if (bigNumberify(data.nativeTokenBalance.avax).lt(expectedNativeTokenBalance.avax)) {
+    throw new Error(`Insufficient nativeTokenBalance.avax: ${data.nativeTokenBalance.avax}, ${expectedNativeTokenBalance.avax.toString()}`)
   }
 
-  if (bigNumberify(data.gmxTokenBalance.arbitrum).add(data.gmxTokenBalance.avalanche).lt(expectedGmxTokenBalance)) {
-    throw new Error(`Insufficient gmxTokenBalance: ${bigNumberify(data.gmxTokenBalance.arbitrum).add(data.gmxTokenBalance.avalanche).toString()}, ${expectedGmxTokenBalance.toString()}`)
+  if (bigNumberify(data.gmxTokenBalance.arbitrum).add(data.gmxTokenBalance.avax).lt(expectedGmxTokenBalance)) {
+    throw new Error(`Insufficient gmxTokenBalance: ${bigNumberify(data.gmxTokenBalance.arbitrum).add(data.gmxTokenBalance.avax).toString()}, ${expectedGmxTokenBalance.toString()}`)
   }
 
   console.info("data", data)

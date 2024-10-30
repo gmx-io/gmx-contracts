@@ -290,7 +290,7 @@ async function updateGmxRewards() {
         // ExtendedGmxTracker
         rewardTracker: await contractAt("RewardTracker", "0xB0D12Bf95CC1341d6C845C978daaf36F70b5910d", feeKeepers.avax),
         rewardToken: gmx.avax,
-        transferAmount: feePlan.gmxRewards.avalanche
+        transferAmount: feePlan.gmxRewards.avax
       },
       {
         // FeeGmxTracker
@@ -322,7 +322,7 @@ async function updateGlpRewards() {
     throw new Error(`Insufficient nativeTokenBalance.arbitrum: ${nativeTokenBalance.arbitrum.toString()}, ${feePlan.glpRewards.arbitrum}`)
   }
 
-  if (!skipBalanceValidations && nativeTokenBalance.avax.lt(feePlan.glpRewards.avalanche)) {
+  if (!skipBalanceValidations && nativeTokenBalance.avax.lt(feePlan.glpRewards.avax)) {
     throw new Error(`Insufficient nativeTokenBalance.avax: ${nativeTokenBalance.avax.toString()}, ${feePlan.glpRewards.avax}`)
   }
 
@@ -340,7 +340,7 @@ async function updateGlpRewards() {
         // FeeGlpTracker
         rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.avax),
         rewardToken: nativeTokens.avax,
-        transferAmount: feePlan.glpRewards.avalanche
+        transferAmount: feePlan.glpRewards.avax
       },
     ]
   }
@@ -363,8 +363,8 @@ async function sendPayments() {
       chainlink: bigNumberify(feePlan.chainlinkFees.arbitrum)
     },
     avax: {
-      treasury: bigNumberify(feePlan.treasuryFees.avalanche),
-      chainlink: bigNumberify(feePlan.chainlinkFees.avalanche)
+      treasury: bigNumberify(feePlan.treasuryFees.avax),
+      chainlink: bigNumberify(feePlan.chainlinkFees.avax)
     }
   }
 
