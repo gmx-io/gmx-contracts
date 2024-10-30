@@ -645,7 +645,7 @@ contract Vault is ReentrancyGuard, IVault {
         _validate(position.collateral >= _collateralDelta, 33);
 
         uint256 collateral = position.collateral;
-        // scrop variables to avoid stack too deep errors
+        // scope variables to avoid stack too deep errors
         {
         uint256 reserveDelta = position.reserveAmount.mul(_sizeDelta).div(position.size);
         position.reserveAmount = position.reserveAmount.sub(reserveDelta);
