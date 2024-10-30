@@ -153,7 +153,7 @@ async function withdrawFeesFromFeeHandler({ network }) {
 
   if (write) {
     await sendTxn(
-      feeHandler.withdrawFees(gmx[network]address),
+      feeHandler.withdrawFees(gmx[network].address),
       "feeHandler.withdrawFees gmx"
     );
     await sendTxn(
