@@ -21,6 +21,7 @@ async function getTransferItems(keepers, provider) {
 
     if (balance.lt(targetAmount)) {
       const amountToSend = targetAmount.sub(balance)
+      console.log("transferItem", keeper.address, amountToSend.toString())
       transferItems.push({ address: keeper.address, amount: amountToSend })
     }
   }

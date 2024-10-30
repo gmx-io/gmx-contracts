@@ -16,6 +16,7 @@ flattened
 distribution-data*.json
 es-gmx-referral-data*.json
 fee-reference.json
+fee-plan.json
 uniswap-fee-reference.json
 keys
 tmp
