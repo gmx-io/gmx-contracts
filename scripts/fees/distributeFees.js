@@ -255,7 +255,10 @@ async function sendReferralRewards() {
       referralSender: deployers[network],
       shouldSendTxn: write,
       skipSendNativeToken: false,
-      nativeToken: nativeTokens[network],
+      nativeToken: {
+        address: nativeTokens[network].address,
+        name: nativeTokenNames[network]
+      },
       nativeTokenPrice: feePlan.nativeTokenPrice[network],
       gmxPrice: feePlan.gmxPrice,
       values: referralValues[network],
