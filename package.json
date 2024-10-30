@@ -20,6 +20,8 @@
     "@typechain/hardhat": "^2.3.0",
     "argparse": "2.0.1",
     "chai": "^4.3.0",
+    "date-fns": "^4.1.0",
+    "easy-table": "^1.2.0",
     "ethereum-waffle": "^4.0.10",
     "ethers": "^5.4.6",
     "hardhat": "^2.6.1",

@@ -15,7 +15,19 @@ async function getArbValues() {
   const positionManager = { address: "0x75E42e6f01baf1D6022bEa862A28774a9f8a4A0C" }
   const gmx = { address: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a" }
 
-  return { vault, tokenManager, glpManager, prevGlpManager, rewardRouter, positionRouter, positionManager, gmx }
+  const feeHandler = { address: "0x7cC506C8d711C2A17B61A75bd082d2514160baAd" }
+
+  return {
+    vault,
+    tokenManager,
+    glpManager,
+    prevGlpManager,
+    rewardRouter,
+    positionRouter,
+    positionManager,
+    gmx,
+    feeHandler
+  }
 }
 
 async function getAvaxValues() {
@@ -29,7 +41,19 @@ async function getAvaxValues() {
   const positionManager = { address: "0xA21B83E579f4315951bA658654c371520BDcB866" }
   const gmx = { address: "0x62edc0692BD897D2295872a9FFCac5425011c661" }
 
-  return { vault, tokenManager, glpManager, prevGlpManager, rewardRouter, positionRouter, positionManager, gmx }
+  const feeHandler = { address: "0x775CaaA2cB635a56c6C3dFb9C65B5Fa6335F79E7" }
+
+  return {
+    vault,
+    tokenManager,
+    glpManager,
+    prevGlpManager,
+    rewardRouter,
+    positionRouter,
+    positionManager,
+    gmx,
+    feeHandler
+  }
 }
 
 async function getValues() {
@@ -49,7 +73,18 @@ async function main() {
   // like Multiplier Points, the supply may exceed 13.25m tokens
   const maxTokenSupply = expandDecimals(100_000_000, 18)
 
-  const { vault, tokenManager, glpManager, prevGlpManager, rewardRouter, positionRouter, positionManager, gmx } = await getValues()
+  const {
+    vault,
+    tokenManager,
+    glpManager,
+    prevGlpManager,
+    rewardRouter,
+    positionRouter,
+    positionManager,
+    gmx,
+    feeHandler
+  } = await getValues()
+
   const mintReceiver = tokenManager
 
   const timelock = await deployContract("Timelock", [
@@ -72,6 +107,7 @@ async function main() {
   multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setShouldToggleIsLeverageEnabled", [true]));
   multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionRouter.address, true]));
   multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionManager.address, true]));
+  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setFeeHandler", [feeHandler.address, true]));
 
   const handlers = [
     "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
@@ -98,10 +134,11 @@ async function main() {
   await signExternally(await deployedTimelock.populateTransaction.multicall(multicallWriteParams));
 
   // // update gov of vault
-  // const vaultGov = await contractAt("Timelock", await vault.gov())
+  const vaultGov = await contractAt("Timelock", await vault.gov())
 
-  // await sendTxn(vaultGov.signalSetGov(vault.address, deployedTimelock.address), "vaultGov.signalSetGov")
-  // await sendTxn(deployedTimelock.signalSetGov(vault.address, vaultGov.address), "deployedTimelock.signalSetGov(vault)")
+  await signExternally(await vaultGov.populateTransaction.signalSetGov(vault.address, deployedTimelock.address));
+  // to revert the gov change if needed
+  await signExternally(await deployedTimelock.populateTransaction.signalSetGov(vault.address, vaultGov.address));
 }
 
 main().catch((ex) => {

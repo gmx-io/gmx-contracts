@@ -43,7 +43,7 @@ async function getNetworkValues() {
 }
 
 function getReferralRewardsInfo(data) {
-  console.log("data", data)
+  // console.log("data", data)
   const affiliatesData = data.affiliates
   const discountsData = data.referrals
 
