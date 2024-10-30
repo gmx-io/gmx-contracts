@@ -119,8 +119,13 @@ async function getArbFeeValues() {
   const withdrawableNativeTokenAmountKey = keys.withdrawableBuybackTokenAmountKey(tokens.nativeToken.address)
   const withdrawableNativeToken = await dataStore.getUint(withdrawableNativeTokenAmountKey)
 
-  const feeKeeperGmxBalance = await gmx.balanceOf(FEE_KEEPER)
-  const feeKeeperNativeTokenBalance = await nativeToken.balanceOf(FEE_KEEPER)
+  let feeKeeperGmxBalance = bigNumberify(0)
+  let feeKeeperNativeTokenBalance = bigNumberify(0)
+
+  if (process.env.INCLUDE_FEE_KEEPER_BALANCE === "true") {
+    feeKeeperGmxBalance = await gmx.balanceOf(FEE_KEEPER)
+    feeKeeperNativeTokenBalance = await nativeToken.balanceOf(FEE_KEEPER)
+  }
 
   const totalGmxBalance = withdrawableGmx.add(feeKeeperGmxBalance)
   const totalNativeTokenBalance = withdrawableNativeToken.add(feeKeeperNativeTokenBalance)
@@ -315,8 +320,16 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const totalStaked = arbStaked.add(avaxStaked)
 
   const totalGmxAvailable = totalArbGmxAvailable.add(totalAvaxGmxAvailable)
-  const requiredAvaxGmxRewards = totalGmxAvailable.mul(avaxStaked).div(totalStaked)
-  const requiredArbGmxRewards = totalGmxAvailable.sub(requiredAvaxGmxRewards)
+  let requiredAvaxGmxRewards = totalGmxAvailable.mul(avaxStaked).div(totalStaked)
+  let requiredArbGmxRewards = totalGmxAvailable.sub(requiredAvaxGmxRewards)
+
+  // add a multiplier to allow for some buffer to ensure the ExtendedGmxDistributor
+  // does not run out of funds
+  let gmxMultiplier = process.env.GMX_MULTIPLIER ? process.env.GMX_MULTIPLIER : 95
+
+  requiredAvaxGmxRewards = requiredAvaxGmxRewards.mul(gmxMultiplier).div(100)
+  requiredArbGmxRewards = requiredArbGmxRewards.mul(gmxMultiplier).div(100)
+
   const deltaRewardsArb = totalArbGmxAvailable.sub(requiredArbGmxRewards)
   const amountToBridge = deltaRewardsArb.abs()
 
