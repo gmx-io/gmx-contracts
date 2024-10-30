@@ -3,8 +3,7 @@ const fs = require('fs')
 const { Token: UniToken } = require("@uniswap/sdk-core")
 const { Pool } = require("@uniswap/v3-sdk")
 
-const { processPeriodV1, processPeriodV2, getPeriod, dateToSeconds } = require('../shared/stats');
-const { getArbValues: getArbServerValues, getAvaxValues: getAvaxServerValues, postFees } = require("../peripherals/serverFees")
+const { processPeriodV1, processPeriodV2, getPeriod } = require('../shared/stats');
 const { getArbValues: getArbReferralRewardValues, getAvaxValues: getAvaxReferralRewardValues, getReferralRewardsInfo } = require("../referrals/getReferralRewards")
 const { getArbValues: getArbKeeperValues, getAvaxValues: getAvaxKeeperValues } = require("../shared/fundAccountsUtils")
 const { expandDecimals, formatAmount, parseValue, bigNumberify } = require("../../test/shared/utilities")
@@ -34,8 +33,6 @@ const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000
 const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-
-const SHOULD_SEND_TXNS = true
 
 const MULTIPLIER = process.env.MULTIPLIER || 10000
 

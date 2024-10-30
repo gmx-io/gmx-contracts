@@ -181,5 +181,4 @@ module.exports = {
   processPeriodV1,
   processPeriodV2,
   getPeriod,
-  dateToSeconds,
 };
