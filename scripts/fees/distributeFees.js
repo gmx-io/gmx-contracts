@@ -325,8 +325,8 @@ async function updateGmxRewards() {
 
 async function updateGlpRewards() {
   const nativeTokenBalance = {
-    arbitrum: await gmx.arbitrum.balanceOf(feeKeepers.arbitrum.address),
-    avax: await gmx.avax.balanceOf(feeKeepers.avax.address),
+    arbitrum: await nativeTokens.arbitrum.balanceOf(feeKeepers.arbitrum.address),
+    avax: await nativeTokens.avax.balanceOf(feeKeepers.avax.address),
   }
 
   if (!skipBalanceValidations && nativeTokenBalance.arbitrum.lt(feePlan.glpRewards.arbitrum)) {
