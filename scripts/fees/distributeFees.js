@@ -289,12 +289,12 @@ async function updateGmxRewards() {
         rewardToken: gmx.arbitrum,
         transferAmount: feePlan.gmxRewards.arbitrum
       },
-      {
-        // FeeGmxTracker
-        rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.arbitrum),
-        rewardToken: nativeTokens.arbitrum,
-        transferAmount: "0"
-      },
+      // {
+      //   // FeeGmxTracker
+      //   rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.arbitrum),
+      //   rewardToken: nativeTokens.arbitrum,
+      //   transferAmount: "0"
+      // },
     ],
     avax: [
       {
@@ -303,12 +303,12 @@ async function updateGmxRewards() {
         rewardToken: gmx.avax,
         transferAmount: feePlan.gmxRewards.avax
       },
-      {
-        // FeeGmxTracker
-        rewardTracker: await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", feeKeepers.avax),
-        rewardToken: nativeTokens.avax,
-        transferAmount: "0"
-      },
+      // {
+      //   // FeeGmxTracker
+      //   rewardTracker: await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", feeKeepers.avax),
+      //   rewardToken: nativeTokens.avax,
+      //   transferAmount: "0"
+      // },
     ]
   }
 
