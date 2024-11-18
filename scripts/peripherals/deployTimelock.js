@@ -97,7 +97,7 @@ async function main() {
     rewardRouter.address, // rewardRouter
     maxTokenSupply, // maxTokenSupply
     10, // marginFeeBasisPoints 0.1%
-    500 // maxMarginFeeBasisPoints 5%
+    40 // maxMarginFeeBasisPoints 5%
   ], "Timelock")
 
   const deployedTimelock = await contractAt("Timelock", timelock.address)
