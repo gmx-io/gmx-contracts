@@ -327,7 +327,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   // add a multiplier to allow for some buffer to ensure the ExtendedGmxDistributor
   // does not run out of funds
-  let gmxMultiplier = process.env.GMX_MULTIPLIER ? process.env.GMX_MULTIPLIER : 99
+  let gmxMultiplier = process.env.GMX_MULTIPLIER ? process.env.GMX_MULTIPLIER : 100
 
   requiredAvaxGmxRewards = requiredAvaxGmxRewards.mul(gmxMultiplier).div(100)
   requiredArbGmxRewards = requiredArbGmxRewards.mul(gmxMultiplier).div(100)
