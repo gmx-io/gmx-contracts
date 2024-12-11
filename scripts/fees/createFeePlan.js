@@ -296,6 +296,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   let remainingWavax = totalWavaxAvailable.sub((treasuryWavaxAmount).add(chainlinkWavaxAmount))
 
   const keeperCostsWavax = values.avax.keeperCosts
+  console.log("keeperCostsWavax", keeperCostsWavax.toString())
   remainingWavax = remainingWavax.sub(keeperCostsWavax)
 
   const referralRewardsUsdAvax = referralValues.avax.allAffiliateUsd.add(referralValues.avax.allDiscountUsd)
