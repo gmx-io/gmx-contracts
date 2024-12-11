@@ -34,7 +34,8 @@ const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-const MULTIPLIER = process.env.MULTIPLIER || 10000
+const ARB_MULTIPLIER = process.env.ARB_MULTIPLIER || 10000
+const AVAX_MULTIPLIER = process.env.AVAX_MULTIPLIER || 10000
 
 const SKIP_VALIDATIONS = process.env.SKIP_VALIDATIONS
 
@@ -247,8 +248,8 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   const treasuryChainlinkWethAmount = totalWethAvailable.mul(v2FeesUsdArb).div(totalFeesUsdArb)
 
-  const treasuryWethAmount = treasuryChainlinkWethAmount.mul(88).div(100).mul(MULTIPLIER).div(10000)
-  const chainlinkWethAmount = treasuryChainlinkWethAmount.mul(12).div(100).mul(MULTIPLIER).div(10000)
+  const treasuryWethAmount = treasuryChainlinkWethAmount.mul(88).div(100).mul(ARB_MULTIPLIER).div(10000)
+  const chainlinkWethAmount = treasuryChainlinkWethAmount.mul(12).div(100).mul(ARB_MULTIPLIER).div(10000)
 
   console.log("totalWethAvailable", totalWethAvailable.toString())
   console.log("treasuryWethAmount", treasuryWethAmount.toString())
@@ -290,8 +291,8 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   const treasuryChainlinkWavaxAmount = totalWavaxAvailable.mul(v2FeesUsdAvax).div(totalFeesUsdAvax)
 
-  const treasuryWavaxAmount = treasuryChainlinkWavaxAmount.mul(88).div(100).mul(MULTIPLIER).div(10000)
-  const chainlinkWavaxAmount = treasuryChainlinkWavaxAmount.mul(12).div(100).mul(MULTIPLIER).div(10000)
+  const treasuryWavaxAmount = treasuryChainlinkWavaxAmount.mul(88).div(100).mul(AVAX_MULTIPLIER).div(10000)
+  const chainlinkWavaxAmount = treasuryChainlinkWavaxAmount.mul(12).div(100).mul(AVAX_MULTIPLIER).div(10000)
 
   let remainingWavax = totalWavaxAvailable.sub((treasuryWavaxAmount).add(chainlinkWavaxAmount))
 
