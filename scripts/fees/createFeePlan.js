@@ -169,8 +169,13 @@ async function getAvaxFeeValues() {
   const withdrawableNativeTokenAmountKey = keys.withdrawableBuybackTokenAmountKey(tokens.nativeToken.address)
   const withdrawableNativeToken = await dataStore.getUint(withdrawableNativeTokenAmountKey)
 
-  const feeKeeperGmxBalance = await gmx.balanceOf(FEE_KEEPER)
-  const feeKeeperNativeTokenBalance = await nativeToken.balanceOf(FEE_KEEPER)
+  let feeKeeperGmxBalance = bigNumberify(0)
+  let feeKeeperNativeTokenBalance = bigNumberify(0)
+
+  if (process.env.INCLUDE_FEE_KEEPER_BALANCE === "true") {
+    feeKeeperGmxBalance = await gmx.balanceOf(FEE_KEEPER)
+    feeKeeperNativeTokenBalance = await nativeToken.balanceOf(FEE_KEEPER)
+  }
 
   const totalGmxBalance = withdrawableGmx.add(feeKeeperGmxBalance)
   const totalNativeTokenBalance = withdrawableNativeToken.add(feeKeeperNativeTokenBalance)
