@@ -249,7 +249,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const treasuryChainlinkWethAmount = totalWethAvailable.mul(v2FeesUsdArb).div(totalFeesUsdArb)
 
   const treasuryWethAmount = treasuryChainlinkWethAmount.mul(88).div(100).mul(ARB_MULTIPLIER).div(10000)
-  const chainlinkWethAmount = treasuryChainlinkWethAmount.mul(12).div(100).mul(ARB_MULTIPLIER).div(10000)
+  const chainlinkWethAmount = treasuryChainlinkWethAmount.mul(12).div(100)
 
   console.log("totalWethAvailable", totalWethAvailable.toString())
   console.log("treasuryWethAmount", treasuryWethAmount.toString())
@@ -292,7 +292,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const treasuryChainlinkWavaxAmount = totalWavaxAvailable.mul(v2FeesUsdAvax).div(totalFeesUsdAvax)
 
   const treasuryWavaxAmount = treasuryChainlinkWavaxAmount.mul(88).div(100).mul(AVAX_MULTIPLIER).div(10000)
-  const chainlinkWavaxAmount = treasuryChainlinkWavaxAmount.mul(12).div(100).mul(AVAX_MULTIPLIER).div(10000)
+  const chainlinkWavaxAmount = treasuryChainlinkWavaxAmount.mul(12).div(100)
 
   let remainingWavax = totalWavaxAvailable.sub((treasuryWavaxAmount).add(chainlinkWavaxAmount))
 
