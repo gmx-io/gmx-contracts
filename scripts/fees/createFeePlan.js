@@ -37,6 +37,9 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 const ARB_MULTIPLIER = process.env.ARB_MULTIPLIER || 10000
 const AVAX_MULTIPLIER = process.env.AVAX_MULTIPLIER || 10000
 
+const ARB_MIN_GLP_PERCENTAGE = process.env.ARB_MIN_GLP_PERCENTAGE || 80
+const AVAX_MIN_GLP_PERCENTAGE = process.env.ARB_MIN_GLP_PERCENTAGE || 80
+
 const SKIP_VALIDATIONS = process.env.SKIP_VALIDATIONS
 
 const allTokens = require('../core/tokens')
@@ -281,7 +284,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   const remainingPercentageWeth = remainingWeth.mul(100).div(expectedGlpWethAmount)
   console.log("remainingPercentageWeth", remainingPercentageWeth.toString())
-  if (remainingPercentageWeth.lt(80)) {
+  if (remainingPercentageWeth.lt(ARB_MIN_GLP_PERCENTAGE)) {
     throw new Error('GLP fees are less than 80% of expected on Arbitrum. Adjust the multiplier.')
   }
 
@@ -314,7 +317,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const remainingPercentageWavax = remainingWavax.mul(100).div(expectedGlpWavaxAmount)
   console.log("remainingPercentageWavax", remainingPercentageWavax.toString())
 
-  if (remainingWavax.mul(100).div(expectedGlpWavaxAmount).lt(80)) {
+  if (remainingWavax.mul(100).div(expectedGlpWavaxAmount).lt(AVAX_MIN_GLP_PERCENTAGE)) {
     throw new Error('GLP fees are less than 80% of expected on Avalanche. Adjust the multiplier.')
   }
 
