@@ -56,6 +56,8 @@ contract Timelock is ITimelock, BasicMulticall {
 
     mapping (address => bool) public govRequesters;
 
+    mapping (address => uint256) public priceRecommendation;
+
     event SignalPendingAction(bytes32 action);
     event SignalApprove(address token, address spender, uint256 amount, bytes32 action);
     event SignalWithdrawToken(address target, address token, address receiver, uint256 amount, bytes32 action);
@@ -290,6 +292,10 @@ contract Timelock is ITimelock, BasicMulticall {
 
     function setIsLeverageEnabled(address _vault, bool _isLeverageEnabled) external override onlyHandlerAndAbove {
         IVault(_vault).setIsLeverageEnabled(_isLeverageEnabled);
+    }
+
+    function setPriceRecommendation(address _token, uint256 _price) external onlyKeeperAndAbove {
+        priceRecommendation[_token] = _price;
     }
 
     function setTokenConfig(
