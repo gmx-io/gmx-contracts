@@ -40,6 +40,7 @@ async function main() {
 
   console.log("NFT ID,Fees")
   let totalETH = bigNumberify(0)
+  let totalGMX = bigNumberify(0)
   for (let i = 0; i < nftIds.length; i++) {
     const nftId = nftIds[i]
     const owner = await nftManager.ownerOf(nftId)
@@ -56,8 +57,9 @@ async function main() {
     }
 
     const collectResult = await uniPositionManager.callStatic.collect(params, { from: owner })
-    console.log(`NFT_${nftId},${ethers.utils.formatUnits(collectResult.amount0, 18)}`)
+    console.log(`NFT_${nftId},${ethers.utils.formatUnits(collectResult.amount0, 18)},${ethers.utils.formatUnits(collectResult.amount1, 18)}`)
     totalETH = totalETH.add(collectResult.amount0)
+    totalGMX = totalGMX.add(collectResult.amount1)
   }
 
   const refTimestamp = roundToNearestWeek(Date.now(), 6)
@@ -69,9 +71,11 @@ async function main() {
 
   const filename = `./uniswap-fee-reference.json`
 
+  console.log(`total: ${ethers.utils.formatUnits(totalETH, 18)} ETH, ${ethers.utils.formatUnits(totalGMX, 18)} GMX`)
   const data = {
     refTimestamp,
     totalETH: totalETH.toString(),
+    totalGMX: totalGMX.toString(),
     delta: delta.toString()
   }
 

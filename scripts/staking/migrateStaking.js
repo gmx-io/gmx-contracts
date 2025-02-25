@@ -24,14 +24,14 @@ const keepers = {
 async function getArbValues() {
   return {
     rewardRouter: await contractAt("RewardRouterV2", "0x5E4766F932ce00aA4a1A82d3Da85adf15C5694A1", keepers.arbitrum),
-    accountListFile: inputDir + "2024-10-28-sbfgmx-holders-arbitrum.csv"
+    accountListFile: inputDir + "2024-11-20-gmx-holders-arbitrum.csv"
   }
 }
 
 async function getAvaxValues() {
   return {
     rewardRouter: await contractAt("RewardRouterV2", "0x091eD806490Cc58Fd514441499e58984cCce0630", keepers.avax),
-    accountListFile: inputDir + "2024-10-28-sbfgmx-holders-avalanche.csv"
+    accountListFile: inputDir + "2024-11-20-gmx-holders-avalanche.csv"
   }
 }
 

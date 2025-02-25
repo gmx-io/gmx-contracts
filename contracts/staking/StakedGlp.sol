@@ -62,6 +62,11 @@ contract StakedGlp {
         return true;
     }
 
+    // note that since this returns the depositBalance in feeGlpTracker
+    // actions such as depositing into the GlpVester would not change the
+    // balanceOf value for an account
+    // IRewardTracker(stakedGlpTracker).balanceOf(_account) may be more appropriate
+    // depending on the usage
     function balanceOf(address _account) external view returns (uint256) {
         return IRewardTracker(feeGlpTracker).depositBalances(_account, glp);
     }

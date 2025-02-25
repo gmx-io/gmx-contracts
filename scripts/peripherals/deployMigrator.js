@@ -55,8 +55,8 @@ async function main() {
   const { timelock } = contracts
   const admin = "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
 
-  const caller = await deployContract("StabilizeCaller", [])
-  const migrator = await deployContract("StabilizeMigrator", [
+  const caller = await deployContract("RodeoCaller", [])
+  const migrator = await deployContract("RodeoMigrator", [
     admin,
     contracts.stakedGmxTracker,
     contracts.bonusGmxTracker,

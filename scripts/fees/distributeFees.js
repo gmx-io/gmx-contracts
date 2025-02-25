@@ -153,7 +153,7 @@ async function withdrawFeesFromFeeHandler({ network }) {
 
   if (write) {
     await sendTxn(
-      feeHandler.withdrawFees(gmx.network.address),
+      feeHandler.withdrawFees(gmx[network].address),
       "feeHandler.withdrawFees gmx"
     );
     await sendTxn(
@@ -223,6 +223,11 @@ async function sendReferralRewards() {
     avax: await getAvaxReferralValues(deployers.avax),
   };
 
+  const nativeTokenNames = {
+    arbitrum: "WETH",
+    avax: "WAVAX"
+  }
+
   for (let i = 0; i < networks.length; i++) {
     const network = networks[i];
 
@@ -231,7 +236,10 @@ async function sendReferralRewards() {
       referralSender: deployers[network],
       shouldSendTxn: false,
       skipSendNativeToken: false,
-      nativeToken: nativeTokens[network],
+      nativeToken: {
+        address: nativeTokens[network].address,
+        name: nativeTokenNames[network]
+      },
       nativeTokenPrice: feePlan.nativeTokenPrice[network],
       gmxPrice: feePlan.gmxPrice,
       values: referralValues[network],
@@ -247,7 +255,10 @@ async function sendReferralRewards() {
       referralSender: deployers[network],
       shouldSendTxn: write,
       skipSendNativeToken: false,
-      nativeToken: nativeTokens[network],
+      nativeToken: {
+        address: nativeTokens[network].address,
+        name: nativeTokenNames[network]
+      },
       nativeTokenPrice: feePlan.nativeTokenPrice[network],
       gmxPrice: feePlan.gmxPrice,
       values: referralValues[network],
@@ -278,26 +289,26 @@ async function updateGmxRewards() {
         rewardToken: gmx.arbitrum,
         transferAmount: feePlan.gmxRewards.arbitrum
       },
-      {
-        // FeeGmxTracker
-        rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.arbitrum),
-        rewardToken: nativeTokens.arbitrum,
-        transferAmount: "0"
-      },
+      // {
+      //   // FeeGmxTracker
+      //   rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.arbitrum),
+      //   rewardToken: nativeTokens.arbitrum,
+      //   transferAmount: "0"
+      // },
     ],
     avax: [
       {
         // ExtendedGmxTracker
         rewardTracker: await contractAt("RewardTracker", "0xB0D12Bf95CC1341d6C845C978daaf36F70b5910d", feeKeepers.avax),
         rewardToken: gmx.avax,
-        transferAmount: feePlan.gmxRewards.avalanche
+        transferAmount: feePlan.gmxRewards.avax
       },
-      {
-        // FeeGmxTracker
-        rewardTracker: await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", feeKeepers.avax),
-        rewardToken: nativeTokens.avax,
-        transferAmount: "0"
-      },
+      // {
+      //   // FeeGmxTracker
+      //   rewardTracker: await contractAt("RewardTracker", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", feeKeepers.avax),
+      //   rewardToken: nativeTokens.avax,
+      //   transferAmount: "0"
+      // },
     ]
   }
 
@@ -314,15 +325,15 @@ async function updateGmxRewards() {
 
 async function updateGlpRewards() {
   const nativeTokenBalance = {
-    arbitrum: await gmx.arbitrum.balanceOf(feeKeepers.arbitrum.address),
-    avax: await gmx.avax.balanceOf(feeKeepers.avax.address),
+    arbitrum: await nativeTokens.arbitrum.balanceOf(feeKeepers.arbitrum.address),
+    avax: await nativeTokens.avax.balanceOf(feeKeepers.avax.address),
   }
 
   if (!skipBalanceValidations && nativeTokenBalance.arbitrum.lt(feePlan.glpRewards.arbitrum)) {
     throw new Error(`Insufficient nativeTokenBalance.arbitrum: ${nativeTokenBalance.arbitrum.toString()}, ${feePlan.glpRewards.arbitrum}`)
   }
 
-  if (!skipBalanceValidations && nativeTokenBalance.avax.lt(feePlan.glpRewards.avalanche)) {
+  if (!skipBalanceValidations && nativeTokenBalance.avax.lt(feePlan.glpRewards.avax)) {
     throw new Error(`Insufficient nativeTokenBalance.avax: ${nativeTokenBalance.avax.toString()}, ${feePlan.glpRewards.avax}`)
   }
 
@@ -340,7 +351,7 @@ async function updateGlpRewards() {
         // FeeGlpTracker
         rewardTracker: await contractAt("RewardTracker", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", feeKeepers.avax),
         rewardToken: nativeTokens.avax,
-        transferAmount: feePlan.glpRewards.avalanche
+        transferAmount: feePlan.glpRewards.avax
       },
     ]
   }
@@ -363,8 +374,8 @@ async function sendPayments() {
       chainlink: bigNumberify(feePlan.chainlinkFees.arbitrum)
     },
     avax: {
-      treasury: bigNumberify(feePlan.treasuryFees.avalanche),
-      chainlink: bigNumberify(feePlan.chainlinkFees.avalanche)
+      treasury: bigNumberify(feePlan.treasuryFees.avax),
+      chainlink: bigNumberify(feePlan.chainlinkFees.avax)
     }
   }
 
