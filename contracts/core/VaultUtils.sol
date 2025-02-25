@@ -71,9 +71,12 @@ contract VaultUtils is IVaultUtils, Governable {
             return (1, marginFees);
         }
 
-        uint256 remainingCollateral = position.collateral;
+        uint256 remainingCollateral;
+
         if (!hasProfit) {
             remainingCollateral = position.collateral.sub(delta);
+        } else {
+            remainingCollateral = position.collateral.add(delta);
         }
 
         if (remainingCollateral < marginFees) {
