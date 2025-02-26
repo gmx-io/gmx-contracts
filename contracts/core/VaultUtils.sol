@@ -96,7 +96,7 @@ contract VaultUtils is IVaultUtils, Governable {
             return (1, marginFees);
         }
 
-        if ((remainingCollateral.sub(marginFees)).mul(_vault.maxLeverage()) < position.size.mul(BASIS_POINTS_DIVISOR)) {
+        if (remainingCollateral.mul(_vault.maxLeverage()) < position.size.mul(BASIS_POINTS_DIVISOR)) {
             if (_raise) { revert("Vault: maxLeverage exceeded"); }
             return (2, marginFees);
         }
