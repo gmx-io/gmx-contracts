@@ -304,7 +304,7 @@ describe("Vault.liquidateLongPosition", function () {
     expect(await vault.feeReserves(btc.address)).eq(23648) // 23648 / (10**8) * 120,000 => 28.3776
     expect(await vault.reservedAmounts(btc.address)).eq(0)
     expect(await vault.guaranteedUsd(btc.address)).eq(0)
-    expect(await vault.poolAmounts(btc.address)).eq(83200)
+    expect(await vault.poolAmounts(btc.address)).eq(82186)
   })
 
   it("automatic stop-loss", async () => {
