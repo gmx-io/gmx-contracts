@@ -60,6 +60,7 @@ contract VaultUtils is IVaultUtils, Governable {
     // note that if calling this function independently the cumulativeFundingRates used in getFundingFee will not be the latest value
     function validateLiquidation(address _account, address _collateralToken, address _indexToken, bool _isLong, bool _raise) public view override returns (uint256, uint256) {
         Position memory position = getPosition(_account, _collateralToken, _indexToken, _isLong);
+
         IVault _vault = vault;
 
         (bool hasProfit, uint256 delta) = _vault.getDelta(_indexToken, position.size, position.averagePrice, _isLong, position.lastIncreasedTime);
@@ -72,8 +73,16 @@ contract VaultUtils is IVaultUtils, Governable {
         }
 
         uint256 remainingCollateral = position.collateral;
+
         if (!hasProfit) {
             remainingCollateral = position.collateral.sub(delta);
+        }
+
+        // _raise is false only during liquidatePosition
+        // add profits only for this case to allow profits to be used to pay
+        // for fees during liquidations
+        if (!_raise && hasProfit) {
+            remainingCollateral = position.collateral.add(delta);
         }
 
         if (remainingCollateral < marginFees) {
