@@ -297,7 +297,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   const totalFeesUsdAvax = v1FeesUsdAvax.add(v2FeesUsdAvax)
 
-  const treasuryChainlinkWavaxAmount = totalWavaxAvailable.mul(v2FeesUsdAvax).div(totalFeesUsdAvax)
+  let treasuryChainlinkWavaxAmount = totalWavaxAvailable.mul(v2FeesUsdAvax).div(totalFeesUsdAvax)
 
   const maxTreasuryChainlinkWavaxAmount = v2FeesUsdAvax.mul(expandDecimals(1, 18)).div(wavaxPrice)
 
