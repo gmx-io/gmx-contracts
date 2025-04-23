@@ -297,16 +297,16 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   const totalFeesUsdAvax = v1FeesUsdAvax.add(v2FeesUsdAvax)
 
-  let treasuryChainlinkWavaxAmount = totalWavaxAvailable.mul(v2FeesUsdAvax).div(totalFeesUsdAvax)
+  const treasuryChainlinkWavaxAmount = totalWavaxAvailable.mul(v2FeesUsdAvax).div(totalFeesUsdAvax)
 
-  const maxTreasuryChainlinkWavaxAmount = v2FeesUsdAvax.mul(expandDecimals(1, 18)).div(wavaxPrice)
-
-  console.log("treasuryChainlinkWavaxAmount", treasuryChainlinkWavaxAmount.toString())
-  console.log("maxTreasuryChainlinkWavaxAmount", maxTreasuryChainlinkWavaxAmount.toString())
-
-  if (treasuryChainlinkWavaxAmount.gt(maxTreasuryChainlinkWavaxAmount)) {
-    treasuryChainlinkWavaxAmount = maxTreasuryChainlinkWavaxAmount
-  }
+  // const maxTreasuryChainlinkWavaxAmount = v2FeesUsdAvax.mul(expandDecimals(1, 18)).div(wavaxPrice)
+  //
+  // console.log("treasuryChainlinkWavaxAmount", treasuryChainlinkWavaxAmount.toString())
+  // console.log("maxTreasuryChainlinkWavaxAmount", maxTreasuryChainlinkWavaxAmount.toString())
+  //
+  // if (treasuryChainlinkWavaxAmount.gt(maxTreasuryChainlinkWavaxAmount)) {
+  //   treasuryChainlinkWavaxAmount = maxTreasuryChainlinkWavaxAmount
+  // }
 
   const treasuryWavaxAmount = treasuryChainlinkWavaxAmount.mul(88).div(100).mul(AVAX_MULTIPLIER).div(10000)
   const chainlinkWavaxAmount = treasuryChainlinkWavaxAmount.mul(12).div(100)
