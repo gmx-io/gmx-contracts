@@ -100,10 +100,6 @@ async function getArbValues() {
       targetFunds: "7.5"
     },
     {
-      address: "0xeB2a53FF17a747B6000041FB4919B3250f2892E3", // v2 keeper 5
-      targetFunds: "7.5"
-    },
-    {
       address: "0x8808c5E5Bc9317Bf8cb5eE62339594b8d95f77df", // v2 keeper 6
       targetFunds: "7.5"
     },
@@ -198,10 +194,6 @@ async function getAvaxValues() {
     },
     {
       address: "0xdE10336a5C37Ab8FBfd6cd53bdECa5b0974737ba", // v2 keeper 4
-      targetFunds: "500"
-    },
-    {
-      address: "0xeB2a53FF17a747B6000041FB4919B3250f2892E3", // v2 keeper 5
       targetFunds: "500"
     },
     {
