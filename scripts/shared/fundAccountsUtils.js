@@ -150,11 +150,11 @@ async function getAvaxValues() {
     },
     {
       address: "0xd85A5c465824537eA2005590Da909447bca12525", // price sender pyth 1
-      targetFunds: "50"
+      targetFunds: "100"
     },
     {
       address: "0x3FC8e4ED7695F44358B387d67940DF580d80bD5B", // price sender pyth 2
-      targetFunds: "50"
+      targetFunds: "100"
     },
     {
       address: "0x06f34388A7CFDcC68aC9167C5f1C23DD39783179", // order keeper 1
