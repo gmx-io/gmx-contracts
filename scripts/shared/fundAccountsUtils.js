@@ -84,6 +84,10 @@ async function getArbValues() {
       targetFunds: "2"
     },
     {
+      address: "0xDA1b841A21FEF1ad1fcd5E19C1a9D682FB675258", // relay keeper
+      targetFunds: "1"
+    },
+    {
       address: "0xE47b36382DC50b90bCF6176Ddb159C4b9333A7AB", // v2 keeper 1
       targetFunds: "7.5"
     },
@@ -179,6 +183,10 @@ async function getAvaxValues() {
     {
       address: "0xB4d2603B2494103C90B2c607261DD85484b49eF0", // open interest cap keeper
       targetFunds: "50"
+    },
+    {
+      address: "0xDA1b841A21FEF1ad1fcd5E19C1a9D682FB675258", // relay keeper
+      targetFunds: "100"
     },
     {
       address: "0xE47b36382DC50b90bCF6176Ddb159C4b9333A7AB", // v2 keeper 1
