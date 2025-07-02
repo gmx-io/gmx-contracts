@@ -230,7 +230,7 @@ async function getAvaxValues() {
     },
     {
       address: "0xE47b36382DC50b90bCF6176Ddb159C4b9333A7AB", // v2 keeper 1
-      targetFunds: "500"
+      targetFunds: "200"
     },
     {
       address: "0xC539cB358a58aC67185BaAD4d5E3f7fCfc903700", // v2 keeper 2
