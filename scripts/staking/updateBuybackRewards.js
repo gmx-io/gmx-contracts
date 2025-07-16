@@ -4,8 +4,8 @@ const { expandDecimals, bigNumberify } = require("../../test/shared/utilities")
 async function updateBuybackRewards({ rewardArr, intervalUpdater }) {
   for (let i = 0; i < rewardArr.length; i++) {
     const rewardItem = rewardArr[i]
-    const convertedTransferAmount = bigNumberify(transferAmount)
     const { rewardTracker, rewardToken, transferAmount, customReceiver } = rewardItem
+    const convertedTransferAmount = bigNumberify(transferAmount)
 
     console.log(`getting rewardDistributorAddress for rewardTracker: ${rewardTracker.address}`)
     const rewardDistributorAddress = await rewardTracker.distributor()
