@@ -343,7 +343,8 @@ async function updateGlpRewards() {
         // FeeGlpTracker
         rewardTracker: await contractAt("RewardTracker", "0x4e971a87900b931fF39d1Aad67697F49835400b6", feeKeepers.arbitrum),
         rewardToken: nativeTokens.arbitrum,
-        transferAmount: feePlan.glpRewards.arbitrum
+        transferAmount: feePlan.glpRewards.arbitrum,
+        customReceiver: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b"
       },
     ],
     avax: [

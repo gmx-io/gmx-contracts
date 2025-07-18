@@ -193,6 +193,9 @@ describe("Vault.withdrawFees", function () {
     await expect(timelock.connect(user0).withdrawFees(vault.address, bnb.address, user2.address))
       .to.be.revertedWith("forbidden")
 
+    await timelock.setKeeper(wallet.address, true)
+    await timelock.setFeeHandler(wallet.address, true)
+
     expect(await bnb.balanceOf(user2.address)).eq(0)
     await timelock.withdrawFees(vault.address, bnb.address, user2.address)
     expect(await bnb.balanceOf(user2.address)).eq("3300000000000000000")

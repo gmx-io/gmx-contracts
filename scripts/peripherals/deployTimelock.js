@@ -122,7 +122,9 @@ async function main() {
   }
 
   const keepers = [
-    "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" // X
+    "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8", // X
+    "0x75f6250b9CeED446b2F25385832dF08DB45a90b0", // shorts tracker keeper arb
+    "0x02270a816fcca45ce078c8b3de0346eebc90b227" // shorts tracker keeper avax
   ]
 
   for (let i = 0; i < keepers.length; i++) {

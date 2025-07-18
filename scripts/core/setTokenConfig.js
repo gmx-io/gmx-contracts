@@ -98,7 +98,7 @@ async function main() {
     let usdgAmount = token.managedUsd.div(expandDecimals(1, 30 - 18))
     totalUsdgAmount = totalUsdgAmount.add(usdgAmount)
 
-    const adjustedMaxUsdgAmount = expandDecimals(tokenItem.maxUsdgAmount, 18)
+    const adjustedMaxUsdgAmount = tokenItem.maxUsdgAmount // expandDecimals(tokenItem.maxUsdgAmount, 18)
     if (usdgAmount.gt(adjustedMaxUsdgAmount)) {
       console.warn(`usdgAmount was adjusted ${formatAmount(usdgAmount, 18, 0, true)} -> ${formatAmount(adjustedMaxUsdgAmount, 18, 0, true)}`)
       usdgAmount = adjustedMaxUsdgAmount
