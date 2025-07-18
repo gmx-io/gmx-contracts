@@ -58,7 +58,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     address public esGmx;
     address public bnGmx;
 
-    address public glp; // GMX Liquidity Provider token
+    address public override glp; // GMX Liquidity Provider token
 
     address public stakedGmxTracker;
     address public bonusGmxTracker;
@@ -174,7 +174,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         for (uint256 i; i < data.length; i++) {
             (bool success, bytes memory result) = address(this).delegatecall(data[i]);
-            
+
             require(success, "call failed");
 
             results[i] = result;
@@ -207,13 +207,13 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
     function unstakeGmx(uint256 _amount) external nonReentrant {
         _restakeForAccount(msg.sender);
-        
+
         _unstakeGmx(msg.sender, gmx, _amount, true);
     }
 
     function unstakeEsGmx(uint256 _amount) external nonReentrant {
         _restakeForAccount(msg.sender);
-        
+
         _unstakeGmx(msg.sender, esGmx, _amount, true);
     }
 
@@ -312,7 +312,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         if (_shouldStakeMultiplierPoints) {
             _restakeForAccount(account);
-            
+
             _stakeBnGmx(account);
         }
 
@@ -363,7 +363,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
         if (_shouldStakeMultiplierPoints) {
             _restakeForAccount(account);
-            
+
             _stakeBnGmx(account);
         }
 
@@ -476,7 +476,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
         if (gmxAmount > 0) {
             _stakeGmx(_account, _account, gmx, gmxAmount);
         }
-        
+
         uint256 esGmxAmount = _claim(stakedGmxTracker, stakedGlpTracker, _account, _account);
         if (esGmxAmount > 0) {
             _stakeGmx(_account, _account, esGmx, esGmxAmount);
@@ -626,7 +626,7 @@ contract RewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
 
     function _restakeForAccount(address _account) private {
         if (!inRestakingMode) { return; }
-        
+
         uint256 bonusGmxTrackerBalance = IRewardTracker(feeGmxTracker).depositBalances(_account, bonusGmxTracker);
         if (bonusGmxTrackerBalance > 0) {
             uint256 reservedForVesting = IVester(gmxVester).pairAmounts(_account);

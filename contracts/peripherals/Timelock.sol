@@ -22,6 +22,7 @@ import "../tokens/interfaces/IMintable.sol";
 import "../tokens/interfaces/IUSDG.sol";
 import "../staking/interfaces/IVester.sol";
 import "../staking/interfaces/IRewardRouterV2.sol";
+import "../staking/interfaces/IRewardTracker.sol";
 
 import "../libraries/math/SafeMath.sol";
 import "../libraries/token/IERC20.sol";
@@ -41,7 +42,7 @@ contract Timelock is ITimelock, BasicMulticall {
     address public mintReceiver;
     address public glpManager;
     address public prevGlpManager;
-    address public rewardRouter;
+    address public glpRewardRouter;
     uint256 public maxTokenSupply;
 
     uint256 public override marginFeeBasisPoints;
@@ -65,6 +66,7 @@ contract Timelock is ITimelock, BasicMulticall {
     event SignalSetMinter(address target, address minter, bool isActive, bytes32 action);
     event SignalSetPriceFeed(address vault, address priceFeed, bytes32 action);
     event SignalSetGovRequester(address requester);
+    event SignalUnstakeAndBurnGlp(address account);
     event SignalRedeemUsdg(address vault, address token, uint256 amount);
     event SignalVaultSetTokenConfig(
         address vault,
@@ -115,7 +117,7 @@ contract Timelock is ITimelock, BasicMulticall {
         address _mintReceiver,
         address _glpManager,
         address _prevGlpManager,
-        address _rewardRouter,
+        address _glpRewardRouter,
         uint256 _maxTokenSupply,
         uint256 _marginFeeBasisPoints,
         uint256 _maxMarginFeeBasisPoints
@@ -127,7 +129,7 @@ contract Timelock is ITimelock, BasicMulticall {
         mintReceiver = _mintReceiver;
         glpManager = _glpManager;
         prevGlpManager = _prevGlpManager;
-        rewardRouter = _rewardRouter;
+        glpRewardRouter = _glpRewardRouter;
         maxTokenSupply = _maxTokenSupply;
 
         marginFeeBasisPoints = _marginFeeBasisPoints;
@@ -562,6 +564,28 @@ contract Timelock is ITimelock, BasicMulticall {
         _validateAction(action);
         _clearAction(action);
         govRequesters[_requester] = _isActive;
+    }
+
+    function signalUnstakeAndBurnGlp(address account) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("unstakeAndBurnGlp", account));
+        _setPendingAction(action);
+        emit SignalUnstakeAndBurnGlp(account);
+    }
+
+    function unstakeAndBurnGlp(address account) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("unstakeAndBurnGlp", account));
+        _validateAction(action);
+        _clearAction(action);
+
+        address feeGlpTracker = IRewardRouterV2(glpRewardRouter).feeGlpTracker();
+        address stakedGlpTracker = IRewardRouterV2(glpRewardRouter).stakedGlpTracker();
+        address glp = IRewardRouterV2(glpRewardRouter).glp();
+
+        uint256 amount = IRewardTracker(stakedGlpTracker).stakedAmounts(account);
+        IRewardTracker(stakedGlpTracker).unstakeForAccount(account, feeGlpTracker, amount, account);
+        IRewardTracker(feeGlpTracker).unstakeForAccount(account, glp, amount, account);
+
+        IMintable(glp).burn(account, amount);
     }
 
     function cancelAction(bytes32 _action) external onlyAdmin {

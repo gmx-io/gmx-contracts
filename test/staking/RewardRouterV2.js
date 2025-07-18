@@ -85,19 +85,6 @@ describe("RewardRouterV2", function () {
     await initVault(vault, router, usdg, vaultPriceFeed)
     glpManager = await deployContract("GlpManager", [vault.address, usdg.address, glp.address, ethers.constants.AddressZero, 24 * 60 * 60])
 
-    timelock = await deployContract("Timelock", [
-      wallet.address, // _admin
-      10, // _buffer
-      tokenManager.address, // _tokenManager
-      tokenManager.address, // _mintReceiver
-      glpManager.address, // _glpManager
-      glpManager.address, // _prevGlpManager
-      user0.address, // _rewardRouter
-      expandDecimals(1000000, 18), // _maxTokenSupply
-      10, // marginFeeBasisPoints
-      100 // maxMarginFeeBasisPoints
-    ])
-
     await vaultPriceFeed.setTokenConfig(bnb.address, bnbPriceFeed.address, 8, false)
     await vaultPriceFeed.setTokenConfig(btc.address, btcPriceFeed.address, 8, false)
     await vaultPriceFeed.setTokenConfig(eth.address, ethPriceFeed.address, 8, false)
@@ -196,6 +183,19 @@ describe("RewardRouterV2", function () {
 
     rewardRouter = await deployContract("RewardRouterV2", []);
 
+    timelock = await deployContract("Timelock", [
+      wallet.address, // _admin
+      10, // _buffer
+      tokenManager.address, // _tokenManager
+      tokenManager.address, // _mintReceiver
+      glpManager.address, // _glpManager
+      glpManager.address, // _prevGlpManager
+      rewardRouter.address, // _rewardRouter
+      expandDecimals(1000000, 18), // _maxTokenSupply
+      10, // marginFeeBasisPoints
+      100 // maxMarginFeeBasisPoints
+    ])
+
     await rewardRouter.initialize([
       bnb.address,
       gmx.address,
@@ -285,6 +285,7 @@ describe("RewardRouterV2", function () {
     await bnGmx.setGov(timelock.address)
     await gmxVester.setGov(timelock.address)
     await glpVester.setGov(timelock.address)
+    await glp.setGov(timelock.address)
 
     await rewardRouter.setMaxBoostBasisPoints(20_000)
   })
@@ -2815,5 +2816,86 @@ describe("RewardRouterV2", function () {
     expect(await gmx.balanceOf(user1.address)).eq(0)
     expect(await gmx.balanceOf(user2.address)).gt("7130000000000000000") // 7.13, 200 / 28 => ~7.14
     expect(await gmx.balanceOf(user2.address)).lt("7150000000000000000") // 7.15
+  })
+
+  it("unstakeAndBurnGlp", async () => {
+    await timelock.signalSetHandler(feeGlpTracker.address, timelock.address, true)
+    await timelock.signalSetHandler(stakedGlpTracker.address, timelock.address, true)
+    await timelock.signalSetMinter(glp.address, timelock.address, true)
+
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+
+    await timelock.setHandler(feeGlpTracker.address, timelock.address, true)
+    await timelock.setHandler(stakedGlpTracker.address, timelock.address, true)
+    await timelock.setMinter(glp.address, timelock.address, true)
+
+    await bnb.mint(user1.address, expandDecimals(1, 18))
+    await bnb.connect(user1).approve(glpManager.address, expandDecimals(1, 18))
+    await rewardRouter.connect(user1).mintAndStakeGlp(
+      bnb.address,
+      expandDecimals(1, 18),
+      expandDecimals(299, 18),
+      expandDecimals(299, 18)
+    )
+
+    await bnb.mint(user2.address, expandDecimals(2, 18))
+    await bnb.connect(user2).approve(glpManager.address, expandDecimals(2, 18))
+    await rewardRouter.connect(user2).mintAndStakeGlp(
+      bnb.address,
+      expandDecimals(2, 18),
+      expandDecimals(299, 18),
+      expandDecimals(299, 18)
+    )
+
+    await expect(timelock.connect(user0).signalUnstakeAndBurnGlp(user1.address))
+      .to.be.revertedWith("forbidden")
+
+    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user1.address))
+      .to.be.revertedWith("action not signalled")
+
+    await expect(timelock.connect(user0).unstakeAndBurnGlp(user1.address))
+      .to.be.revertedWith("forbidden")
+
+    await timelock.connect(wallet).signalUnstakeAndBurnGlp(user1.address)
+
+    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user1.address))
+      .to.be.revertedWith("action time not yet passed")
+
+    await increaseTime(provider, 1)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user1.address))
+      .to.be.revertedWith("action time not yet passed")
+
+    await increaseTime(provider, 20)
+    await mineBlock(provider)
+
+    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user2.address))
+      .to.be.revertedWith("action not signalled")
+
+    expect(await glpManager.getPrice(true)).eq(expandDecimals(1, 30))
+
+    expect(await glp.totalSupply()).eq(expandDecimals(2991 * 3, 17))
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(expandDecimals(2991, 17))
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(expandDecimals(2991, 17))
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(expandDecimals(2991, 17))
+
+    expect(await glp.balanceOf(feeGlpTracker.address)).eq(expandDecimals(2991 * 3, 17))
+
+    await timelock.connect(wallet).unstakeAndBurnGlp(user1.address)
+
+    expect(await glp.totalSupply()).eq(expandDecimals(2991 * 2, 17))
+    expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(0)
+    expect(await feeGlpTracker.depositBalances(user1.address, glp.address)).eq(0)
+
+    expect(await stakedGlpTracker.stakedAmounts(user1.address)).eq(0)
+    expect(await stakedGlpTracker.depositBalances(user1.address, feeGlpTracker.address)).eq(0)
+
+    expect(await glp.balanceOf(feeGlpTracker.address)).eq(expandDecimals(2991 * 2, 17))
+
+    expect(await glpManager.getPrice(true)).eq(expandDecimals(15, 29))
   })
 })

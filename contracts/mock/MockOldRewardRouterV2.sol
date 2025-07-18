@@ -37,7 +37,7 @@ contract MockOldRewardRouterV2 is IRewardRouterV2, ReentrancyGuard, Governable {
     address public esGmx;
     address public bnGmx;
 
-    address public glp; // GMX Liquidity Provider token
+    address public override glp; // GMX Liquidity Provider token
 
     address public stakedGmxTracker;
     address public bonusGmxTracker;
