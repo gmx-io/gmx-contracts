@@ -291,6 +291,8 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
     remainingWeth = bigNumberify(0)
   }
 
+  console.log("remainingWeth after treasury subsidy", remainingWeth.toString())
+
   const remainingPercentageWeth = remainingWeth.mul(100).div(expectedGlpWethAmount)
   console.log("remainingPercentageWeth", remainingPercentageWeth.toString(), ARB_MIN_GLP_PERCENTAGE)
   if (remainingPercentageWeth.lt(ARB_MIN_GLP_PERCENTAGE)) {
