@@ -256,7 +256,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
 
   const treasuryChainlinkWethAmount = totalWethAvailable.mul(v2FeesUsdArb).div(totalFeesUsdArb)
 
-  const treasuryWethAmount = treasuryChainlinkWethAmount.mul(88).div(100).mul(ARB_MULTIPLIER).div(10000)
+  let treasuryWethAmount = treasuryChainlinkWethAmount.mul(88).div(100).mul(ARB_MULTIPLIER).div(10000)
   const chainlinkWethAmount = treasuryChainlinkWethAmount.mul(12).div(100)
 
   console.log("totalWethAvailable", totalWethAvailable.toString())
@@ -281,6 +281,15 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const expectedGlpWethAmount = totalWethAvailable.sub(treasuryChainlinkWethAmount)
   console.log("expectedGlpWethAmount", expectedGlpWethAmount.toString())
   console.log("remainingWeth", remainingWeth.toString())
+
+  if (remainingWeth.lt(0)) {
+    if (treasuryWethAmount.lt(remainingWeth.abs())) {
+      throw new Error(`Insufficient treasuryWethAmount to cover costs ${treasuryWethAmount.toString()}, ${remainingWeth.toString()}`)
+    }
+
+    treasuryWethAmount = treasuryWethAmount.sub(remainingWeth.abs())
+    remainingWeth = bigNumberify(0)
+  }
 
   const remainingPercentageWeth = remainingWeth.mul(100).div(expectedGlpWethAmount)
   console.log("remainingPercentageWeth", remainingPercentageWeth.toString(), ARB_MIN_GLP_PERCENTAGE)
