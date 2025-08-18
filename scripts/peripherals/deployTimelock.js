@@ -104,10 +104,10 @@ async function main() {
 
   const multicallWriteParams = []
 
-  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setShouldToggleIsLeverageEnabled", [true]));
-  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionRouter.address, true]));
-  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionManager.address, true]));
-  multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setFeeHandler", [feeHandler.address, true]));
+  // multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setShouldToggleIsLeverageEnabled", [true]));
+  // multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionRouter.address, true]));
+  // multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setContractHandler", [positionManager.address, true]));
+  // multicallWriteParams.push(deployedTimelock.interface.encodeFunctionData("setFeeHandler", [feeHandler.address, true]));
 
   const handlers = [
     "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
@@ -136,11 +136,11 @@ async function main() {
   await signExternally(await deployedTimelock.populateTransaction.multicall(multicallWriteParams));
 
   // // update gov of vault
-  const vaultGov = await contractAt("Timelock", await vault.gov())
+  // const vaultGov = await contractAt("Timelock", await vault.gov())
 
-  await signExternally(await vaultGov.populateTransaction.signalSetGov(vault.address, deployedTimelock.address));
+  // await signExternally(await vaultGov.populateTransaction.signalSetGov(vault.address, deployedTimelock.address));
   // to revert the gov change if needed
-  await signExternally(await deployedTimelock.populateTransaction.signalSetGov(vault.address, vaultGov.address));
+  // await signExternally(await deployedTimelock.populateTransaction.signalSetGov(vault.address, vaultGov.address));
 }
 
 main().catch((ex) => {

@@ -2819,16 +2819,29 @@ describe("RewardRouterV2", function () {
   })
 
   it("unstakeAndBurnGlp", async () => {
-    await timelock.signalSetHandler(feeGlpTracker.address, timelock.address, true)
-    await timelock.signalSetHandler(stakedGlpTracker.address, timelock.address, true)
-    await timelock.signalSetMinter(glp.address, timelock.address, true)
+    const burnerTimelock = await deployContract("Timelock", [
+      wallet.address, // _admin
+      10, // _buffer
+      tokenManager.address, // _tokenManager
+      tokenManager.address, // _mintReceiver
+      glpManager.address, // _glpManager
+      glpManager.address, // _prevGlpManager
+      rewardRouter.address, // _rewardRouter
+      expandDecimals(1000000, 18), // _maxTokenSupply
+      10, // marginFeeBasisPoints
+      100 // maxMarginFeeBasisPoints
+    ])
+
+    await timelock.signalSetHandler(feeGlpTracker.address, burnerTimelock.address, true)
+    await timelock.signalSetHandler(stakedGlpTracker.address, burnerTimelock.address, true)
+    await timelock.signalSetMinter(glp.address, burnerTimelock.address, true)
 
     await increaseTime(provider, 20)
     await mineBlock(provider)
 
-    await timelock.setHandler(feeGlpTracker.address, timelock.address, true)
-    await timelock.setHandler(stakedGlpTracker.address, timelock.address, true)
-    await timelock.setMinter(glp.address, timelock.address, true)
+    await timelock.setHandler(feeGlpTracker.address, burnerTimelock.address, true)
+    await timelock.setHandler(stakedGlpTracker.address, burnerTimelock.address, true)
+    await timelock.setMinter(glp.address, burnerTimelock.address, true)
 
     await bnb.mint(user1.address, expandDecimals(1, 18))
     await bnb.connect(user1).approve(glpManager.address, expandDecimals(1, 18))
@@ -2848,30 +2861,30 @@ describe("RewardRouterV2", function () {
       expandDecimals(299, 18)
     )
 
-    await expect(timelock.connect(user0).signalUnstakeAndBurnGlp(user1.address))
+    await expect(burnerTimelock.connect(user0).signalUnstakeAndBurnGlp(user1.address))
       .to.be.revertedWith("forbidden")
 
-    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user1.address))
+    await expect(burnerTimelock.connect(wallet).unstakeAndBurnGlp(user1.address))
       .to.be.revertedWith("action not signalled")
 
-    await expect(timelock.connect(user0).unstakeAndBurnGlp(user1.address))
+    await expect(burnerTimelock.connect(user0).unstakeAndBurnGlp(user1.address))
       .to.be.revertedWith("forbidden")
 
-    await timelock.connect(wallet).signalUnstakeAndBurnGlp(user1.address)
+    await burnerTimelock.connect(wallet).signalUnstakeAndBurnGlp(user1.address)
 
-    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user1.address))
+    await expect(burnerTimelock.connect(wallet).unstakeAndBurnGlp(user1.address))
       .to.be.revertedWith("action time not yet passed")
 
     await increaseTime(provider, 1)
     await mineBlock(provider)
 
-    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user1.address))
+    await expect(burnerTimelock.connect(wallet).unstakeAndBurnGlp(user1.address))
       .to.be.revertedWith("action time not yet passed")
 
     await increaseTime(provider, 20)
     await mineBlock(provider)
 
-    await expect(timelock.connect(wallet).unstakeAndBurnGlp(user2.address))
+    await expect(burnerTimelock.connect(wallet).unstakeAndBurnGlp(user2.address))
       .to.be.revertedWith("action not signalled")
 
     expect(await glpManager.getPrice(true)).eq(expandDecimals(1, 30))
@@ -2885,7 +2898,7 @@ describe("RewardRouterV2", function () {
 
     expect(await glp.balanceOf(feeGlpTracker.address)).eq(expandDecimals(2991 * 3, 17))
 
-    await timelock.connect(wallet).unstakeAndBurnGlp(user1.address)
+    await burnerTimelock.connect(wallet).unstakeAndBurnGlp(user1.address)
 
     expect(await glp.totalSupply()).eq(expandDecimals(2991 * 2, 17))
     expect(await feeGlpTracker.stakedAmounts(user1.address)).eq(0)
