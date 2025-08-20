@@ -50,7 +50,6 @@ contract TimeDistributor is IDistributor {
         }
 
         tokensPerInterval[_receiver] = _amount;
-        _updateLastDistributionTime(_receiver);
         emit TokensPerIntervalChange(_receiver, _amount);
     }
 
@@ -75,7 +74,6 @@ contract TimeDistributor is IDistributor {
             address rewardToken = _rewardTokens[i];
             tokensPerInterval[receiver] = amount;
             rewardTokens[receiver] = rewardToken;
-            _updateLastDistributionTime(receiver);
             emit DistributionChange(receiver, amount, rewardToken);
         }
     }
