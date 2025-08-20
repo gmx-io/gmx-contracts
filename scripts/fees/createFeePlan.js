@@ -319,7 +319,7 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   //   treasuryChainlinkWavaxAmount = maxTreasuryChainlinkWavaxAmount
   // }
 
-  const treasuryWavaxAmount = treasuryChainlinkWavaxAmount.mul(88).div(100).mul(AVAX_MULTIPLIER).div(10000)
+  let treasuryWavaxAmount = treasuryChainlinkWavaxAmount.mul(88).div(100).mul(AVAX_MULTIPLIER).div(10000)
   const chainlinkWavaxAmount = treasuryChainlinkWavaxAmount.mul(12).div(100)
 
   let remainingWavax = totalWavaxAvailable.sub((treasuryWavaxAmount).add(chainlinkWavaxAmount))
