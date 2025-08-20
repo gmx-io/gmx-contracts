@@ -332,6 +332,15 @@ async function saveFeePlan({ feeValues, referralValues, refTimestamp }) {
   const referralRewardsWavax = referralRewardsUsdAvax.mul(expandDecimals(1, 18)).div(wavaxPrice)
   remainingWavax = remainingWavax.sub(referralRewardsWavax)
 
+  if (remainingWavax.lt(0)) {
+    if (treasuryWavaxAmount.lt(remainingWavax.abs())) {
+      throw new Error(`Insufficient treasuryWavaxAmount to cover costs ${treasuryWavaxAmount.toString()}, ${treasuryWavaxAmount.toString()}`)
+    }
+
+    treasuryWavaxAmount = treasuryWavaxAmount.sub(remainingWavax.abs())
+    remainingWavax = bigNumberify(0)
+  }
+
   const expectedGlpWavaxAmount = totalWavaxAvailable.sub(treasuryChainlinkWavaxAmount)
 
   const remainingPercentageWavax = remainingWavax.mul(100).div(expectedGlpWavaxAmount)
