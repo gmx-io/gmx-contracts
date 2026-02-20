@@ -329,7 +329,7 @@ async function updateGmxRewards() {
         // ExtendedGmxTracker
         rewardTracker: await contractAt("RewardTracker", "0x0755D33e45eD2B874c9ebF5B279023c8Bd1e5E93", feeKeepers.arbitrum),
         rewardToken: gmx.arbitrum,
-        transferAmount: feePlan.gmxRewards.arbitrum
+        transferAmount: bigNumberify(0) // feePlan.gmxRewards.arbitrum
       },
       // {
       //   // FeeGmxTracker
@@ -343,7 +343,7 @@ async function updateGmxRewards() {
         // ExtendedGmxTracker
         rewardTracker: await contractAt("RewardTracker", "0xB0D12Bf95CC1341d6C845C978daaf36F70b5910d", feeKeepers.avax),
         rewardToken: gmx.avax,
-        transferAmount: feePlan.gmxRewards.avax
+        transferAmount: bigNumberify(0) // feePlan.gmxRewards.avax
       },
       // {
       //   // FeeGmxTracker
@@ -458,37 +458,37 @@ async function distributeFees({ write: _write, steps }) {
 
 
   if (shouldRunFeeStep(steps, 1)) {
-    await withdrawFees();
-    await printFeeHandlerBalances();
-    saveFeeStep(1)
-    await sendPushMessage("Step 1: Fees withdrawn")
+    // await withdrawFees();
+    // await printFeeHandlerBalances();
+    // saveFeeStep(1)
+    // await sendPushMessage("Step 1: Fees withdrawn")
   }
 
   if (shouldRunFeeStep(steps, 2)) {
-    await bridgeTokens()
-    saveFeeStep(2)
-    await sendPushMessage("Step 2: Tokens bridged")
+    // await bridgeTokens()
+    // saveFeeStep(2)
+    // await sendPushMessage("Step 2: Tokens bridged")
   }
 
   if (shouldRunFeeStep(steps, 3)) {
     await updateGmxRewards();
     await printFeeHandlerBalances();
     saveFeeStep(3)
-    await sendPushMessage("Step 3: GMX rewards updated")
+    await sendPushMessage("Fee Distribution: GMX rewards updated")
   }
 
   if (shouldRunFeeStep(steps, 4)) {
-    await sendPayments()
-    await printFeeHandlerBalances();
-    saveFeeStep(4)
-    await sendPushMessage("Step 4: Payments sent")
+    // await sendPayments()
+    // await printFeeHandlerBalances();
+    // saveFeeStep(4)
+    // await sendPushMessage("Step 4: Payments sent")
   }
 
   if (shouldRunFeeStep(steps, 5)) {
-    await fundAccounts();
-    await printFeeHandlerBalances();
-    saveFeeStep(5)
-    await sendPushMessage("Step 5: Accounts funded")
+    // await fundAccounts();
+    // await printFeeHandlerBalances();
+    // saveFeeStep(5)
+    // await sendPushMessage("Step 5: Accounts funded")
   }
 
   await sendPushMessage("Fee distribution completed")

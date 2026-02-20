@@ -5,7 +5,7 @@ const { sendPushMessage } = require("../shared/helpers");
 async function main() {
   try {
     await sendPushMessage("Fee distribution: running fee process")
-    await createFeePlan()
+    // await createFeePlan()
     await distributeFees({ write: true, steps: "1,2,3,4,5" })
   } catch (e) {
     console.error(`error encountered: ${e}`)
