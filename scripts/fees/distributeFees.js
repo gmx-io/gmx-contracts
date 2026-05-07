@@ -253,6 +253,7 @@ async function fundAccountsForNetwork({ network, fundAccountValues }) {
 
     if (nativeTokenBalance.lt(transferItem.amount)) {
       await sendPushMessage(`Insufficient ${nativeTokenLabel}, skipping top up of ${formatAmount(transferItem.amount, 18, 2)} ${nativeTokenLabel} for ${transferItem.address}`)
+      continue;
     }
 
     if (write) {
