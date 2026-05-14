@@ -151,6 +151,10 @@ async function getArbValues() {
       address: "0xC9A5775951F0ea25053fEe81D935FBBF4F0Fb273", // v2 keeper 19
       targetFunds: "3.5"
     },
+    {
+      address: "0x497a278Cb369BdA83386DA94717F722453aEc6C8", // v2 keeper 19
+      targetFunds: "0.1"
+    },
   ]
 
   const transfers = await getTransferItems(keepers, provider, "arbitrum")
