@@ -182,10 +182,11 @@ async function withdrawFeesFromFeeHandler({ network }) {
   const feeHandler = feeHandlers[network];
 
   if (write) {
-    await sendTxn(
-      feeHandler.withdrawFees(gmx[network].address),
-      "feeHandler.withdrawFees gmx"
-    );
+    // GMX rewards are not accrued
+    // await sendTxn(
+    //   feeHandler.withdrawFees(gmx[network].address),
+    //   "feeHandler.withdrawFees gmx"
+    // );
     await sendTxn(
       feeHandler.withdrawFees(nativeTokens[network].address),
       "feeHandler.withdrawFees nativeToken"
@@ -487,7 +488,7 @@ async function distributeFees({ write: _write, steps }) {
   if (shouldRunFeeStep(steps, 5)) {
     await fundAccounts();
     // await printFeeHandlerBalances();
-    // saveFeeStep(5)
+    saveFeeStep(5)
     await sendPushMessage("Step 5: Accounts funded")
   }
 

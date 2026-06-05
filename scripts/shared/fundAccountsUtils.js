@@ -76,6 +76,10 @@ async function getArbValues() {
       targetFunds: "2"
     },
     {
+      address: "0xB630FDb99b5D50Ef26891E2cf4494027fc4C1289", // risk oracle keeper
+      targetFunds: "2.5"
+    },
+    {
       address: "0xE47b36382DC50b90bCF6176Ddb159C4b9333A7AB", // v2 keeper 1
       targetFunds: "3.5"
     },
@@ -270,6 +274,10 @@ async function getAvaxValues() {
     },
     {
       address: "0xC9A5775951F0ea25053fEe81D935FBBF4F0Fb273", // v2 keeper 19
+      targetFunds: "200"
+    },
+    {
+      address: "0xB630FDb99b5D50Ef26891E2cf4494027fc4C1289", // risk oracle keeper
       targetFunds: "200"
     },
   ]
