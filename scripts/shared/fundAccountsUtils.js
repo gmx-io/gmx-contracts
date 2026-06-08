@@ -72,10 +72,6 @@ async function getArbValues() {
       targetFunds: "1"
     },
     {
-      address: "0x5998CeD4F9510897e0611959189D40054Fe6Ae37", // risk oracle keeper
-      targetFunds: "2"
-    },
-    {
       address: "0xB630FDb99b5D50Ef26891E2cf4494027fc4C1289", // risk oracle keeper
       targetFunds: "2.5"
     },
