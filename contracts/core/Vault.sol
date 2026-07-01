@@ -390,7 +390,7 @@ contract Vault is ReentrancyGuard, IVault {
         getMaxPrice(_token);
     }
 
-    function clearTokenConfig(address _token) external {
+    function clearTokenConfig(address _token) external override {
         _onlyGov();
         _validate(whitelistedTokens[_token], 13);
         totalTokenWeights = totalTokenWeights.sub(tokenWeights[_token]);
