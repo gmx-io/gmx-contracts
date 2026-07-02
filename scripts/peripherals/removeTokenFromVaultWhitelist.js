@@ -32,8 +32,17 @@ async function main() {
   const signerPK = process.env.SIGNER_KEY;
   const safeApiKey = process.env.SAFE_API_KEY;
 
+  const action = process.env.ACTION || "signal";
+
   const { vault, timelock } = await getValues()
-  const rawTx = await timelock.populateTransaction.signalRemoveTokenFromWhitelist(vault.address, tokens.mim.address)
+  let rawTx;
+  if (action === 'signal') {
+    rawTx = await timelock.populateTransaction.signalRemoveTokenFromWhitelist(vault.address, tokens.mim.address)
+  } else if (action === 'finalize') {
+    rawTx = await timelock.populateTransaction.removeTokenFromWhitelist(vault.address, tokens.mim.address)
+  } else {
+    throw new Error("Unknown action type")
+  }
 
   const safeClient = await createSafeClient({
     provider: hre.network.config.url,
