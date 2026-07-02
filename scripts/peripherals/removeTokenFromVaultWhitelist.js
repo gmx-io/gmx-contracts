@@ -1,5 +1,7 @@
 const { contractAt } = require("../shared/helpers")
 const { createSafeClient } = require("@safe-global/sdk-starter-kit")
+const { proposeSafeTransaction } = require("../shared/safeHelpers")
+const SafeApiKit = require("@safe-global/api-kit").default
 
 const hre = require("hardhat");
 const network = hre.network.name;
@@ -52,19 +54,20 @@ async function useSafe() {
   const transactions = [{
     to: rawTx.to,
     data: rawTx.data,
-    value: '0'
+    value: '0',
   }]
 
-  const txResult = await safeClient.send({ transactions, nonce: 15 })
+  const nonce = process.env.SAFE_NONCE ? parseInt(process.env.SAFE_NONCE, 10) : undefined
 
-  const safeTxHash = txResult.transactions?.safeTxHash
-  console.log(`Tx created with hash: ${safeTxHash}`);
+  const { safeTxHash, nonce: usedNonce } = await proposeSafeTransaction(safeClient, {
+    transactions,
+    nonce,
+  })
+
+  console.log(`Tx proposed with nonce ${usedNonce}, hash: ${safeTxHash}`);
 }
-
-// async function createSafeTxWithNonce() {
-//   import SafeApiKit, { ProposeTransactionProps } from '@safe-global/api-kit'
-//   import { SafeTransactionData } from '@safe-global/types-kit'
 //
+// async function createSafeApiKit() {
 //   const apiKit = new SafeApiKit({
 //     chainId: 43114n,
 //     apiKey: process.env.SAFE_API_KEY
@@ -75,11 +78,6 @@ async function useSafe() {
 //     value: '0',
 //     data: '0xd5c2c8b60000000000000000000000009ab2de34a33fb459b538c43f251eb825645e8595000000000000000000000000130966628846bfd36ff31a822705796e8cb8c18d',
 //     operation: 0, // 0 = call, 1 = delegate call
-//     safeTxGas: '0',
-//     baseGas: '0',
-//     gasPrice: '0',
-//     gasToken: '0x0000000000000000000000000000000000000000',
-//     refundReceiver: '0x0000000000000000000000000000000000000000',
 //     nonce: '15'
 //   }
 //
