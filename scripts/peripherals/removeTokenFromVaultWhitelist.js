@@ -29,14 +29,6 @@ async function getValues() {
 }
 
 async function main() {
-  console.log(network);
-  const { vault, timelock } = await getValues()
-
-  const rawTx = await timelock.populateTransaction.signalRemoveTokenFromWhitelist(vault.address, tokens.mim.address)
-  console.log(rawTx);
-}
-
-async function useSafe() {
   const signerPK = process.env.SIGNER_KEY;
   const safeApiKey = process.env.SAFE_API_KEY;
 
@@ -66,7 +58,7 @@ async function useSafe() {
   console.log(`Tx proposed with nonce ${usedNonce}, hash: ${safeTxHash}`);
 }
 
-useSafe()
+main()
   .then(() => process.exit(0))
   .catch(error => {
     console.error(error)
