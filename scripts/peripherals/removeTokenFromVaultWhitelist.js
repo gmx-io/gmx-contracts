@@ -2,7 +2,7 @@ const { contractAt } = require("../shared/helpers")
 const { createSafeClient } = require("@safe-global/sdk-starter-kit")
 
 const hre = require("hardhat");
-const network = (process.env.HARDHAT_NETWORK || 'mainnet');
+const network = hre.network.name;
 const tokens = require('../core/tokens')[network];
 
 async function getArbValues() {
@@ -28,6 +28,7 @@ async function getValues() {
 }
 
 async function main() {
+  console.log(network);
   const { vault, timelock } = await getValues()
 
   const rawTx = await timelock.populateTransaction.signalRemoveTokenFromWhitelist(vault.address, tokens.mim.address)
@@ -38,6 +39,9 @@ async function useSafe() {
   const signerPK = process.env.SIGNER_KEY;
   const safeApiKey = process.env.SAFE_API_KEY;
 
+  const { vault, timelock } = await getValues()
+  const rawTx = await timelock.populateTransaction.signalRemoveTokenFromWhitelist(vault.address, tokens.mim.address)
+
   const safeClient = await createSafeClient({
     provider: hre.network.config.url,
     signer: signerPK,
@@ -46,15 +50,15 @@ async function useSafe() {
   })
 
   const transactions = [{
-    to: '0xe089F0eDc8efB1172Dae20CEa041eB4B9dc7d468',
-    data: '0xd5c2c8b60000000000000000000000009ab2de34a33fb459b538c43f251eb825645e8595000000000000000000000000130966628846bfd36ff31a822705796e8cb8c18d',
+    to: rawTx.to,
+    data: rawTx.data,
     value: '0'
   }]
 
   const txResult = await safeClient.send({ transactions })
 
   const safeTxHash = txResult.transactions?.safeTxHash
-  console.log(safeTxHash);
+  console.log(`Tx created with hash: ${safeTxHash}`);
 }
 
 useSafe()
