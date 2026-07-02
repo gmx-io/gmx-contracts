@@ -55,11 +55,44 @@ async function useSafe() {
     value: '0'
   }]
 
-  const txResult = await safeClient.send({ transactions })
+  const txResult = await safeClient.send({ transactions, nonce: 15 })
 
   const safeTxHash = txResult.transactions?.safeTxHash
   console.log(`Tx created with hash: ${safeTxHash}`);
 }
+
+// async function createSafeTxWithNonce() {
+//   import SafeApiKit, { ProposeTransactionProps } from '@safe-global/api-kit'
+//   import { SafeTransactionData } from '@safe-global/types-kit'
+//
+//   const apiKit = new SafeApiKit({
+//     chainId: 43114n,
+//     apiKey: process.env.SAFE_API_KEY
+//   })
+//
+//   const safeTransactionData  = {
+//     to: '0xe089F0eDc8efB1172Dae20CEa041eB4B9dc7d468',
+//     value: '0',
+//     data: '0xd5c2c8b60000000000000000000000009ab2de34a33fb459b538c43f251eb825645e8595000000000000000000000000130966628846bfd36ff31a822705796e8cb8c18d',
+//     operation: 0, // 0 = call, 1 = delegate call
+//     safeTxGas: '0',
+//     baseGas: '0',
+//     gasPrice: '0',
+//     gasToken: '0x0000000000000000000000000000000000000000',
+//     refundReceiver: '0x0000000000000000000000000000000000000000',
+//     nonce: '15'
+//   }
+//
+//   const proposeTransactionProps = {
+//     safeAddress: '0x58F582455b54d7c83d03BCeed95FAf72B37fdDD7',
+//     safeTransactionData,
+//     senderAddress: '0xeAA5600595a64a23480b2DF5FCA35A2867c912Ea',
+//     senderSignature: process.env.SIGNER_KEY
+//   }
+//
+//   const r = await apiKit.proposeTransaction(proposeTransactionProps)
+//   console.log(r);
+// }
 
 useSafe()
   .then(() => process.exit(0))
