@@ -26,13 +26,22 @@ async function getValues(signer) {
 }
 
 async function main() {
-  const signer = await getFrameSigner()
+  const { target, nextTimelock } = await getValues(null)
+  const prevTimelock = await contractAt("Timelock", await target.gov())
 
-  const { target, nextTimelock } = await getValues(signer)
-  const prevTimelock = await contractAt("Timelock", await target.gov(), signer)
+  // await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), "prevTimelock.signalSetGov(nextTimelock)")
+  // await sendTxn(nextTimelock.signalSetGov(target.address, prevTimelock.address), "nextTimelock.signalSetGov(prevTimelock)")
+  const action = process.env.ACTION || "signal";
+  let rawTx;
+  if (action === 'signal') {
+    rawTx = await prevTimelock.populateTransaction.signalSetGov(target.address, nextTimelock.address)
+  } else if (action === 'finalize') {
+    rawTx = await nextTimelock.populateTransaction.acceptGov(target.address)
+  } else {
+    throw new Error("Unknown action type")
+  }
 
-  await sendTxn(prevTimelock.signalSetGov(target.address, nextTimelock.address), "prevTimelock.signalSetGov(nextTimelock)")
-  await sendTxn(nextTimelock.signalSetGov(target.address, prevTimelock.address), "nextTimelock.signalSetGov(prevTimelock)")
+  console.log(rawTx);
 }
 
 main()
