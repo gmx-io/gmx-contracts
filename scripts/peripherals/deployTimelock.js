@@ -123,6 +123,7 @@ async function main() {
     "0xfb481D70f8d987c1AE3ADc90B7046e39eb6Ad64B", // kr
     "0x6091646D0354b03DD1e9697D33A7341d8C93a6F5", // xhiroz
     "0xD2A54e7AFC36f6D09627c7c9ABdd033Ac3800613", // Tano
+    "0xeAA5600595a64a23480b2DF5FCA35A2867c912Ea", // Sol
   ]
 
   const timelock = await deployContract("Timelock", [

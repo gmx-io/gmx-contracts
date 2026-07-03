@@ -78,6 +78,7 @@ contract Timelock is ITimelock, BasicMulticall {
         bool isStable,
         bool isShortable
     );
+    event SignalRemoveTokenFromWhitelist(address token);
     event ClearAction(bytes32 action);
 
     modifier onlyAdmin() {
@@ -592,6 +593,20 @@ contract Timelock is ITimelock, BasicMulticall {
         IRewardTracker(feeGlpTracker).unstakeForAccount(account, glp, amount, account);
 
         IMintable(glp).burn(account, amount);
+    }
+
+    function signalRemoveTokenFromWhitelist(address vault, address token) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("removeTokenFromWhitelist", vault, token));
+        _setPendingAction(action);
+        emit SignalRemoveTokenFromWhitelist(token);
+    }
+
+    function removeTokenFromWhitelist(address vault, address token) external onlyAdmin {
+        bytes32 action = keccak256(abi.encodePacked("removeTokenFromWhitelist", vault, token));
+        _validateAction(action);
+        _clearAction(action);
+
+        IVault(vault).clearTokenConfig(token);
     }
 
     function cancelAction(bytes32 _action) external onlyAdmin {
