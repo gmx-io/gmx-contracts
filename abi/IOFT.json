@@ -27,6 +27,134 @@
     },
     {
         "type": "function",
+        "name": "decimalConversionRate",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "sharedDecimals",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint8",
+                "internalType": "uint8"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "quoteOFT",
+        "inputs": [
+            {
+                "name": "_sendParam",
+                "type": "tuple",
+                "internalType": "struct SendParam",
+                "components": [
+                    {
+                        "name": "dstEid",
+                        "type": "uint32",
+                        "internalType": "uint32"
+                    },
+                    {
+                        "name": "to",
+                        "type": "bytes32",
+                        "internalType": "bytes32"
+                    },
+                    {
+                        "name": "amountLD",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "minAmountLD",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "extraOptions",
+                        "type": "bytes",
+                        "internalType": "bytes"
+                    },
+                    {
+                        "name": "composeMsg",
+                        "type": "bytes",
+                        "internalType": "bytes"
+                    },
+                    {
+                        "name": "oftCmd",
+                        "type": "bytes",
+                        "internalType": "bytes"
+                    }
+                ]
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "tuple",
+                "internalType": "struct OFTLimit",
+                "components": [
+                    {
+                        "name": "minAmountLD",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "maxAmountLD",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    }
+                ]
+            },
+            {
+                "name": "",
+                "type": "tuple[]",
+                "internalType": "struct OFTFeeDetail[]",
+                "components": [
+                    {
+                        "name": "feeAmountLD",
+                        "type": "int256",
+                        "internalType": "int256"
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "internalType": "string"
+                    }
+                ]
+            },
+            {
+                "name": "",
+                "type": "tuple",
+                "internalType": "struct OFTReceipt",
+                "components": [
+                    {
+                        "name": "amountSentLD",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "amountReceivedLD",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    }
+                ]
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
         "name": "quoteSend",
         "inputs": [
             {
