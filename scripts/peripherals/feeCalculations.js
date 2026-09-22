@@ -36,14 +36,14 @@ const tokensRef = {
 
 function getArbTokens() {
   const { btc, eth, usdce, usdc, link, uni, usdt, mim, frax, dai } = tokensRef.arbitrum
-  const tokenArr = [btc, eth, usdce, usdc, link, uni, usdt, frax, dai]
+  const tokenArr = [btc, eth, usdce, usdc, link, uni, usdt, frax, dai, mim]
 
   return tokenArr
 }
 
 function getAvaxTokens() {
   const { avax, btc, btcb, eth, mim, usdce, usdc } = tokensRef.avax
-  const tokenArr = [avax, btc, btcb, eth, usdce, usdc]
+  const tokenArr = [avax, btc, btcb, eth, usdce, usdc, mim]
 
   return tokenArr
 }
@@ -96,6 +96,7 @@ async function getFeesUsd(vault, reader, tokenInfo, tokenArr) {
     const token = tokenInfo[tokenArr[i].address]
     const feeAmount = feeAmounts[i]
     console.log("getFeesUsd token", token)
+    console.log(`FEES: ${token.name} - ${feeAmount}`)
     const feeInUsd = feeAmount.mul(token.minPrice).div(expandDecimals(1, token.decimals))
     feesUsd = feesUsd.add(feeInUsd)
   }
@@ -250,8 +251,8 @@ async function getArbValues() {
   const totalNativeTokenBalance = withdrawableNativeToken.add(feeKeeperNativeTokenBalance)
 
   let feesUsd = await getFeesUsd(vault, reader, tokenInfo, tokenArr)
-  const feesUsdV2 = await getFeesUsdV2({ reader: readerV2, dataStore, multicall, tickersUrl })
-  const totalFeesUsdV2 = feesUsdV2.mul(100).div(37)
+  // const feesUsdV2 = await getFeesUsdV2({ reader: readerV2, dataStore, multicall, tickersUrl })
+  // const totalFeesUsdV2 = feesUsdV2.mul(100).div(37)
 
   const stakedGmx = await contractAt("Token", "0xd2D1162512F927a7e282Ef43a362659E4F2a728F", signer)
   const stakedGmxSupply = await stakedGmx.totalSupply()
@@ -259,7 +260,7 @@ async function getArbValues() {
   const glpManager = await contractAt("GlpManager", "0x321F653eED006AD1C29D174e17d96351BDe22649", signer)
   const glpAum = await glpManager.getAum(true)
 
-  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, feesUsdV2, totalFeesUsdV2, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum, totalGmxBalance, totalNativeTokenBalance }
+  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum, totalGmxBalance, totalNativeTokenBalance }
 }
 
 async function getAvaxValues() {
@@ -281,7 +282,7 @@ async function getAvaxValues() {
   const nativeToken = await contractAt("Token", tokens.nativeToken.address, signer)
 
   const withdrawableGmxAmountKey = keys.withdrawableBuybackTokenAmountKey(gmx.address)
-  const withdrawableGmx = await dataStore.getUint(arbWithdrawableGmxAmountKey)
+  // const withdrawableGmx = await dataStore.getUint(arbWithdrawableGmxAmountKey)
 
   const withdrawableNativeTokenAmountKey = keys.withdrawableBuybackTokenAmountKey(tokens.nativeToken.address)
   const withdrawableNativeToken = await dataStore.getUint(withdrawableNativeTokenAmountKey)
@@ -289,12 +290,12 @@ async function getAvaxValues() {
   const feeKeeperGmxBalance = await gmx.balanceOf(FEE_KEEPER)
   const feeKeeperNativeTokenBalance = await nativeToken.balanceOf(FEE_KEEPER)
 
-  const totalGmxBalance = withdrawableGmx.add(feeKeeperGmxBalance)
+  // const totalGmxBalance = withdrawableGmx.add(feeKeeperGmxBalance)
   const totalNativeTokenBalance = withdrawableNativeToken.add(feeKeeperNativeTokenBalance)
 
   const feesUsd = await getFeesUsd(vault, reader, tokenInfo, tokenArr)
-  const feesUsdV2 = await getFeesUsdV2({ reader: readerV2, dataStore, multicall, tickersUrl })
-  const totalFeesUsdV2 = feesUsdV2.mul(100).div(37)
+  // const feesUsdV2 = await getFeesUsdV2({ reader: readerV2, dataStore, multicall, tickersUrl })
+  // const totalFeesUsdV2 = feesUsdV2.mul(100).div(37)
 
   const stakedGmx = await contractAt("Token", "0x4d268a7d4C16ceB5a606c173Bd974984343fea13", signer)
   const stakedGmxSupply = await stakedGmx.totalSupply()
@@ -302,7 +303,7 @@ async function getAvaxValues() {
   const glpManager = await contractAt("GlpManager", "0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F", signer)
   const glpAum = await glpManager.getAum(true)
 
-  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, feesUsdV2, totalFeesUsdV2, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum, totalGmxBalance, totalNativeTokenBalance }
+  return { vault, reader, tokens, tokenInfo, nativeTokenPrice, feesUsd, stakedGmx, stakedGmxSupply, keeperCosts, glpManager, glpAum, totalNativeTokenBalance }
 }
 
 module.exports = {
