@@ -6,12 +6,18 @@ const tokens = require("../core/tokens")["avax"];
 
 const LFJ_LB_ROUTER = "0x18556DA13313f3532c54711497A8FedAC273220E";
 const LFJ_LB_QUOTER = "0x9A550a522BBaDFB69019b0432800Ed17855A51C3";
+const FLY_API = "https://api.fly.trade";
+const LIFI_API = "https://li.quest/v1/quote";
 const WAVAX = tokens.nativeToken.address;
 const USDC = tokens.usdc.address;
+const USDT = "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7";
+const USDCE = tokens.usdce.address;
+const WETH_E = "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB";
 const WAVAX_DECIMALS = tokens.nativeToken.decimals;
 const USDC_DECIMALS = tokens.usdc.decimals;
 const DEFAULT_SLIPPAGE_BPS = 100; // 1%
 const DEADLINE_SECONDS = 300;
+const API_TIMEOUT_MS = 20_000;
 const MAX_UINT128 = hre.ethers.BigNumber.from("0xffffffffffffffffffffffffffffffff");
 
 const VERSION_LABELS = ["V1", "V2", "V2_1", "V2_2"];
@@ -28,8 +34,13 @@ const ERC20_ABI = [
   "function balanceOf(address account) view returns (uint256)",
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)",
+];
+
+const CANDIDATE_ROUTES = [
+  [WAVAX, USDC],
+  [WAVAX, USDT, USDC],
+  [WAVAX, USDCE, USDC],
+  [WAVAX, WETH_E, USDC],
 ];
 
 function getShouldWrite(write) {
@@ -47,6 +58,153 @@ function parseAmount(amount) {
     return amount;
   }
   return hre.ethers.utils.parseUnits(String(amount), WAVAX_DECIMALS);
+}
+
+function slippageDecimal(slippageBps) {
+  return String(slippageBps / 10000);
+}
+
+async function httpGetJson(url) {
+  const fetch = (await import("node-fetch")).default;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+    }
+    return JSON.parse(text);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parseQuotedAmount(value) {
+  if (value === undefined || value === null || value === "") {
+    return hre.ethers.constants.Zero;
+  }
+  return hre.ethers.BigNumber.from(value.toString());
+}
+
+async function quoteFlyTrade({ amountIn, fromAddress, toAddress, slippageBps }) {
+  const params = new URLSearchParams({
+    network: "avalanche",
+    fromTokenAddress: WAVAX,
+    toTokenAddress: USDC,
+    sellAmount: amountIn.toString(),
+    fromAddress,
+    toAddress,
+    slippage: slippageDecimal(slippageBps),
+    gasless: "false",
+  });
+  const quote = await httpGetJson(`${FLY_API}/aggregator/quote?${params.toString()}`);
+  const amountOut = parseQuotedAmount(quote.amountOut);
+  if (amountOut.lte(0) || !quote.id || !quote.targetAddress) {
+    throw new Error("fly.trade returned an incomplete quote");
+  }
+  return {
+    aggregator: "flytrade",
+    amountOut,
+    spender: quote.targetAddress,
+    getSwapTx: async () => {
+      const tx = await httpGetJson(`${FLY_API}/aggregator/transaction?quoteId=${quote.id}&estimateGas=false`);
+      if (!tx || !tx.to || !tx.data) {
+        throw new Error("fly.trade did not return swap calldata");
+      }
+      return {
+        to: tx.to,
+        data: tx.data,
+        value: tx.value || 0,
+        gas: tx.gasLimit,
+      };
+    },
+  };
+}
+
+async function quoteLifi({ amountIn, fromAddress, slippageBps }) {
+  const params = new URLSearchParams({
+    fromChain: "43114",
+    toChain: "43114",
+    fromToken: WAVAX,
+    toToken: USDC,
+    fromAmount: amountIn.toString(),
+    fromAddress,
+    slippage: slippageDecimal(slippageBps),
+  });
+  const quote = await httpGetJson(`${LIFI_API}?${params.toString()}`);
+  const tx = quote.transactionRequest || {};
+  const amountOut = parseQuotedAmount(quote.estimate && quote.estimate.toAmount);
+  if (amountOut.lte(0) || !tx.to || !tx.data) {
+    throw new Error("LI.FI returned an incomplete quote");
+  }
+  return {
+    aggregator: `lifi:${quote.tool || "aggregator"}`,
+    amountOut,
+    spender: tx.to,
+    getSwapTx: async () => ({
+      to: tx.to,
+      data: tx.data,
+      value: tx.value || 0,
+      gas: tx.gasLimit || tx.gas,
+    }),
+  };
+}
+
+async function buildAggregatorTxRequest(wallet, swapTx) {
+  const txRequest = {
+    to: swapTx.to,
+    data: swapTx.data,
+    value: swapTx.value || 0,
+  };
+
+  let gasLimit;
+  try {
+    if (swapTx.gas != null && swapTx.gas !== "") {
+      const quotedGas = hre.ethers.BigNumber.from(swapTx.gas);
+      if (quotedGas.gt(0)) {
+        gasLimit = quotedGas;
+      }
+    }
+  } catch (error) {
+    console.log("aggregator gasLimit parse failed: %s", error.message);
+  }
+
+  if (!gasLimit) {
+    gasLimit = await wallet.estimateGas(txRequest);
+  }
+
+  txRequest.gasLimit = gasLimit.mul(120).div(100);
+  console.log("aggregator gasLimit: %s", txRequest.gasLimit.toString());
+  return txRequest;
+}
+
+async function quoteAggregators({ amountIn, fromAddress, toAddress, slippageBps }) {
+  const results = await Promise.allSettled([
+    quoteFlyTrade({ amountIn, fromAddress, toAddress, slippageBps }),
+    quoteLifi({ amountIn, fromAddress, slippageBps }),
+  ]);
+  const names = ["flytrade", "lifi"];
+  let best;
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status !== "fulfilled") {
+      console.log("%s quote failed: %s", names[i], result.reason && result.reason.message);
+      continue;
+    }
+    console.log(
+      "%s quoted out: %s USDC",
+      result.value.aggregator,
+      formatAmount(result.value.amountOut, USDC_DECIMALS, 6, true)
+    );
+    if (!best || result.value.amountOut.gt(best.amountOut)) {
+      best = result.value;
+    }
+  }
+  return best;
 }
 
 async function swapWavaxToUsdc({
@@ -82,18 +240,22 @@ async function swapWavaxToUsdc({
     throw new Error("WAVAX amount exceeds uint128 max for LFJ quoter");
   }
 
-  const quote = await quoter.findBestPathFromAmountIn([WAVAX, USDC], amountIn);
-  const amountOut = quote.amounts[quote.amounts.length - 1];
-  if (!quote.pairs.length || quote.pairs.some((pair) => pair === hre.ethers.constants.AddressZero) || amountOut.lte(0)) {
-    throw new Error("LFJ quoter did not find a WAVAX -> USDC path");
+  const [aggregatorQuote] = await Promise.all([
+    quoteAggregators({
+      amountIn,
+      fromAddress: wallet.address,
+      toAddress: to,
+      slippageBps,
+    }),
+    // quoteLbRouter(quoter, amountIn),
+  ]);
+
+  if (!aggregatorQuote ) {
+    throw new Error("no WAVAX -> USDC quote from aggregators");
   }
 
+  const amountOut = aggregatorQuote.amountOut;
   const amountOutMin = amountOut.mul(10000 - slippageBps).div(10000);
-  const path = {
-    pairBinSteps: quote.binSteps,
-    versions: quote.versions,
-    tokenPath: quote.route,
-  };
 
   console.log("network: %s", hre.network.name);
   console.log("signer: %s", wallet.address);
@@ -101,22 +263,14 @@ async function swapWavaxToUsdc({
   console.log("write: %s", shouldWrite);
   console.log("WAVAX: %s", WAVAX);
   console.log("USDC: %s", USDC);
-  console.log("LBRouter: %s", LFJ_LB_ROUTER);
-  console.log("LBQuoter: %s", LFJ_LB_QUOTER);
   console.log("WAVAX balance: %s", formatAmount(wavaxBalance, WAVAX_DECIMALS, 6, true));
   console.log("amount in: %s WAVAX", formatAmount(amountIn, WAVAX_DECIMALS, 6, true));
+  if (aggregatorQuote) {
+    console.log("best aggregator out: %s USDC (%s)", formatAmount(aggregatorQuote.amountOut, USDC_DECIMALS, 6, true), aggregatorQuote.aggregator);
+  }
+  console.log("selected: %s", aggregatorQuote.aggregator);
   console.log("quoted out: %s USDC", formatAmount(amountOut, USDC_DECIMALS, 6, true));
   console.log("min out (%s bps slippage): %s USDC", slippageBps, formatAmount(amountOutMin, USDC_DECIMALS, 6, true));
-  console.log("path: %s", quote.route.join(" -> "));
-  console.log("pairs: %s", quote.pairs.join(", "));
-  console.log(
-    "binSteps: %s",
-    quote.binSteps.map((binStep) => binStep.toString()).join(", ")
-  );
-  console.log(
-    "versions: %s",
-    quote.versions.map((version) => VERSION_LABELS[version] || version).join(", ")
-  );
 
   if (!shouldWrite) {
     console.log("skipping swap, set WRITE=true to send");
@@ -124,20 +278,20 @@ async function swapWavaxToUsdc({
       amountIn,
       amountOut,
       amountOutMin,
-      path,
+      aggregator: aggregatorQuote.aggregator,
+      path: undefined,
     };
   }
 
-  const allowance = await wavax.allowance(wallet.address, LFJ_LB_ROUTER);
+  const allowance = await wavax.allowance(wallet.address, aggregatorQuote.spender);
   if (allowance.lt(amountIn)) {
-    await sendTxn(wavax.approve(LFJ_LB_ROUTER, amountIn), "WAVAX.approve(LBRouter)");
+    await sendTxn(wavax.approve(aggregatorQuote.spender, amountIn), `WAVAX.approve(${aggregatorQuote.spender})`);
   }
 
-  const deadline = Math.floor(Date.now() / 1000) + DEADLINE_SECONDS;
-  await sendTxn(
-    router.swapExactTokensForTokens(amountIn, amountOutMin, path, to, deadline),
-    "LBRouter.swapExactTokensForTokens(WAVAX -> USDC)"
-  );
+  const swapTx = await aggregatorQuote.getSwapTx();
+  console.log("aggregator swap to: %s", swapTx.to);
+  const txRequest = await buildAggregatorTxRequest(wallet, swapTx);
+  await sendTxn(wallet.sendTransaction(txRequest), `${aggregatorQuote.aggregator} WAVAX -> USDC`);
 
   const wavaxBalanceAfter = await wavax.balanceOf(wallet.address);
   const usdcBalanceAfter = await usdc.balanceOf(to);
@@ -152,7 +306,8 @@ async function swapWavaxToUsdc({
     amountOut,
     amountOutMin,
     usdcReceived,
-    path,
+    aggregator: aggregatorQuote.aggregator,
+    path: undefined,
   };
 }
 

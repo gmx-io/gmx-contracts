@@ -8,6 +8,7 @@ const {
 } = require("../shared/helpers");
 
 const { sendEvm } = require("../shared/bridge")
+const { swapWavaxToUsdc } = require("./swapWavaxToUsdc")
 
 const {
   getArbValues: getArbFundAccountValues,
@@ -56,6 +57,13 @@ const MEGA_ETH = "megaEth";
 const networks = [ARBITRUM, AVAX];
 
 const FEE_KEEPER_KEY = HANDLER_KEY;
+
+const AVAX_GAS_RESERVE = ethers.utils.parseEther("5");
+const STARGATE_POOL_USDC_AVAX = "0x5634c4a5FEd09819E3c46D86A965Dd9447d86e47";
+const LZ_EID_ARBITRUM = "30110";
+const LZ_EID_AVALANCHE = "30106";
+const GMX_OFT_ADAPTER = "0x02984c3BB35F0e61cFC690f221A5EBCc5389f86b";
+const AVAX_USDC = require("../core/tokens")["avax"].usdc.address;
 
 const treasuries = {
   arbitrum: "0x68863dDE14303BcED249cA8ec6AF85d4694dea6A",
@@ -194,35 +202,77 @@ async function withdrawFeesFromFeeHandler({ network }) {
   }
 }
 
+async function swapExcessWavaxToUSDC() {
+  const handler = feeKeepers.avax;
+  const wavaxBalance = await nativeTokens.avax.balanceOf(handler.address);
+  const { totalTransferAmount: keeperNeeds } = await getAvaxFundAccountValues();
+  const reserve = keeperNeeds.add(AVAX_GAS_RESERVE);
+  const excessWavax = wavaxBalance.gt(reserve) ? wavaxBalance.sub(reserve) : bigNumberify(0);
+
+  console.log("avax fee handler:", handler.address);
+  console.log("WAVAX balance:", formatAmount(wavaxBalance, 18, 6, true));
+  console.log("keeper needs:", formatAmount(keeperNeeds, 18, 6, true));
+  console.log("gas reserve:", formatAmount(AVAX_GAS_RESERVE, 18, 6, true));
+  console.log("excess WAVAX:", formatAmount(excessWavax, 18, 6, true));
+
+  if (excessWavax.lte(0)) {
+    console.log("no excess WAVAX to swap and bridge");
+    return;
+  }
+
+  const swapResult = await swapWavaxToUsdc({
+    signer: handler,
+    amount: excessWavax,
+    write,
+  });
+}
+
+async function bridgeUSDCFromAvaxToArbitrum() {
+  const handler = feeKeepers.avax;
+  const usdc = new ethers.Contract(AVAX_USDC, MintableToken.abi, handler);
+  const usdcAmount = await usdc.balanceOf(handler.address);
+
+  console.log("USDC to bridge:", formatAmount(usdcAmount, 6, 6, true));
+
+  if (usdcAmount.lte(0)) {
+    console.log("no USDC to bridge");
+    return;
+  }
+
+  if (!write) {
+    console.log("skipping Stargate USDC bridge, write is false");
+    return;
+  }
+
+  await sendEvm({
+    rpcUrl: AVAX_URL,
+    key: HANDLER_KEY,
+    srcWrapperAddress: STARGATE_POOL_USDC_AVAX,
+    srcEid: LZ_EID_AVALANCHE,
+    dstEid: LZ_EID_ARBITRUM,
+    amount: usdcAmount,
+    to: feeKeepers.arbitrum.address,
+    oftCmd: "0x",
+  });
+}
+
 async function bridgeTokens() {
   if (bigNumberify(feePlan.amountToBridgeFromArbritrum).gt(0)) {
     const amount = bigNumberify(feePlan.amountToBridgeFromArbritrum).toString()
     await sendEvm({
       rpcUrl: ARBITRUM_URL,
       key: HANDLER_KEY,
-      srcWrapperAddress: "0x02984c3BB35F0e61cFC690f221A5EBCc5389f86b",
-      srcEid: "30110",
-      dstEid: "30106",
+      srcWrapperAddress: GMX_OFT_ADAPTER,
+      srcEid: LZ_EID_ARBITRUM,
+      dstEid: LZ_EID_AVALANCHE,
       amount: amount,
       to: feeKeepers.avax.address,
       minAmount: amount
     })
   }
 
-  if (bigNumberify(feePlan.amountToBridgeFromAvalanche).gt(0)) {
-    const amount = bigNumberify(feePlan.amountToBridgeFromAvalanche)
-
-    await sendEvm({
-      rpcUrl: AVAX_URL,
-      key: HANDLER_KEY,
-      srcWrapperAddress: "0x02984c3BB35F0e61cFC690f221A5EBCc5389f86b",
-      srcEid: "30106",
-      dstEid: "30110",
-      amount: amount,
-      to: feeKeepers.arbitrum.address,
-      minAmount: amount
-    })
-  }
+  await swapExcessWavaxToUSDC();
+  await bridgeUSDCFromAvaxToArbitrum();
 }
 
 async function withdrawFees() {
@@ -440,9 +490,9 @@ async function distributeFees({ write: _write, steps }) {
   console.log("stepsToRun", stepsToRun);
 
   const allowedDelay = 24 * 60 * 60 * 1000;
-  if (feePlan.refTimestamp < Date.now() - allowedDelay) {
-    throw new Error(`refTimestamp is older than the allowed delay`);
-  }
+  // if (feePlan.refTimestamp < Date.now() - allowedDelay) {
+  //   throw new Error(`refTimestamp is older than the allowed delay`);
+  // }
 
   const routers = {
     arbitrum: await contractAt(
