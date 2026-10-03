@@ -317,6 +317,7 @@ async function fundAccountsForNetwork({ network, fundAccountValues }) {
         handler.sendTransaction({
           to: transferItem.address,
           value: transferItem.amount,
+          gasLimit: 50_000,
         }),
         `${formatAmount(transferItem.amount, 18, 2)} ${gasToken} to ${
           transferItem.address
