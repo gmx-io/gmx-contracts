@@ -29,6 +29,7 @@
     "typechain": "^5.1.2"
   },
   "dependencies": {
+    "@gmx-io/ethers-kms-signer": "^1.0.2",
     "@layerzerolabs/devtools": "~0.4.8",
     "@layerzerolabs/lz-v2-utilities": "^3.0.86",
     "@layerzerolabs/metadata-tools": "^0.4.1",
