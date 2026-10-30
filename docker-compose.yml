@@ -1,0 +1,9 @@
+services:
+  fee-process:
+    build: .
+    image: gmx-fee-process
+    restart: "no"
+    volumes:
+      - ./env.json:/app/env.json:ro
+      - ./keys:/app/keys:ro
+      - .:/host
