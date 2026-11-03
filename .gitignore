@@ -2,6 +2,7 @@ node_modules/
 .vscode
 typechain/
 env.json
+.env
 .tmp-addresses*.json
 data/gmxMigration
 data/esGmxDistribution
@@ -17,6 +18,8 @@ distribution-data*.json
 es-gmx-referral-data*.json
 fee-reference.json
 fee-plan.json
+fee-steps.json
+fee-state/
 uniswap-fee-reference.json
 keys
 tmp

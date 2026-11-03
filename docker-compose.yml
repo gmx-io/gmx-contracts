@@ -1,0 +1,12 @@
+services:
+  fee-process:
+    build: .
+    image: gmx-fee-process
+    restart: unless-stopped
+    environment:
+      CRON_SCHEDULE: ${CRON_SCHEDULE:-}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ./env.json:/app/env.json:ro
+      - ./keys:/app/keys:ro
+      - ./fee-state:/state
