@@ -6,7 +6,10 @@ artifacts
 artifacts-v2/build-info
 typechain
 env.json
+.env
+.env.*
 keys
+fee-state
 fee-plan.json
 fee-steps.json
 fee-reference.json

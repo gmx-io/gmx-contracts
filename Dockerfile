@@ -24,7 +24,7 @@ ARG TARGETARCH
 ARG SUPERCRONIC_VERSION=v0.2.51
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl tzdata \
+  && apt-get install -y --no-install-recommends ca-certificates curl tzdata util-linux \
   && case "$TARGETARCH" in \
        amd64) SUPERCRONIC_SHA1SUM=1692066e350a88ff4d7d6474fe3c7a6c41ec5e89 ;; \
        arm64) SUPERCRONIC_SHA1SUM=9d4c2000493215a1898502b2fc2dada3e8ea8c7a ;; \

@@ -18,12 +18,14 @@ if [ ! -f keys/credentials.json ]; then
   exit 1
 fi
 
-# fee-plan.json and fee-steps.json are written by the fee process.
-# Keep them on the host when /host is mounted.
-if [ -d /host ]; then
-  ln -sfn /host/fee-plan.json /app/fee-plan.json
-  ln -sfn /host/fee-steps.json /app/fee-steps.json
+if [ ! -d /state ] || [ ! -w /state ]; then
+  echo "A writable state directory is required. Mount it at /state." >&2
+  exit 1
 fi
+
+# Persist fee state without exposing the repository or credentials for writing.
+ln -sfn /state/fee-plan.json /app/fee-plan.json
+ln -sfn /state/fee-steps.json /app/fee-steps.json
 
 crontab=/etc/fee-process.crontab
 printf '%s\n' "$CRON_SCHEDULE /app/docker/run-fee-process.sh" > "$crontab"

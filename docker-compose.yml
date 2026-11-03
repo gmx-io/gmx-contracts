@@ -9,4 +9,4 @@ services:
     volumes:
       - ./env.json:/app/env.json:ro
       - ./keys:/app/keys:ro
-      - .:/host
+      - ./fee-state:/state

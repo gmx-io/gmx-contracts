@@ -19,6 +19,7 @@ es-gmx-referral-data*.json
 fee-reference.json
 fee-plan.json
 fee-steps.json
+fee-state/
 uniswap-fee-reference.json
 keys
 tmp
