@@ -8,6 +8,7 @@ const {
 } = require("../shared/helpers");
 
 const { sendEvm } = require("../shared/bridge")
+const { KmsSigner } = require("../shared/kmsSigner")
 const { swapWavaxToUsdc } = require("./swapWavaxToUsdc")
 
 const {
@@ -57,6 +58,8 @@ const MEGA_ETH = "megaEth";
 const networks = [ARBITRUM, AVAX];
 
 const FEE_KEEPER_KEY = HANDLER_KEY;
+// full KMS key version name: when set, the fee keeper signs with that KMS key instead of HANDLER_KEY
+const FEE_KEEPER_KMS_KEY = process.env.FEE_KEEPER_KMS_KEY;
 
 const AVAX_GAS_RESERVE = ethers.utils.parseEther("5");
 const STARGATE_POOL_USDC_AVAX = "0x5634c4a5FEd09819E3c46D86A965Dd9447d86e47";
@@ -80,9 +83,16 @@ const providers = {
   avax: new ethers.providers.JsonRpcProvider(AVAX_URL),
 };
 
+function createFeeKeeper(provider) {
+  if (FEE_KEEPER_KMS_KEY) {
+    return new KmsSigner(FEE_KEEPER_KMS_KEY, provider);
+  }
+  return new ethers.Wallet(FEE_KEEPER_KEY).connect(provider);
+}
+
 const feeKeepers = {
-  arbitrum: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.arbitrum),
-  avax: new ethers.Wallet(FEE_KEEPER_KEY).connect(providers.avax),
+  arbitrum: createFeeKeeper(providers.arbitrum),
+  avax: createFeeKeeper(providers.avax),
 };
 
 const nativeTokens = {
@@ -188,6 +198,21 @@ async function printFeeHandlerBalances() {
 
 async function withdrawFeesFromFeeHandler({ network }) {
   const feeHandler = feeHandlers[network];
+  const nativeTokenAddress = nativeTokens[network].address;
+
+  const encode = (types, values) => ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
+  const feeReceiver = await dataStores[network].getAddress(encode(["string"], ["FEE_RECEIVER"]));
+  const withdrawableAmount = await dataStores[network].getUint(
+    encode(["bytes32", "address"], [encode(["string"], ["WITHDRAWABLE_BUYBACK_TOKEN_AMOUNT"]), nativeTokenAddress])
+  );
+  console.log(`${network}: withdrawable ${formatAmount(withdrawableAmount, 18, 6, true)} native token to FEE_RECEIVER ${feeReceiver}`);
+
+  if (!write) {
+    const from = await feeKeepers[network].getAddress();
+    await feeHandler.callStatic.withdrawFees(nativeTokenAddress, { from });
+    const gasLimit = await feeHandler.estimateGas.withdrawFees(nativeTokenAddress, { from });
+    console.log(`${network}: dry run: feeHandler.withdrawFees(${nativeTokenAddress}) from ${from} succeeds, gas ${gasLimit.toString()}`);
+  }
 
   if (write) {
     // GMX rewards are not accrued
@@ -490,6 +515,13 @@ async function distributeFees({ write: _write, steps }) {
   const stepsToRun = steps.split(",");
   console.log("stepsToRun", stepsToRun);
 
+  for (const network of networks) {
+    if (feeKeepers[network].init) {
+      await feeKeepers[network].init();
+    }
+    console.log(`${network} fee keeper: ${feeKeepers[network].address}${FEE_KEEPER_KMS_KEY ? " (KMS)" : ""}, write: ${write}`);
+  }
+
   const allowedDelay = 24 * 60 * 60 * 1000;
   // if (feePlan.refTimestamp < Date.now() - allowedDelay) {
   //   throw new Error(`refTimestamp is older than the allowed delay`);
@@ -512,8 +544,10 @@ async function distributeFees({ write: _write, steps }) {
   if (shouldRunFeeStep(steps, 1)) {
     await withdrawFees();
     await printFeeHandlerBalances();
-    saveFeeStep(1)
-    await sendPushMessage("Step 1: Fees withdrawn")
+    if (write) {
+      saveFeeStep(1)
+      await sendPushMessage("Step 1: Fees withdrawn")
+    }
   }
 
   if (shouldRunFeeStep(steps, 2)) {
@@ -549,7 +583,9 @@ async function distributeFees({ write: _write, steps }) {
     await sendPushMessage("Step 6: Payments sent")
   }
 
-  await sendPushMessage("Fee distribution completed")
+  if (write) {
+    await sendPushMessage("Fee distribution completed")
+  }
 }
 
 module.exports = { distributeFees };
